@@ -1,27 +1,26 @@
-import { Shield, Eye, Bell, FileText } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 
 const features = [
   {
-    icon: Shield,
+    image: "/src/assets/Audit Checklist_ Stay Ready, Stay Calm.jpg",
     title: "Secure Member Records",
     description:
       "Keep all member data safe and organized with role-based access controls and audit trails.",
   },
   {
-    icon: Eye,
+    image: "/src/assets/Budgeting Google Sheet.jpg",
     title: "Transparent Loan Tracking",
     description:
       "Every loan application, approval, and repayment is visible to authorized members in real time.",
   },
   {
-    icon: Bell,
+    image: "/src/assets/RBI fines ICICI Bank, Kotak Mahindra Bank for defaulting in fraud reporting, loan recovery rules.jpg",
     title: "Automated Penalties & Notifications",
     description:
       "Set rules once — the system tracks missed payments and notifies members automatically.",
   },
   {
-    icon: FileText,
+    image: "/src/assets/Financial report.png",
     title: "Audit-Ready Financial Reports",
     description:
       "Generate monthly and yearly reports with a click. Perfect for auditors and compliance.",
@@ -29,6 +28,7 @@ const features = [
 ];
 
 const Features = () => {
+  const track = [...features, ...features];
   return (
     <section id="features" className="bg-background py-20 lg:py-28">
       <div className="container mx-auto px-4 lg:px-8">
@@ -41,26 +41,32 @@ const Features = () => {
           </p>
         </div>
 
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {features.map((feature, i) => (
-            <Card
-              key={feature.title}
-              className="group border-0 shadow-card transition-all duration-300 hover:shadow-elevated hover:-translate-y-1 bg-gradient-card animate-fade-in opacity-0"
-              style={{ animationDelay: `${i * 100}ms` }}
-            >
-              <CardContent className="p-6">
-                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-secondary text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
-                  <feature.icon className="h-6 w-6" />
+        <div className="overflow-hidden">
+          <div className="flex w-max gap-6 animate-feature-marquee">
+            {track.map((feature, i) => (
+              <Card
+                key={`${feature.title}-${i}`}
+                className="group w-[340px] border-0 shadow-card transition-all duration-300 hover:shadow-elevated hover:-translate-y-1 bg-gradient-card"
+              >
+                <div className="relative h-44 w-full overflow-hidden rounded-t-xl">
+                  <img
+                    src={feature.image}
+                    alt={feature.title}
+                    className="h-full w-full object-cover"
+                    loading="lazy"
+                  />
                 </div>
-                <h3 className="mb-2 text-lg font-semibold text-foreground">
-                  {feature.title}
-                </h3>
-                <p className="text-sm leading-relaxed text-muted-foreground">
-                  {feature.description}
-                </p>
-              </CardContent>
-            </Card>
-          ))}
+                <CardContent className="p-6">
+                  <h3 className="mb-2 text-lg font-semibold text-foreground">
+                    {feature.title}
+                  </h3>
+                  <p className="text-sm leading-relaxed text-muted-foreground">
+                    {feature.description}
+                  </p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </div>
       </div>
     </section>

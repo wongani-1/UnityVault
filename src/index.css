@@ -144,4 +144,45 @@
   .bg-gradient-card {
     background: var(--gradient-card);
   }
+
+  .animate-feature-marquee {
+    animation: feature-marquee 28s linear infinite;
+  }
+
+  @keyframes feature-marquee {
+    0% {
+      transform: translateX(0);
+    }
+    100% {
+      transform: translateX(-50%);
+    }
+  }
+
+  .reveal {
+    opacity: 0;
+    transform: translateX(var(--reveal-x, 0));
+    transition: opacity 600ms ease, transform 600ms ease;
+    will-change: opacity, transform;
+  }
+
+  .reveal-left {
+    --reveal-x: -48px;
+  }
+
+  .reveal-right {
+    --reveal-x: 48px;
+  }
+
+  .reveal.in-view {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .reveal {
+      transition: none;
+      transform: none;
+      opacity: 1;
+    }
+  }
 }

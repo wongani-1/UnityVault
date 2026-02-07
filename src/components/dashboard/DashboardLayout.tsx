@@ -76,7 +76,7 @@ const DashboardLayout = ({
     <>
       {/* Logo */}
       <div className="flex h-16 items-center gap-2 border-b px-6">
-        <img src="/favicon.svg" alt="UnityVault" className="h-8 w-8 rounded-lg" />
+        <img src="/Unity Vault.png" alt="UnityVault" className="h-8 w-8" />
         <span className="text-lg font-bold">
           <span className="bg-gradient-to-r from-blue-500 to-green-500 bg-clip-text text-transparent">
             UnityVault

@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Users, UserPlus, TrendingUp, BarChart3 } from "lucide-react";
 
 const steps = [
@@ -28,6 +29,27 @@ const steps = [
 ];
 
 const HowItWorks = () => {
+  useEffect(() => {
+    const items = Array.from(document.querySelectorAll<HTMLElement>("[data-reveal]"));
+    if (items.length === 0) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("in-view");
+          } else {
+            entry.target.classList.remove("in-view");
+          }
+        });
+      },
+      { threshold: 0.2 },
+    );
+
+    items.forEach((item) => observer.observe(item));
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <section id="how-it-works" className="bg-secondary/50 py-20 lg:py-28">
       <div className="container mx-auto px-4 lg:px-8">
@@ -48,10 +70,11 @@ const HowItWorks = () => {
             {steps.map((step, i) => (
               <div
                 key={step.step}
-                className={`relative flex items-start gap-6 lg:gap-12 animate-fade-in opacity-0 ${
+                data-reveal
+                className={`reveal ${i % 2 === 1 ? "reveal-right" : "reveal-left"} relative flex items-start gap-6 lg:gap-12 ${
                   i % 2 === 1 ? "lg:flex-row-reverse lg:text-right" : ""
                 }`}
-                style={{ animationDelay: `${i * 150}ms` }}
+                style={{ transitionDelay: `${i * 120}ms` }}
               >
                 {/* Step indicator */}
                 <div className="relative z-10 flex-shrink-0 lg:absolute lg:left-1/2 lg:-translate-x-1/2">
