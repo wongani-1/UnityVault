@@ -7,6 +7,8 @@ import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import RegisterSuccess from "./pages/RegisterSuccess";
+import AdminGroupSetup from "./pages/AdminGroupSetup";
+import MemberRegistrationPayment from "./pages/MemberRegistrationPayment";
 import MemberDashboard from "./pages/MemberDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import NotFound from "./pages/NotFound";
@@ -24,6 +26,8 @@ const App = () => (
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/register/success" element={<RegisterSuccess />} />
+          <Route path="/admin/group-rules" element={<AdminGroupSetup />} />
+          <Route path="/member/registration-fee" element={<MemberRegistrationPayment />} />
           <Route path="/dashboard" element={<MemberDashboard />} />
           <Route path="/admin" element={<AdminDashboard />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

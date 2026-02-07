@@ -56,6 +56,16 @@ const Register = () => {
     }
 
     const groupId = generateGroupId();
+    localStorage.setItem(
+      "unityvault:adminGroup",
+      JSON.stringify({
+        groupId,
+        groupName: form.groupName,
+        adminName: `${form.adminFirstName} ${form.adminSurname}`.trim(),
+        adminEmail: form.adminEmail,
+        adminPhone: form.adminPhone,
+      }),
+    );
     navigate("/register/success", {
       state: {
         groupId,

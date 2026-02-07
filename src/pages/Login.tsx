@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Phone, Mail, ArrowLeft, Shield, Lock, Hash, User } from "lucide-react";
 
 const Login = () => {
+  const navigate = useNavigate();
   const [memberLogin, setMemberLogin] = useState({ identifier: "", password: "" });
   const [adminLogin, setAdminLogin] = useState({ groupId: "", username: "", password: "" });
   const [memberError, setMemberError] = useState<string | null>(null);
@@ -25,6 +26,9 @@ const Login = () => {
       (value) => value.trim().length === 0,
     );
     setAdminError(hasEmpty ? "All fields are required." : null);
+    if (!hasEmpty) {
+      navigate("/admin");
+    }
   };
 
   return (
@@ -46,7 +50,7 @@ const Login = () => {
             <img
               src="/Unity Vault.png"
               alt="UnityVault"
-              className="mx-auto mb-2 h-12 w-12 rounded-none"
+              className="mx-auto mb-2 h-12 w-12 rounded-lg"
             />
             <CardTitle className="text-2xl">Welcome...</CardTitle>
             <CardDescription>Sign in to your UnityVault account</CardDescription>

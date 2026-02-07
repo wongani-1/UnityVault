@@ -26,6 +26,7 @@ interface DashboardLayoutProps {
   isAdmin?: boolean;
   groupId?: string;
   groupName?: string;
+  userName?: string;
 }
 
 const memberNav = [
@@ -50,11 +51,20 @@ const DashboardLayout = ({
   isAdmin = false,
   groupId = "GB-8F3K2",
   groupName = "Umoja Savings Group",
+  userName,
 }: DashboardLayoutProps) => {
   const location = useLocation();
   const nav = isAdmin ? adminNav : memberNav;
   const [mobileOpen, setMobileOpen] = useState(false);
   const [copiedId, setCopiedId] = useState(false);
+
+  const displayName = userName || "John Doe";
+  const initials = displayName
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("") || "JD";
 
   const handleCopyGroupId = () => {
     navigator.clipboard.writeText(groupId);
@@ -66,10 +76,12 @@ const DashboardLayout = ({
     <>
       {/* Logo */}
       <div className="flex h-16 items-center gap-2 border-b px-6">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-primary">
-          <span className="text-sm font-bold text-primary-foreground">G</span>
-        </div>
-        <span className="text-lg font-bold text-foreground">GroupFund</span>
+        <img src="/favicon.svg" alt="UnityVault" className="h-8 w-8 rounded-lg" />
+        <span className="text-lg font-bold">
+          <span className="bg-gradient-to-r from-blue-500 to-green-500 bg-clip-text text-transparent">
+            UnityVault
+          </span>
+        </span>
       </div>
 
       {/* Group Badge */}
@@ -128,10 +140,10 @@ const DashboardLayout = ({
       <div className="border-t p-4">
         <div className="mb-3 flex items-center gap-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary text-sm font-semibold text-secondary-foreground">
-            JD
+            {initials}
           </div>
           <div className="flex-1 overflow-hidden">
-            <p className="truncate text-sm font-medium text-foreground">John Doe</p>
+            <p className="truncate text-sm font-medium text-foreground">{displayName}</p>
             <p className="truncate text-xs text-muted-foreground">
               {isAdmin ? "Group Admin" : "Member"}
             </p>
@@ -198,7 +210,7 @@ const DashboardLayout = ({
               </span>
             </Button>
             <div className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary text-sm font-semibold text-secondary-foreground lg:hidden">
-              JD
+              {initials}
             </div>
           </div>
         </header>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import SummaryCard from "@/components/dashboard/SummaryCard";
 import { Button } from "@/components/ui/button";
@@ -33,29 +33,63 @@ import {
 } from "lucide-react";
 
 const members = [
-  { name: "Alice Namukasa", phone: "+256 701 234 567", status: "Active", contributions: "UGX 300,000", loans: "UGX 0", joined: "2025-01-15" },
-  { name: "Robert Ochieng", phone: "+256 702 345 678", status: "Active", contributions: "UGX 250,000", loans: "UGX 100,000", joined: "2025-01-20" },
-  { name: "Grace Atim", phone: "+256 703 456 789", status: "Pending", contributions: "UGX 0", loans: "UGX 0", joined: "2026-02-01" },
-  { name: "David Mukiibi", phone: "+256 704 567 890", status: "Active", contributions: "UGX 200,000", loans: "UGX 50,000", joined: "2025-02-10" },
-  { name: "Faith Nabukeera", phone: "+256 705 678 901", status: "Active", contributions: "UGX 280,000", loans: "UGX 0", joined: "2025-01-18" },
+  { name: "Alice Namukasa", phone: "+256 701 234 567", status: "Active", contributions: "MWK 300,000", loans: "MWK 0", joined: "2025-01-15" },
+  { name: "Robert Ochieng", phone: "+256 702 345 678", status: "Active", contributions: "MWK 250,000", loans: "MWK 100,000", joined: "2025-01-20" },
+  { name: "Grace Atim", phone: "+256 703 456 789", status: "Pending", contributions: "MWK 0", loans: "MWK 0", joined: "2026-02-01" },
+  { name: "David Mukiibi", phone: "+256 704 567 890", status: "Active", contributions: "MWK 200,000", loans: "MWK 50,000", joined: "2025-02-10" },
+  { name: "Faith Nabukeera", phone: "+256 705 678 901", status: "Active", contributions: "MWK 280,000", loans: "MWK 0", joined: "2025-01-18" },
 ];
 
 const loanRequests = [
-  { member: "Robert Ochieng", amount: "UGX 300,000", purpose: "School fees", date: "2026-02-03", status: "Pending" },
-  { member: "Alice Namukasa", amount: "UGX 150,000", purpose: "Medical", date: "2026-01-28", status: "Approved" },
-  { member: "David Mukiibi", amount: "UGX 200,000", purpose: "Business stock", date: "2026-01-15", status: "Disbursed" },
+  { member: "Robert Ochieng", amount: "MWK 300,000", purpose: "School fees", date: "2026-02-03", status: "Pending" },
+  { member: "Alice Namukasa", amount: "MWK 150,000", purpose: "Medical", date: "2026-01-28", status: "Approved" },
+  { member: "David Mukiibi", amount: "MWK 200,000", purpose: "Business stock", date: "2026-01-15", status: "Disbursed" },
 ];
 
 const missedPayments = [
-  { member: "Robert Ochieng", type: "Contribution", amount: "UGX 50,000", dueDate: "2026-01-01", penalty: "UGX 5,000" },
-  { member: "David Mukiibi", type: "Loan Repayment", amount: "UGX 40,000", dueDate: "2026-01-15", penalty: "UGX 2,000" },
+  { member: "Robert Ochieng", type: "Contribution", amount: "MWK 50,000", dueDate: "2026-01-01", penalty: "MWK 5,000" },
+  { member: "David Mukiibi", type: "Loan Repayment", amount: "MWK 40,000", dueDate: "2026-01-15", penalty: "MWK 2,000" },
 ];
 
 const AdminDashboard = () => {
   const [copiedLink, setCopiedLink] = useState(false);
 
+  const storedGroup = useMemo(() => {
+    try {
+      const raw = localStorage.getItem("unityvault:adminGroup");
+      return raw
+        ? (JSON.parse(raw) as { groupId?: string; groupName?: string; adminName?: string })
+        : {};
+    } catch {
+      return {};
+    }
+  }, []);
+
+  const storedRules = useMemo(() => {
+    try {
+      const raw = localStorage.getItem("unityvault:groupRules");
+      return raw
+        ? (JSON.parse(raw) as {
+            shareFee?: string;
+            monthlyContribution?: string;
+            initialLoanAmount?: string;
+            loanInterestPercent?: string;
+            penaltyMonthlyMiss?: string;
+            penaltyLoanMiss?: string;
+            seedAmount?: string;
+          })
+        : {};
+    } catch {
+      return {};
+    }
+  }, []);
+
+  const groupName = storedGroup.groupName || "Your Group";
+  const groupId = storedGroup.groupId || "GB-XXXXXX";
+  const adminName = storedGroup.adminName || "Group Admin";
+
   const handleCopyInvite = () => {
-    navigator.clipboard.writeText("https://groupfund.app/join/GB-8F3K2");
+    navigator.clipboard.writeText(`https://unityvault.app/join/${groupId}`);
     setCopiedLink(true);
     setTimeout(() => setCopiedLink(false), 2000);
   };
@@ -63,10 +97,11 @@ const AdminDashboard = () => {
   return (
     <DashboardLayout
       title="Group Admin"
-      subtitle="Manage your group"
+      subtitle={`Manage ${groupName}`}
       isAdmin
-      groupId="GB-8F3K2"
-      groupName="Umoja Savings Group"
+      groupId={groupId}
+      groupName={groupName}
+      userName={adminName}
     >
       {/* Group Info Banner */}
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-xl border border-primary/20 bg-primary/5 p-4">
@@ -75,8 +110,8 @@ const AdminDashboard = () => {
             <Shield className="h-5 w-5 text-primary" />
           </div>
           <div>
-            <p className="text-sm font-semibold text-foreground">Umoja Savings Group</p>
-            <p className="font-mono text-xs tracking-wider text-muted-foreground">GB-8F3K2</p>
+            <p className="text-sm font-semibold text-foreground">{groupName}</p>
+            <p className="font-mono text-xs tracking-wider text-muted-foreground">{groupId}</p>
           </div>
         </div>
         <Button variant="outline" size="sm" onClick={handleCopyInvite}>
@@ -346,9 +381,25 @@ const AdminDashboard = () => {
               </CardHeader>
               <CardContent className="space-y-4">
                 {[
-                  { label: "Monthly Amount", desc: "Required contribution per member", val: "UGX 50,000" },
-                  { label: "Due Date", desc: "Monthly payment deadline", val: "1st of month" },
-                  { label: "Grace Period", desc: "Days after due date", val: "7 days" },
+                  {
+                    label: "Share Fee",
+                    desc: "One-time fee per member",
+                    val: storedRules.shareFee ? `MWK ${storedRules.shareFee}` : "Not set",
+                  },
+                  {
+                    label: "Monthly Contribution",
+                    desc: "Required contribution per member",
+                    val: storedRules.monthlyContribution
+                      ? `MWK ${storedRules.monthlyContribution}`
+                      : "Not set",
+                  },
+                  {
+                    label: "Initial Loan Amount",
+                    desc: "Default loan cap for new members",
+                    val: storedRules.initialLoanAmount
+                      ? `MWK ${storedRules.initialLoanAmount}`
+                      : "Not set",
+                  },
                 ].map((rule) => (
                   <div key={rule.label} className="flex items-center justify-between rounded-lg bg-muted/50 p-3">
                     <div>
@@ -373,9 +424,27 @@ const AdminDashboard = () => {
               </CardHeader>
               <CardContent className="space-y-4">
                 {[
-                  { label: "Late Payment", desc: "After grace period expires", val: "UGX 5,000" },
-                  { label: "Missed Meeting", desc: "Per unexcused absence", val: "UGX 2,000" },
-                  { label: "Loan Default", desc: "Per month overdue", val: "5% of balance" },
+                  {
+                    label: "Missed Contribution",
+                    desc: "Applied when a contribution is late",
+                    val: storedRules.penaltyMonthlyMiss
+                      ? `MWK ${storedRules.penaltyMonthlyMiss}`
+                      : "Not set",
+                  },
+                  {
+                    label: "Missed Loan Payment",
+                    desc: "Applied when loan repayment is late",
+                    val: storedRules.penaltyLoanMiss
+                      ? `MWK ${storedRules.penaltyLoanMiss}`
+                      : "Not set",
+                  },
+                  {
+                    label: "Loan Interest",
+                    desc: "Monthly interest rate",
+                    val: storedRules.loanInterestPercent
+                      ? `${storedRules.loanInterestPercent}%`
+                      : "Not set",
+                  },
                 ].map((rule) => (
                   <div key={rule.label} className="flex items-center justify-between rounded-lg bg-muted/50 p-3">
                     <div>

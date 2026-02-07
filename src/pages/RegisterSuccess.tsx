@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { CheckCircle, Copy, Check, Shield, ArrowLeft } from "lucide-react";
@@ -22,10 +22,18 @@ type SuccessState = {
 
 const RegisterSuccess = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const state = (location.state as SuccessState) || {};
   const [copied, setCopied] = useState(false);
 
   const groupId = useMemo(() => state.groupId ?? generateGroupId(), [state.groupId]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      navigate("/admin/group-rules");
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [navigate]);
 
   const handleCopyGroupId = () => {
     navigator.clipboard.writeText(groupId);
@@ -95,14 +103,18 @@ const RegisterSuccess = () => {
               </p>
             )}
 
-            <div className="flex flex-col gap-3 sm:flex-row">
+            <p className="text-center text-xs text-muted-foreground">
+              Redirecting to set your group rules...
+            </p>
+
+            <div className="flex flex-col gap-3">
               <Link to="/login" className="w-full">
-                <Button variant="hero" size="lg" className="w-full">
+                <Button variant="outline" size="lg" className="w-full">
                   Go to Admin Login
                 </Button>
               </Link>
               <Link to="/" className="w-full">
-                <Button variant="outline" size="lg" className="w-full">
+                <Button variant="ghost" size="lg" className="w-full">
                   Back to Home
                 </Button>
               </Link>
