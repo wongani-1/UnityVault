@@ -19,6 +19,9 @@ const Login = () => {
       (value) => value.trim().length === 0,
     );
     setMemberError(hasEmpty ? "All fields are required." : null);
+    if (!hasEmpty) {
+      navigate("/dashboard");
+    }
   };
 
   const handleAdminLogin = () => {

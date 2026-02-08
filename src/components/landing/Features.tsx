@@ -68,6 +68,17 @@ const Features = () => {
             ))}
           </div>
         </div>
+
+        <div className="mt-10 flex items-center justify-center gap-4">
+          <span className="text-sm font-medium text-muted-foreground">Powered by</span>
+          <span className="h-6 w-px bg-border" aria-hidden="true" />
+          <img
+            src="/DevStudios.png"
+            alt="DevStudios logo"
+            className="h-40 w-auto opacity-95"
+            loading="lazy"
+          />
+        </div>
       </div>
     </section>
   );

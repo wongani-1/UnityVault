@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import SummaryCard from "@/components/dashboard/SummaryCard";
 import { Button } from "@/components/ui/button";
@@ -91,10 +92,12 @@ const MemberDashboard = () => {
 
       {/* Quick Actions */}
       <div className="mb-8 flex flex-wrap gap-3">
-        <Button variant="hero" size="lg">
-          <Plus className="mr-2 h-4 w-4" />
-          Pay Contribution
-        </Button>
+        <Link to="/member/pay-contribution">
+          <Button variant="hero" size="lg">
+            <Plus className="mr-2 h-4 w-4" />
+            Pay Contribution
+          </Button>
+        </Link>
         <Button variant="hero-outline" size="lg">
           <HandCoins className="mr-2 h-4 w-4" />
           Apply for Loan
