@@ -46,9 +46,9 @@ const Features = () => {
             {track.map((feature, i) => (
               <Card
                 key={`${feature.title}-${i}`}
-                className="group w-[340px] border-0 shadow-card transition-all duration-300 hover:shadow-elevated hover:-translate-y-1 bg-gradient-card"
+                className="group w-[420px] border-0 shadow-card transition-all duration-300 hover:shadow-elevated hover:-translate-y-1 bg-gradient-card"
               >
-                <div className="relative h-44 w-full overflow-hidden rounded-t-xl">
+                <div className="relative h-56 w-full overflow-hidden rounded-t-xl">
                   <img
                     src={feature.image}
                     alt={feature.title}
