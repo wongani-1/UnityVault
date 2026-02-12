@@ -38,9 +38,21 @@ const Footer = () => {
           <div>
             <h4 className="mb-3 text-sm font-semibold text-foreground">Support</h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
-              <li><a href="#" className="transition-colors hover:text-foreground">Help Center</a></li>
-              <li><a href="#" className="transition-colors hover:text-foreground">Contact Us</a></li>
-              <li><a href="#" className="transition-colors hover:text-foreground">FAQs</a></li>
+              <li>
+                <Link to="/help" className="transition-colors hover:text-foreground">
+                  Help Center
+                </Link>
+              </li>
+              <li>
+                <Link to="/contact" className="transition-colors hover:text-foreground">
+                  Contact Us
+                </Link>
+              </li>
+              <li>
+                <Link to="/faq" className="transition-colors hover:text-foreground">
+                  FAQs
+                </Link>
+              </li>
             </ul>
           </div>
 
@@ -48,9 +60,21 @@ const Footer = () => {
           <div>
             <h4 className="mb-3 text-sm font-semibold text-foreground">Legal</h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
-              <li><a href="#" className="transition-colors hover:text-foreground">Privacy Policy</a></li>
-              <li><a href="#" className="transition-colors hover:text-foreground">Terms of Service</a></li>
-              <li><a href="#" className="transition-colors hover:text-foreground">Cookie Policy</a></li>
+              <li>
+                <Link to="/privacy" className="transition-colors hover:text-foreground">
+                  Privacy Policy
+                </Link>
+              </li>
+              <li>
+                <Link to="/terms" className="transition-colors hover:text-foreground">
+                  Terms of Service
+                </Link>
+              </li>
+              <li>
+                <Link to="/cookies" className="transition-colors hover:text-foreground">
+                  Cookie Policy
+                </Link>
+              </li>
             </ul>
           </div>
         </div>
