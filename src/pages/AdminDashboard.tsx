@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import SummaryCard from "@/components/dashboard/SummaryCard";
 import { Button } from "@/components/ui/button";
@@ -52,6 +53,7 @@ const missedPayments = [
 ];
 
 const AdminDashboard = () => {
+  const navigate = useNavigate();
   const [copiedLink, setCopiedLink] = useState(false);
 
   const storedGroup = useMemo(() => {
@@ -175,7 +177,7 @@ const AdminDashboard = () => {
                   <LinkIcon className="mr-2 h-4 w-4" />
                   Invite Link
                 </Button>
-                <Button variant="hero" size="sm">
+                <Button variant="hero" size="sm" onClick={() => navigate("/admin/members")}>
                   <UserPlus className="mr-2 h-4 w-4" />
                   Add Member
                 </Button>
@@ -216,15 +218,30 @@ const AdminDashboard = () => {
                       <TableCell className="text-right">
                         {m.status === "Pending" ? (
                           <div className="flex justify-end gap-2">
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-success">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-success"
+                              onClick={() => navigate("/admin/members")}
+                            >
                               <CheckCircle className="h-4 w-4" />
                             </Button>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-destructive"
+                              onClick={() => navigate("/admin/members")}
+                            >
                               <XCircle className="h-4 w-4" />
                             </Button>
                           </div>
                         ) : (
-                          <Button variant="ghost" size="sm" className="text-muted-foreground">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-muted-foreground"
+                            onClick={() => navigate("/admin/members")}
+                          >
                             <Eye className="mr-1.5 h-3.5 w-3.5" />
                             View
                           </Button>
@@ -279,15 +296,25 @@ const AdminDashboard = () => {
                       <TableCell className="text-right">
                         {l.status === "Pending" ? (
                           <div className="flex justify-end gap-2">
-                            <Button variant="default" size="sm">
+                            <Button variant="default" size="sm" onClick={() => navigate("/admin/loans")}>
                               Approve
                             </Button>
-                            <Button variant="ghost" size="sm" className="text-destructive">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-destructive"
+                              onClick={() => navigate("/admin/loans")}
+                            >
                               Reject
                             </Button>
                           </div>
                         ) : (
-                          <Button variant="ghost" size="sm" className="text-muted-foreground">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-muted-foreground"
+                            onClick={() => navigate("/admin/loans")}
+                          >
                             Details
                           </Button>
                         )}
@@ -332,7 +359,12 @@ const AdminDashboard = () => {
                         <span className="font-medium text-destructive">{p.penalty}</span>
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button variant="ghost" size="sm" className="text-muted-foreground">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-muted-foreground"
+                          onClick={() => navigate("/admin/penalties")}
+                        >
                           Notify
                         </Button>
                       </TableCell>
@@ -362,7 +394,7 @@ const AdminDashboard = () => {
                     <h3 className="font-semibold text-foreground">{report.title}</h3>
                     <p className="text-sm text-muted-foreground">{report.desc}</p>
                   </div>
-                  <Button variant="outline" size="sm">
+                  <Button variant="outline" size="sm" onClick={() => navigate("/admin/reports")}>
                     <Download className="mr-2 h-4 w-4" />
                     Export
                   </Button>
@@ -409,7 +441,7 @@ const AdminDashboard = () => {
                     <span className="font-semibold text-foreground">{rule.val}</span>
                   </div>
                 ))}
-                <Button variant="outline" className="w-full">
+                <Button variant="outline" className="w-full" onClick={() => navigate("/admin/settings")}>
                   Edit Rules
                 </Button>
               </CardContent>
@@ -454,7 +486,7 @@ const AdminDashboard = () => {
                     <span className="font-semibold text-foreground">{rule.val}</span>
                   </div>
                 ))}
-                <Button variant="outline" className="w-full">
+                <Button variant="outline" className="w-full" onClick={() => navigate("/admin/settings")}>
                   Edit Rules
                 </Button>
               </CardContent>

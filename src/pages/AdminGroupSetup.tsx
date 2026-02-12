@@ -28,7 +28,8 @@ const AdminGroupSetup = () => {
     if (hasEmpty) return;
 
     localStorage.setItem("unityvault:groupRules", JSON.stringify(form));
-    navigate("/admin");
+    const token = localStorage.getItem("unityvault:token");
+    navigate(token ? "/admin" : "/login");
   };
 
   return (

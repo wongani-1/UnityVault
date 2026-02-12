@@ -6,6 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Phone, Mail, ArrowLeft, Shield, Lock, Hash, User } from "lucide-react";
+import { apiRequest } from "../lib/api";
+import { toast } from "@/components/ui/sonner";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -13,24 +15,103 @@ const Login = () => {
   const [adminLogin, setAdminLogin] = useState({ groupId: "", username: "", password: "" });
   const [memberError, setMemberError] = useState<string | null>(null);
   const [adminError, setAdminError] = useState<string | null>(null);
+  const [loading, setLoading] = useState<"member" | "admin" | null>(null);
 
-  const handleMemberLogin = () => {
+  const handleMemberLogin = async () => {
     const hasEmpty = [memberLogin.identifier, memberLogin.password].some(
       (value) => value.trim().length === 0,
     );
     setMemberError(hasEmpty ? "All fields are required." : null);
-    if (!hasEmpty) {
+    if (hasEmpty) return;
+
+    setLoading("member");
+    try {
+      const auth = await apiRequest<{ token?: string; user: { userId: string; groupId: string; role: string } }>(
+        "/auth/member/login",
+        {
+          method: "POST",
+          body: {
+            identifier: memberLogin.identifier,
+            password: memberLogin.password,
+            mode: "both",
+          },
+        }
+      );
+
+      if (auth.token) {
+        localStorage.setItem("unityvault:token", auth.token);
+      }
+      localStorage.setItem("unityvault:role", "member");
+
+      const profile = await apiRequest<{ id: string; fullName: string; groupId: string }>(
+        "/members/me"
+      );
+      const group = await apiRequest<{ name: string }>("/groups/me");
+      localStorage.setItem(
+        "unityvault:memberProfile",
+        JSON.stringify({
+          fullName: profile.fullName,
+          groupId: profile.groupId,
+          groupName: group.name,
+        })
+      );
+
       navigate("/dashboard");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Login failed";
+      setMemberError(message);
+      toast.error(message);
+    } finally {
+      setLoading(null);
     }
   };
 
-  const handleAdminLogin = () => {
+  const handleAdminLogin = async () => {
     const hasEmpty = [adminLogin.groupId, adminLogin.username, adminLogin.password].some(
       (value) => value.trim().length === 0,
     );
     setAdminError(hasEmpty ? "All fields are required." : null);
-    if (!hasEmpty) {
+    if (hasEmpty) return;
+
+    setLoading("admin");
+    try {
+      const auth = await apiRequest<{ token?: string; user: { userId: string; groupId: string; role: string } }>(
+        "/auth/admin/login",
+        {
+          method: "POST",
+          body: {
+            groupId: adminLogin.groupId,
+            identifier: adminLogin.username,
+            password: adminLogin.password,
+            mode: "both",
+          },
+        }
+      );
+
+      if (auth.token) {
+        localStorage.setItem("unityvault:token", auth.token);
+      }
+      localStorage.setItem("unityvault:role", "group_admin");
+
+      const group = await apiRequest<{ id: string; name: string }>(
+        `/groups/${auth.user.groupId}`
+      );
+      localStorage.setItem(
+        "unityvault:adminGroup",
+        JSON.stringify({
+          groupId: group.id,
+          groupName: group.name,
+          adminName: adminLogin.username,
+        })
+      );
+
       navigate("/admin");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Login failed";
+      setAdminError(message);
+      toast.error(message);
+    } finally {
+      setLoading(null);
     }
   };
 
@@ -116,8 +197,14 @@ const Login = () => {
                   <p className="text-center text-sm text-destructive">{memberError}</p>
                 )}
 
-                <Button variant="hero" className="w-full" size="lg" onClick={handleMemberLogin}>
-                  Sign In
+                <Button
+                  variant="hero"
+                  className="w-full"
+                  size="lg"
+                  onClick={handleMemberLogin}
+                  disabled={loading === "member"}
+                >
+                  {loading === "member" ? "Signing In..." : "Sign In"}
                 </Button>
 
               </TabsContent>
@@ -187,8 +274,14 @@ const Login = () => {
                   <p className="text-center text-sm text-destructive">{adminError}</p>
                 )}
 
-                <Button variant="hero" className="w-full" size="lg" onClick={handleAdminLogin}>
-                  Sign In as Admin
+                <Button
+                  variant="hero"
+                  className="w-full"
+                  size="lg"
+                  onClick={handleAdminLogin}
+                  disabled={loading === "admin"}
+                >
+                  {loading === "admin" ? "Signing In..." : "Sign In as Admin"}
                 </Button>
               </TabsContent>
             </Tabs>

@@ -1,18 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useMemo, useState } from "react";
+import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { CheckCircle, Copy, Check, Shield, ArrowLeft } from "lucide-react";
-
-/** Generate a human-friendly group ID like GB-8F3K2 */
-const generateGroupId = (): string => {
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  let code = "";
-  for (let i = 0; i < 5; i++) {
-    code += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return `GB-${code}`;
-};
 
 type SuccessState = {
   groupId?: string;
@@ -22,18 +12,19 @@ type SuccessState = {
 
 const RegisterSuccess = () => {
   const location = useLocation();
-  const navigate = useNavigate();
   const state = (location.state as SuccessState) || {};
   const [copied, setCopied] = useState(false);
 
-  const groupId = useMemo(() => state.groupId ?? generateGroupId(), [state.groupId]);
+  const storedGroupId = useMemo(() => {
+    try {
+      const raw = localStorage.getItem("unityvault:adminGroup");
+      return raw ? (JSON.parse(raw) as { groupId?: string }).groupId : undefined;
+    } catch {
+      return undefined;
+    }
+  }, []);
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      navigate("/admin/group-rules");
-    }, 2000);
-    return () => clearTimeout(timer);
-  }, [navigate]);
+  const groupId = state.groupId || storedGroupId || "GB-XXXXXX";
 
   const handleCopyGroupId = () => {
     navigator.clipboard.writeText(groupId);
@@ -103,11 +94,12 @@ const RegisterSuccess = () => {
               </p>
             )}
 
-            <p className="text-center text-xs text-muted-foreground">
-              Redirecting to set your group rules...
-            </p>
-
             <div className="flex flex-col gap-3">
+              <Link to="/admin/group-rules" className="w-full">
+                <Button variant="hero" size="lg" className="w-full">
+                  Set Group Rules
+                </Button>
+              </Link>
               <Link to="/login" className="w-full">
                 <Button variant="outline" size="lg" className="w-full">
                   Go to Admin Login

@@ -1,0 +1,8 @@
+export type { GroupRepository } from "./groupRepository";
+export type { AdminRepository } from "./adminRepository";
+export type { MemberRepository } from "./memberRepository";
+export type { ContributionRepository } from "./contributionRepository";
+export type { LoanRepository } from "./loanRepository";
+export type { PenaltyRepository } from "./penaltyRepository";
+export type { NotificationRepository } from "./notificationRepository";
+export type { AuditRepository } from "./auditRepository";

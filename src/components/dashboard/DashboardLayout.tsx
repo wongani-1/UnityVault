@@ -1,5 +1,5 @@
-import { ReactNode, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { ReactNode, useMemo, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard,
@@ -17,6 +17,8 @@ import {
   Copy,
   Check,
   LinkIcon,
+  ShieldCheck,
+  AlertTriangle,
 } from "lucide-react";
 
 interface DashboardLayoutProps {
@@ -40,7 +42,9 @@ const adminNav = [
   { label: "Overview", icon: LayoutDashboard, href: "/admin" },
   { label: "Members", icon: Users, href: "/admin/members" },
   { label: "Loans", icon: CreditCard, href: "/admin/loans" },
+  { label: "Penalties", icon: AlertTriangle, href: "/admin/penalties" },
   { label: "Reports", icon: FileText, href: "/admin/reports" },
+  { label: "Audit Logs", icon: ShieldCheck, href: "/admin/audit" },
   { label: "Settings", icon: Settings, href: "/admin/settings" },
 ];
 
@@ -49,16 +53,44 @@ const DashboardLayout = ({
   title,
   subtitle,
   isAdmin = false,
-  groupId = "GB-8F3K2",
-  groupName = "Umoja Savings Group",
+  groupId,
+  groupName,
   userName,
 }: DashboardLayoutProps) => {
   const location = useLocation();
+  const navigate = useNavigate();
   const nav = isAdmin ? adminNav : memberNav;
   const [mobileOpen, setMobileOpen] = useState(false);
   const [copiedId, setCopiedId] = useState(false);
 
-  const displayName = userName || "John Doe";
+  const storedGroup = useMemo(() => {
+    if (isAdmin) {
+      try {
+        const raw = localStorage.getItem("unityvault:adminGroup");
+        return raw
+          ? (JSON.parse(raw) as { groupId?: string; groupName?: string; adminName?: string })
+          : {};
+      } catch {
+        return {};
+      }
+    }
+
+    try {
+      const raw = localStorage.getItem("unityvault:memberProfile");
+      return raw
+        ? (JSON.parse(raw) as { groupId?: string; groupName?: string; fullName?: string })
+        : {};
+    } catch {
+      return {};
+    }
+  }, [isAdmin]);
+
+  const resolvedGroupId = groupId || storedGroup.groupId || "GB-8F3K2";
+  const resolvedGroupName = groupName || storedGroup.groupName || "Your Group";
+  const resolvedUserName =
+    userName || (isAdmin ? (storedGroup as { adminName?: string }).adminName : (storedGroup as { fullName?: string }).fullName);
+
+  const displayName = resolvedUserName || "John Doe";
   const initials = displayName
     .split(" ")
     .filter(Boolean)
@@ -67,9 +99,17 @@ const DashboardLayout = ({
     .join("") || "JD";
 
   const handleCopyGroupId = () => {
-    navigator.clipboard.writeText(groupId);
+    navigator.clipboard.writeText(resolvedGroupId);
     setCopiedId(true);
     setTimeout(() => setCopiedId(false), 2000);
+  };
+
+  const handleSignOut = () => {
+    localStorage.removeItem("unityvault:token");
+    localStorage.removeItem("unityvault:role");
+    localStorage.removeItem("unityvault:adminGroup");
+    localStorage.removeItem("unityvault:memberProfile");
+    navigate("/");
   };
 
   const SidebarContent = () => (
@@ -88,10 +128,10 @@ const DashboardLayout = ({
       <div className="border-b px-4 py-3">
         <div className="rounded-lg bg-secondary/70 p-3">
           <p className="text-xs font-medium text-muted-foreground">Group</p>
-          <p className="truncate text-sm font-semibold text-foreground">{groupName}</p>
+          <p className="truncate text-sm font-semibold text-foreground">{resolvedGroupName}</p>
           <div className="mt-1.5 flex items-center gap-1.5">
             <Hash className="h-3 w-3 text-muted-foreground" />
-            <span className="font-mono text-xs tracking-wider text-muted-foreground">{groupId}</span>
+            <span className="font-mono text-xs tracking-wider text-muted-foreground">{resolvedGroupId}</span>
             <button
               onClick={handleCopyGroupId}
               className="ml-auto text-muted-foreground hover:text-foreground transition-colors"
@@ -149,12 +189,15 @@ const DashboardLayout = ({
             </p>
           </div>
         </div>
-        <Link to="/">
-          <Button variant="ghost" size="sm" className="w-full justify-start text-muted-foreground">
-            <LogOut className="mr-2 h-4 w-4" />
-            Sign out
-          </Button>
-        </Link>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="w-full justify-start text-muted-foreground"
+          onClick={handleSignOut}
+        >
+          <LogOut className="mr-2 h-4 w-4" />
+          Sign out
+        </Button>
       </div>
     </>
   );
@@ -203,12 +246,14 @@ const DashboardLayout = ({
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" className="relative">
-              <Bell className="h-5 w-5" />
-              <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground">
-                3
-              </span>
-            </Button>
+            <Link to={isAdmin ? "/admin/notifications" : "/dashboard/notifications"}>
+              <Button variant="ghost" size="icon" className="relative">
+                <Bell className="h-5 w-5" />
+                <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground">
+                  3
+                </span>
+              </Button>
+            </Link>
             <div className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary text-sm font-semibold text-secondary-foreground lg:hidden">
               {initials}
             </div>

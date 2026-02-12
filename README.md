@@ -1,5 +1,6 @@
 # UnityVault
-<<<<<<< HEAD
+
+Smart Savings & Loans Management System.
 
 ## Project info
 
@@ -38,6 +39,3 @@ npm run preview
 - TypeScript
 - shadcn-ui
 - Tailwind CSS
-=======
-Smart Savings &amp; Loans Management System.
->>>>>>> e626e90787506ec03cc2d7e0045cd7ca1a6ef32e

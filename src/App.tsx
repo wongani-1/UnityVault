@@ -11,8 +11,19 @@ import AdminGroupSetup from "./pages/AdminGroupSetup";
 import MemberRegistrationPayment from "./pages/MemberRegistrationPayment";
 import MemberContributionPayment from "./pages/MemberContributionPayment";
 import MemberDashboard from "./pages/MemberDashboard";
+import MemberContributions from "./pages/MemberContributions";
+import MemberLoans from "./pages/MemberLoans";
+import MemberNotifications from "./pages/MemberNotifications";
 import AdminDashboard from "./pages/AdminDashboard";
+import AdminMembers from "./pages/AdminMembers";
+import AdminLoans from "./pages/AdminLoans";
+import AdminReports from "./pages/AdminReports";
+import AdminSettings from "./pages/AdminSettings";
+import AdminAudit from "./pages/AdminAudit";
+import AdminPenalties from "./pages/AdminPenalties";
+import AdminNotifications from "./pages/AdminNotifications";
 import NotFound from "./pages/NotFound";
+import RequireAuth from "./components/auth/RequireAuth";
 
 const queryClient = new QueryClient();
 
@@ -30,8 +41,102 @@ const App = () => (
           <Route path="/admin/group-rules" element={<AdminGroupSetup />} />
           <Route path="/member/registration-fee" element={<MemberRegistrationPayment />} />
           <Route path="/member/pay-contribution" element={<MemberContributionPayment />} />
-          <Route path="/dashboard" element={<MemberDashboard />} />
-          <Route path="/admin" element={<AdminDashboard />} />
+          <Route
+            path="/dashboard"
+            element={
+              <RequireAuth role="member">
+                <MemberDashboard />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/dashboard/contributions"
+            element={
+              <RequireAuth role="member">
+                <MemberContributions />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/dashboard/loans"
+            element={
+              <RequireAuth role="member">
+                <MemberLoans />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/dashboard/notifications"
+            element={
+              <RequireAuth role="member">
+                <MemberNotifications />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/admin"
+            element={
+              <RequireAuth role="group_admin">
+                <AdminDashboard />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/admin/members"
+            element={
+              <RequireAuth role="group_admin">
+                <AdminMembers />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/admin/loans"
+            element={
+              <RequireAuth role="group_admin">
+                <AdminLoans />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/admin/penalties"
+            element={
+              <RequireAuth role="group_admin">
+                <AdminPenalties />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/admin/notifications"
+            element={
+              <RequireAuth role="group_admin">
+                <AdminNotifications />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/admin/reports"
+            element={
+              <RequireAuth role="group_admin">
+                <AdminReports />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/admin/audit"
+            element={
+              <RequireAuth role="group_admin">
+                <AdminAudit />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/admin/settings"
+            element={
+              <RequireAuth role="group_admin">
+                <AdminSettings />
+              </RequireAuth>
+            }
+          />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

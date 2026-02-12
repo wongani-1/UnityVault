@@ -1,0 +1,105 @@
+import { useEffect, useState } from "react";
+import DashboardLayout from "@/components/dashboard/DashboardLayout";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { apiRequest } from "../lib/api";
+import { toast } from "@/components/ui/sonner";
+
+const fallbackContributions = [
+  { date: "2026-02-01", amount: "MWK 50,000", status: "Paid", method: "Mobile Money" },
+  { date: "2026-01-01", amount: "MWK 50,000", status: "Paid", method: "Bank Transfer" },
+];
+
+const MemberContributions = () => {
+  const [items, setItems] = useState(fallbackContributions);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    const load = async () => {
+      try {
+        const data = await apiRequest<{ items: Array<{
+          id: string;
+          amount: number;
+          month: string;
+          paidAt?: string;
+          createdAt: string;
+        }> }>("/contributions");
+
+        if (!active) return;
+        const mapped = data.items.map((item) => ({
+          date: (item.paidAt || item.createdAt).slice(0, 10),
+          amount: `MWK ${item.amount}`,
+          status: item.paidAt ? "Paid" : "Pending",
+          method: "Recorded",
+        }));
+        setItems(mapped.length ? mapped : fallbackContributions);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Failed to load contributions";
+        toast.error(message);
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+
+    load();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  return (
+    <DashboardLayout title="Contributions" subtitle="Your payment history">
+      <Card className="border-0 shadow-card">
+        <CardHeader>
+          <CardTitle className="text-lg">Contribution History</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {loading && (
+            <p className="mb-4 text-sm text-muted-foreground">Loading contributions...</p>
+          )}
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Date</TableHead>
+                <TableHead>Amount</TableHead>
+                <TableHead>Method</TableHead>
+                <TableHead>Status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {items.map((item, index) => (
+                <TableRow key={`${item.date}-${index}`}>
+                  <TableCell className="font-medium">{item.date}</TableCell>
+                  <TableCell>{item.amount}</TableCell>
+                  <TableCell className="text-muted-foreground">{item.method}</TableCell>
+                  <TableCell>
+                    <Badge
+                      className={
+                        item.status === "Paid"
+                          ? "bg-success/10 text-success hover:bg-success/20 border-0"
+                          : "bg-warning/10 text-warning hover:bg-warning/20 border-0"
+                      }
+                    >
+                      {item.status}
+                    </Badge>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+    </DashboardLayout>
+  );
+};
+
+export default MemberContributions;

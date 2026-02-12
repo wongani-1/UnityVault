@@ -5,16 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, Users, User, Mail, Phone, Lock } from "lucide-react";
-
-/** Generate a human-friendly group ID like GB-8F3K2 */
-const generateGroupId = (): string => {
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  let code = "";
-  for (let i = 0; i < 5; i++) {
-    code += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return `GB-${code}`;
-};
+import { apiRequest } from "../lib/api";
+import { toast } from "@/components/ui/sonner";
 
 const Register = () => {
   const [form, setForm] = useState({
@@ -37,7 +29,7 @@ const Register = () => {
   const isStrongPassword = (value: string) =>
     /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/.test(value);
 
-  const handleCreateGroup = () => {
+  const handleCreateGroup = async () => {
     const values = Object.values(form).map((value) => value.trim());
     const hasEmpty = values.some((value) => value.length === 0);
     const passwordStrong = isStrongPassword(form.adminPassword);
@@ -55,24 +47,78 @@ const Register = () => {
       return;
     }
 
-    const groupId = generateGroupId();
-    localStorage.setItem(
-      "unityvault:adminGroup",
-      JSON.stringify({
-        groupId,
-        groupName: form.groupName,
-        adminName: `${form.adminFirstName} ${form.adminSurname}`.trim(),
-        adminEmail: form.adminEmail,
-        adminPhone: form.adminPhone,
-      }),
-    );
-    navigate("/register/success", {
-      state: {
-        groupId,
-        groupName: form.groupName,
-        adminName: `${form.adminFirstName} ${form.adminSurname}`.trim(),
-      },
-    });
+    try {
+      const rawRules = localStorage.getItem("unityvault:groupRules");
+      const rules = rawRules
+        ? (JSON.parse(rawRules) as {
+            monthlyContribution?: string;
+            loanInterestPercent?: string;
+            penaltyLoanMiss?: string;
+            penaltyMonthlyMiss?: string;
+          })
+        : {};
+
+      const settings = {
+        contributionAmount: Number(rules.monthlyContribution || 50000),
+        loanInterestRate: Number(rules.loanInterestPercent || 5) / 100,
+        penaltyRate: Number(rules.penaltyLoanMiss || 2000) / 100000,
+        compulsoryInterestRate: 0.01,
+      };
+
+      const result = await apiRequest<{ group: { id: string; name: string } }>("/groups", {
+        method: "POST",
+        body: {
+          name: form.groupName,
+          settings,
+          admin: {
+            email: form.adminEmail,
+            username: form.adminEmail,
+            password: form.adminPassword,
+          },
+        },
+      });
+
+      const auth = await apiRequest<{ token?: string; user: { userId: string; groupId: string } }>(
+        "/auth/admin/login",
+        {
+          method: "POST",
+          body: {
+            groupId: result.group.id,
+            identifier: form.adminEmail,
+            password: form.adminPassword,
+            mode: "both",
+          },
+        }
+      );
+
+      if (auth.token) {
+        localStorage.setItem("unityvault:token", auth.token);
+      }
+      localStorage.setItem("unityvault:role", "group_admin");
+
+      const adminName = `${form.adminFirstName} ${form.adminSurname}`.trim();
+      localStorage.setItem(
+        "unityvault:adminGroup",
+        JSON.stringify({
+          groupId: result.group.id,
+          groupName: result.group.name,
+          adminName,
+          adminEmail: form.adminEmail,
+          adminPhone: form.adminPhone,
+        })
+      );
+
+      navigate("/register/success", {
+        state: {
+          groupId: result.group.id,
+          groupName: result.group.name,
+          adminName,
+        },
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to create group";
+      toast.error(message);
+    }
   };
 
   return (

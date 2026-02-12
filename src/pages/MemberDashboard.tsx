@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import SummaryCard from "@/components/dashboard/SummaryCard";
 import { Button } from "@/components/ui/button";
@@ -24,6 +25,8 @@ import {
   CalendarClock,
   TrendingUp,
 } from "lucide-react";
+import { apiRequest } from "../lib/api";
+import { toast } from "@/components/ui/sonner";
 
 const contributions = [
   { date: "2026-02-01", amount: "MWK 50,000", status: "Paid", method: "Mobile Money" },
@@ -51,12 +54,57 @@ const upcomingPayments = [
 ];
 
 const MemberDashboard = () => {
+  const storedProfile = useMemo(() => {
+    try {
+      const raw = localStorage.getItem("unityvault:memberProfile");
+      return raw
+        ? (JSON.parse(raw) as { fullName?: string; groupId?: string; groupName?: string })
+        : {};
+    } catch {
+      return {};
+    }
+  }, []);
+
+  const [profile, setProfile] = useState(storedProfile);
+
+  useEffect(() => {
+    if (profile?.fullName && profile?.groupId) return;
+
+    let active = true;
+    const load = async () => {
+      try {
+        const member = await apiRequest<{ fullName: string; groupId: string }>("/members/me");
+        const group = await apiRequest<{ name: string }>("/groups/me");
+        const next = {
+          fullName: member.fullName,
+          groupId: member.groupId,
+          groupName: group.name,
+        };
+        if (!active) return;
+        setProfile(next);
+        localStorage.setItem("unityvault:memberProfile", JSON.stringify(next));
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Failed to load profile";
+        toast.error(message);
+      }
+    };
+
+    load();
+    return () => {
+      active = false;
+    };
+  }, [profile]);
+
+  const displayName = profile.fullName || "Member";
+  const groupId = profile.groupId || "GB-8F3K2";
+  const groupName = profile.groupName || "Your Group";
+
   return (
     <DashboardLayout
       title="My Dashboard"
-      subtitle="Welcome back, John"
-      groupId="GB-8F3K2"
-      groupName="Umoja Savings Group"
+      subtitle={`Welcome back, ${displayName}`}
+      groupId={groupId}
+      groupName={groupName}
     >
       {/* Summary Cards */}
       <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -98,10 +146,12 @@ const MemberDashboard = () => {
             Pay Contribution
           </Button>
         </Link>
-        <Button variant="hero-outline" size="lg">
-          <HandCoins className="mr-2 h-4 w-4" />
-          Apply for Loan
-        </Button>
+        <Link to="/dashboard/loans">
+          <Button variant="hero-outline" size="lg">
+            <HandCoins className="mr-2 h-4 w-4" />
+            Apply for Loan
+          </Button>
+        </Link>
       </div>
 
       {/* Upcoming Payments + Loan Progress */}
