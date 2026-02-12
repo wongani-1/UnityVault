@@ -5,14 +5,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Phone, Mail, ArrowLeft, Shield, Lock, Hash, User } from "lucide-react";
+import { Phone, Mail, ArrowLeft, Shield, Lock, User } from "lucide-react";
 import { apiRequest } from "../lib/api";
 import { toast } from "@/components/ui/sonner";
 
 const Login = () => {
   const navigate = useNavigate();
   const [memberLogin, setMemberLogin] = useState({ identifier: "", password: "" });
-  const [adminLogin, setAdminLogin] = useState({ groupId: "", username: "", password: "" });
+  const [adminLogin, setAdminLogin] = useState({ identifier: "", password: "" });
   const [memberError, setMemberError] = useState<string | null>(null);
   const [adminError, setAdminError] = useState<string | null>(null);
   const [loading, setLoading] = useState<"member" | "admin" | null>(null);
@@ -67,7 +67,7 @@ const Login = () => {
   };
 
   const handleAdminLogin = async () => {
-    const hasEmpty = [adminLogin.groupId, adminLogin.username, adminLogin.password].some(
+    const hasEmpty = [adminLogin.identifier, adminLogin.password].some(
       (value) => value.trim().length === 0,
     );
     setAdminError(hasEmpty ? "All fields are required." : null);
@@ -80,8 +80,7 @@ const Login = () => {
         {
           method: "POST",
           body: {
-            groupId: adminLogin.groupId,
-            identifier: adminLogin.username,
+            identifier: adminLogin.identifier,
             password: adminLogin.password,
             mode: "both",
           },
@@ -214,45 +213,29 @@ const Login = () => {
 
               </TabsContent>
 
-              {/* Admin Login — requires Group ID + credentials */}
+              {/* Admin Login — sign in with email, username, or phone */}
               <TabsContent value="admin" className="space-y-4">
                 <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
                   <p className="flex items-center gap-2 text-xs font-medium text-primary">
                     <Shield className="h-3.5 w-3.5" />
-                    Admin login requires your unique Group ID
+                    Sign in with your email, username, or phone number
                   </p>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Your Group ID was generated when the group was created (e.g. GB-8F3K2). You can only access your own group.
+                    You can access your group once authenticated with valid credentials.
                   </p>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="group-id">Group ID</Label>
-                  <div className="relative">
-                    <Hash className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                      id="group-id"
-                      placeholder="GB-8F3K2"
-                      className="pl-10 font-mono uppercase tracking-wider"
-                      value={adminLogin.groupId}
-                      onChange={(e) =>
-                        setAdminLogin({ ...adminLogin, groupId: e.target.value.toUpperCase() })
-                      }
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="admin-username">Username or Email</Label>
+                  <Label htmlFor="admin-identifier">Email, Username, or Phone</Label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
-                      id="admin-username"
-                      placeholder="admin@example.com"
+                      id="admin-identifier"
+                      placeholder="admin@example.com / +265 888 000 000 / admin_user"
                       className="pl-10"
-                      value={adminLogin.username}
+                      value={adminLogin.identifier}
                       onChange={(e) =>
-                        setAdminLogin({ ...adminLogin, username: e.target.value })
+                        setAdminLogin({ ...adminLogin, identifier: e.target.value })
                       }
                     />
                   </div>

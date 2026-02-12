@@ -18,6 +18,12 @@ export const adminRepository: AdminRepository = {
         (admin.email === identifier || admin.username === identifier)
     );
   },
+  findByIdentifier(identifier: string) {
+    const admins = Array.from(store.admins.values());
+    return admins.find(
+      (admin) => admin.email === identifier || admin.username === identifier || admin.phone === identifier
+    );
+  },
   listByGroup(groupId: string) {
     return Array.from(store.admins.values()).filter(
       (admin) => admin.groupId === groupId

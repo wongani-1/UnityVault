@@ -42,6 +42,10 @@ export type Member = {
   createdAt: string;
   balance: number;
   penaltiesTotal: number;
+  inviteToken?: string;
+  inviteOtpHash?: string;
+  inviteExpiresAt?: string;
+  inviteSentAt?: string;
 };
 
 export type Contribution = {

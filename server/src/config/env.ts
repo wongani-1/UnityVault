@@ -8,4 +8,5 @@ export const env = {
   jwtSecret: process.env.JWT_SECRET || "dev_jwt_secret",
   sessionSecret: process.env.SESSION_SECRET || "dev_session_secret",
   corsOrigin,
+  appBaseUrl: process.env.APP_BASE_URL || "http://localhost:5173",
 };

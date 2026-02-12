@@ -5,5 +5,6 @@ export type MemberRepository = {
   getById: (id: string) => Member | undefined;
   listByGroup: (groupId: string) => Member[];
   findByIdentifier: (identifier: string) => Member | undefined;
+  findByInviteToken: (token: string) => Member | undefined;
   update: (id: string, patch: Partial<Member>) => Member | undefined;
 };

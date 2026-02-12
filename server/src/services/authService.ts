@@ -9,14 +9,8 @@ export class AuthService {
     private memberRepository: MemberRepository
   ) {}
 
-  async adminLogin(params: { groupId: string; identifier: string; password: string }) {
-    const group = this.groupRepository.getById(params.groupId);
-    if (!group) throw new ApiError("Group not found", 404);
-
-    const admin = this.adminRepository.findByGroupAndIdentifier(
-      params.groupId,
-      params.identifier
-    );
+  async adminLogin(params: { identifier: string; password: string }) {
+    const admin = this.adminRepository.findByIdentifier(params.identifier);
     if (!admin) throw new ApiError("Invalid credentials", 401);
 
     const ok = await verifyPassword(params.password, admin.passwordHash);

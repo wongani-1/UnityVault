@@ -1,6 +1,7 @@
 import { ReactNode, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { useNotificationCount } from "@/hooks/use-notification-count";
 import {
   LayoutDashboard,
   Wallet,
@@ -63,6 +64,7 @@ const DashboardLayout = ({
   const nav = isAdmin ? adminNav : memberNav;
   const [mobileOpen, setMobileOpen] = useState(false);
   const [copiedId, setCopiedId] = useState(false);
+  const { count: notificationCount } = useNotificationCount(5000); // Poll every 5 seconds
 
   const storedGroup = useMemo(() => {
     if (isAdmin) {
@@ -250,9 +252,11 @@ const DashboardLayout = ({
             <Link to={isAdmin ? "/admin/notifications" : "/dashboard/notifications"}>
               <Button variant="ghost" size="icon" className="relative flex items-center justify-center">
                 <Bell className="h-5 w-5" />
-                <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground">
-                  3
-                </span>
+                {notificationCount > 0 && (
+                  <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground">
+                    {notificationCount > 99 ? "99+" : notificationCount}
+                  </span>
+                )}
               </Button>
             </Link>
             <Link to={isAdmin ? "/admin/profile" : "/dashboard/profile"}>

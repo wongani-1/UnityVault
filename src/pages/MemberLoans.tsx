@@ -27,44 +27,44 @@ const MemberLoans = () => {
   const [loading, setLoading] = useState(true);
   const [amount, setAmount] = useState("");
 
+  const loadLoans = async () => {
+    setLoading(true);
+    try {
+      const data = await apiRequest<{ items: Array<{
+        id: string;
+        principal: number;
+        status: "pending" | "approved" | "rejected" | "closed";
+        createdAt: string;
+      }> }>("/loans");
+
+      const mapped = data.items.map((loan) => ({
+        id: loan.id,
+        amount: `MWK ${loan.principal}`,
+        status:
+          loan.status === "approved"
+            ? "Approved"
+            : loan.status === "rejected"
+            ? "Rejected"
+            : loan.status === "closed"
+            ? "Cleared"
+            : "Pending",
+        date: loan.createdAt.slice(0, 10),
+      }));
+      setLoans(mapped.length ? mapped : fallbackLoans);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to load loans";
+      toast.error(message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    let active = true;
-    const load = async () => {
-      try {
-        const data = await apiRequest<{ items: Array<{
-          id: string;
-          principal: number;
-          status: "pending" | "approved" | "rejected" | "closed";
-          createdAt: string;
-        }> }>("/loans");
+    loadLoans();
 
-        if (!active) return;
-        const mapped = data.items.map((loan) => ({
-          id: loan.id,
-          amount: `MWK ${loan.principal}`,
-          status:
-            loan.status === "approved"
-              ? "Approved"
-              : loan.status === "rejected"
-              ? "Rejected"
-              : loan.status === "closed"
-              ? "Cleared"
-              : "Pending",
-          date: loan.createdAt.slice(0, 10),
-        }));
-        setLoans(mapped.length ? mapped : fallbackLoans);
-      } catch (error) {
-        const message = error instanceof Error ? error.message : "Failed to load loans";
-        toast.error(message);
-      } finally {
-        if (active) setLoading(false);
-      }
-    };
-
-    load();
-    return () => {
-      active = false;
-    };
+    // Auto-refresh every 10 seconds to catch admin approvals
+    const interval = setInterval(loadLoans, 10000);
+    return () => clearInterval(interval);
   }, []);
 
   const handleRequestLoan = async () => {
@@ -74,24 +74,16 @@ const MemberLoans = () => {
     }
 
     try {
-      const loan = await apiRequest<{ id: string; principal: number; status: string; createdAt: string }>(
+      await apiRequest<{ id: string; principal: number; status: string; createdAt: string }>(
         "/loans/request",
         {
           method: "POST",
           body: { amount: Number(amount), installments: 6 },
         }
       );
-      setLoans((prev) => [
-        {
-          id: loan.id,
-          amount: `MWK ${loan.principal}`,
-          status: "Pending",
-          date: loan.createdAt.slice(0, 10),
-        },
-        ...prev,
-      ]);
       setAmount("");
       toast.success("Loan request submitted");
+      await loadLoans(); // Refresh the loan list
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to request loan";
       toast.error(message);

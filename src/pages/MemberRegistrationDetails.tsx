@@ -78,7 +78,6 @@ const MemberRegistrationDetails = () => {
         {
           method: "POST",
           body: {
-            groupId,
             identifier: form.email,
             password: form.password,
           },

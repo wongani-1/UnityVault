@@ -2,6 +2,8 @@ import type { MemberRepository } from "../repositories/interfaces";
 import type { Member } from "../models/types";
 import { createId } from "../utils/id";
 import { hashPassword, verifyPassword } from "../utils/password";
+import { generateOtp } from "../utils/otp";
+import { env } from "../config/env";
 import { ApiError } from "../utils/apiError";
 import { AuditService } from "./auditService";
 import { NotificationService } from "./notificationService";
@@ -50,6 +52,115 @@ export class MemberService {
     });
 
     return { ...member, passwordHash: "" };
+  }
+
+  async createInvite(params: {
+    groupId: string;
+    fullName: string;
+    username: string;
+    email?: string;
+    phone?: string;
+  }) {
+    if (!params.groupId || !params.fullName || !params.username) {
+      throw new ApiError("Missing required fields");
+    }
+
+    if (!params.email && !params.phone) {
+      throw new ApiError("Email or phone is required for invite", 400);
+    }
+
+    const otp = generateOtp(6);
+    const inviteToken = createId("invite");
+    const inviteExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+    const inviteOtpHash = await hashPassword(otp);
+
+    const member: Member = {
+      id: createId("member"),
+      groupId: params.groupId,
+      fullName: params.fullName,
+      username: params.username,
+      email: params.email,
+      phone: params.phone,
+      passwordHash: inviteOtpHash,
+      status: "pending",
+      createdAt: new Date().toISOString(),
+      balance: 0,
+      penaltiesTotal: 0,
+      inviteToken,
+      inviteOtpHash,
+      inviteExpiresAt,
+      inviteSentAt: new Date().toISOString(),
+    };
+
+    this.memberRepository.create(member);
+
+    const link = `${env.appBaseUrl}/member/activate?token=${inviteToken}`;
+
+    this.notificationService.create({
+      groupId: params.groupId,
+      type: "member_invite",
+      message: `${member.fullName} was invited to join the group`,
+      adminId: undefined,
+      memberId: member.id,
+    });
+
+    return {
+      member: { ...member, passwordHash: "", inviteOtpHash: "" },
+      invite: { otp, link, expiresAt: inviteExpiresAt, token: inviteToken },
+    };
+  }
+
+  async verifyInvite(token: string, otp: string) {
+    const member = this.memberRepository.findByInviteToken(token);
+    if (!member) throw new ApiError("Invite not found", 404);
+    if (!member.inviteExpiresAt) throw new ApiError("Invite expired", 400);
+
+    const expiresAt = new Date(member.inviteExpiresAt).getTime();
+    if (Number.isNaN(expiresAt) || expiresAt < Date.now()) {
+      throw new ApiError("Invite expired", 400);
+    }
+
+    if (!member.inviteOtpHash) throw new ApiError("Invite invalid", 400);
+    const ok = await verifyPassword(otp, member.inviteOtpHash);
+    if (!ok) throw new ApiError("Invalid one-time password", 400);
+
+    return { status: "ok", memberId: member.id };
+  }
+
+  async completeInvite(params: { token: string; otp: string; newPassword: string }) {
+    const member = this.memberRepository.findByInviteToken(params.token);
+    if (!member) throw new ApiError("Invite not found", 404);
+    if (!member.inviteExpiresAt) throw new ApiError("Invite expired", 400);
+
+    const expiresAt = new Date(member.inviteExpiresAt).getTime();
+    if (Number.isNaN(expiresAt) || expiresAt < Date.now()) {
+      throw new ApiError("Invite expired", 400);
+    }
+
+    if (!member.inviteOtpHash) throw new ApiError("Invite invalid", 400);
+    const ok = await verifyPassword(params.otp, member.inviteOtpHash);
+    if (!ok) throw new ApiError("Invalid one-time password", 400);
+
+    const passwordHash = await hashPassword(params.newPassword);
+    const updated = this.memberRepository.update(member.id, {
+      passwordHash,
+      status: "active",
+      groupId: member.groupId,
+      inviteToken: undefined,
+      inviteOtpHash: undefined,
+      inviteExpiresAt: undefined,
+    });
+
+    if (!updated) throw new ApiError("Failed to activate member", 500);
+
+    this.notificationService.create({
+      groupId: member.groupId,
+      memberId: member.id,
+      type: "member_activated",
+      message: "Your account has been activated",
+    });
+
+    return { status: "ok" };
   }
 
   approve(memberId: string, actor: { id: string; groupId: string }) {

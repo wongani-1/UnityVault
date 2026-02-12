@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import SummaryCard from "@/components/dashboard/SummaryCard";
@@ -32,29 +32,94 @@ import {
   Shield,
   Eye,
 } from "lucide-react";
-
-const members = [
-  { name: "Alice Namukasa", phone: "+256 701 234 567", status: "Active", contributions: "MWK 300,000", loans: "MWK 0", joined: "2025-01-15" },
-  { name: "Robert Ochieng", phone: "+256 702 345 678", status: "Active", contributions: "MWK 250,000", loans: "MWK 100,000", joined: "2025-01-20" },
-  { name: "Grace Atim", phone: "+256 703 456 789", status: "Pending", contributions: "MWK 0", loans: "MWK 0", joined: "2026-02-01" },
-  { name: "David Mukiibi", phone: "+256 704 567 890", status: "Active", contributions: "MWK 200,000", loans: "MWK 50,000", joined: "2025-02-10" },
-  { name: "Faith Nabukeera", phone: "+256 705 678 901", status: "Active", contributions: "MWK 280,000", loans: "MWK 0", joined: "2025-01-18" },
-];
-
-const loanRequests = [
-  { member: "Robert Ochieng", amount: "MWK 300,000", purpose: "School fees", date: "2026-02-03", status: "Pending" },
-  { member: "Alice Namukasa", amount: "MWK 150,000", purpose: "Medical", date: "2026-01-28", status: "Approved" },
-  { member: "David Mukiibi", amount: "MWK 200,000", purpose: "Business stock", date: "2026-01-15", status: "Disbursed" },
-];
-
-const missedPayments = [
-  { member: "Robert Ochieng", type: "Contribution", amount: "MWK 50,000", dueDate: "2026-01-01", penalty: "MWK 5,000" },
-  { member: "David Mukiibi", type: "Loan Repayment", amount: "MWK 40,000", dueDate: "2026-01-15", penalty: "MWK 2,000" },
-];
+import { apiRequest } from "@/lib/api";
+import { toast } from "@/components/ui/sonner";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const [copiedLink, setCopiedLink] = useState(false);
+  const [members, setMembers] = useState<any[]>([]);
+  const [loanRequests, setLoanRequests] = useState<any[]>([]);
+  const [missedPayments, setMissedPayments] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [totalMembers, setTotalMembers] = useState("0");
+  const [totalContributions, setTotalContributions] = useState("MWK 0");
+  const [activeLoans, setActiveLoans] = useState("MWK 0");
+
+  useEffect(() => {
+    let active = true;
+    const load = async () => {
+      try {
+        // Load members
+        const memberData = await apiRequest<{ items: any[] }>("/members");
+        if (active) {
+          setMembers(memberData.items.map((m) => ({
+            id: m.id,
+            name: m.fullName,
+            phone: m.phone || "+—",
+            status: m.status === "active" ? "Active" : "Pending",
+            contributions: "MWK 0",
+            loans: "MWK 0",
+            joined: m.createdAt.slice(0, 10),
+          })));
+        }
+
+        // Load loans
+        const loanData = await apiRequest<{ items: any[] }>("/loans");
+        if (active) {
+          const memberMap = new Map(memberData.items.map((m: any) => [m.id, m.fullName]));
+          const loansMapped = loanData.items
+            .filter((l: any) => l.status === "pending" || l.status === "approved")
+            .slice(0, 3)
+            .map((l: any) => ({
+              id: l.id,
+              member: memberMap.get(l.memberId) || "Unknown",
+              amount: `MWK ${l.principal.toLocaleString()}`,
+              purpose: "Loan",
+              date: l.createdAt.slice(0, 10),
+              status: l.status === "pending" ? "Pending" : l.status === "approved" ? "Approved" : "Disbursed",
+            }));
+          setLoanRequests(loansMapped);
+        }
+
+        // Load penalties
+        const penaltyData = await apiRequest<{ items: any[] }>("/penalties");
+        if (active) {
+          const memberMap = new Map(memberData.items.map((m: any) => [m.id, m.fullName]));
+          const penaltiesMapped = penaltyData.items.slice(0, 3).map((p: any) => ({
+            id: p.id,
+            member: memberMap.get(p.memberId) || "Unknown",
+            type: p.reason || "Penalty",
+            amount: "MWK 0",
+            dueDate: p.createdAt.slice(0, 10),
+            penalty: `MWK ${p.amount}`,
+          }));
+          setMissedPayments(penaltiesMapped);
+        }
+
+        // Calculate summary stats
+        const activeCount = memberData.items.filter((m: any) => m.status === "active").length;
+        const contribTotal = memberData.items.length * 50000; // Simple estimation
+        const loansTotal = loanData.items.reduce((sum: number, l: any) => sum + (l.totalDue || 0), 0);
+
+        if (active) {
+          setTotalMembers(String(activeCount));
+          setTotalContributions(`MWK ${contribTotal.toLocaleString()}`);
+          setActiveLoans(`MWK ${loansTotal.toLocaleString()}`);
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Failed to load dashboard data";
+        toast.error(message);
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+
+    load();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const storedGroup = useMemo(() => {
     try {
@@ -130,22 +195,22 @@ const AdminDashboard = () => {
       <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <SummaryCard
           title="Total Members"
-          value="24"
-          subtitle="4 pending approval"
+          value={totalMembers}
+          subtitle={`${members.filter((m) => m.status === "Pending").length} pending approval`}
           icon={Users}
           variant="primary"
         />
         <SummaryCard
           title="Total Contributions"
-          value="MWK 6,200,000"
+          value={totalContributions}
           subtitle="This cycle"
           icon={Wallet}
           trend={{ value: "+12% from last month", positive: true }}
         />
         <SummaryCard
           title="Active Loans"
-          value="MWK 2,800,000"
-          subtitle="8 active loans"
+          value={activeLoans}
+          subtitle={`${loanRequests.length} active loans`}
           icon={CreditCard}
           variant="info"
         />
@@ -184,20 +249,22 @@ const AdminDashboard = () => {
               </div>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Phone</TableHead>
-                    <TableHead>Contributions</TableHead>
-                    <TableHead>Outstanding Loans</TableHead>
-                    <TableHead>Joined</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {members.map((m) => (
+              {loading && <p className="text-sm text-muted-foreground">Loading members...</p>}
+              {!loading && (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Phone</TableHead>
+                      <TableHead>Contributions</TableHead>
+                      <TableHead>Outstanding Loans</TableHead>
+                      <TableHead>Joined</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {members.slice(0, 5).map((m) => (
                     <TableRow key={m.name}>
                       <TableCell className="font-medium">{m.name}</TableCell>
                       <TableCell className="text-muted-foreground">{m.phone}</TableCell>
@@ -249,8 +316,9 @@ const AdminDashboard = () => {
                       </TableCell>
                     </TableRow>
                   ))}
-                </TableBody>
-              </Table>
+                  </TableBody>
+                </Table>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -262,67 +330,70 @@ const AdminDashboard = () => {
               <CardTitle className="text-lg">Loan Applications</CardTitle>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Member</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Purpose</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {loanRequests.map((l, i) => (
-                    <TableRow key={i}>
-                      <TableCell className="font-medium">{l.member}</TableCell>
-                      <TableCell>{l.amount}</TableCell>
-                      <TableCell className="text-muted-foreground">{l.purpose}</TableCell>
-                      <TableCell className="text-muted-foreground">{l.date}</TableCell>
-                      <TableCell>
-                        <Badge
-                          className={
-                            l.status === "Approved"
-                              ? "bg-success/10 text-success hover:bg-success/20 border-0"
-                              : l.status === "Pending"
-                              ? "bg-warning/10 text-warning hover:bg-warning/20 border-0"
-                              : "bg-info/10 text-info hover:bg-info/20 border-0"
-                          }
-                        >
-                          {l.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {l.status === "Pending" ? (
-                          <div className="flex justify-end gap-2">
-                            <Button variant="default" size="sm" onClick={() => navigate("/admin/loans")}>
-                              Approve
-                            </Button>
+              {loading && <p className="text-sm text-muted-foreground">Loading loans...</p>}
+              {!loading && (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Member</TableHead>
+                      <TableHead>Amount</TableHead>
+                      <TableHead>Purpose</TableHead>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {loanRequests.map((l) => (
+                      <TableRow key={l.id}>
+                        <TableCell className="font-medium">{l.member}</TableCell>
+                        <TableCell>{l.amount}</TableCell>
+                        <TableCell className="text-muted-foreground">{l.purpose}</TableCell>
+                        <TableCell className="text-muted-foreground">{l.date}</TableCell>
+                        <TableCell>
+                          <Badge
+                            className={
+                              l.status === "Approved"
+                                ? "bg-success/10 text-success hover:bg-success/20 border-0"
+                                : l.status === "Pending"
+                                ? "bg-warning/10 text-warning hover:bg-warning/20 border-0"
+                                : "bg-info/10 text-info hover:bg-info/20 border-0"
+                            }
+                          >
+                            {l.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {l.status === "Pending" ? (
+                            <div className="flex justify-end gap-2">
+                              <Button variant="default" size="sm" onClick={() => navigate("/admin/loans")}>
+                                Approve
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-destructive"
+                                onClick={() => navigate("/admin/loans")}
+                              >
+                                Reject
+                              </Button>
+                            </div>
+                          ) : (
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="text-destructive"
+                              className="text-muted-foreground"
                               onClick={() => navigate("/admin/loans")}
                             >
-                              Reject
+                              Details
                             </Button>
-                          </div>
-                        ) : (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-muted-foreground"
-                            onClick={() => navigate("/admin/loans")}
-                          >
-                            Details
-                          </Button>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -337,41 +408,44 @@ const AdminDashboard = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Member</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Amount Due</TableHead>
-                    <TableHead>Due Date</TableHead>
-                    <TableHead>Penalty</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {missedPayments.map((p, i) => (
-                    <TableRow key={i}>
-                      <TableCell className="font-medium">{p.member}</TableCell>
-                      <TableCell>{p.type}</TableCell>
-                      <TableCell>{p.amount}</TableCell>
-                      <TableCell className="text-muted-foreground">{p.dueDate}</TableCell>
-                      <TableCell>
-                        <span className="font-medium text-destructive">{p.penalty}</span>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-muted-foreground"
-                          onClick={() => navigate("/admin/penalties")}
-                        >
-                          Notify
-                        </Button>
-                      </TableCell>
+              {loading && <p className="text-sm text-muted-foreground">Loading penalties...</p>}
+              {!loading && (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Member</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Amount Due</TableHead>
+                      <TableHead>Due Date</TableHead>
+                      <TableHead>Penalty</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {missedPayments.map((p) => (
+                      <TableRow key={p.id}>
+                        <TableCell className="font-medium">{p.member}</TableCell>
+                        <TableCell>{p.type}</TableCell>
+                        <TableCell>{p.amount}</TableCell>
+                        <TableCell className="text-muted-foreground">{p.dueDate}</TableCell>
+                        <TableCell>
+                          <span className="font-medium text-destructive">{p.penalty}</span>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-muted-foreground"
+                            onClick={() => navigate("/admin/penalties")}
+                          >
+                            Notify
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

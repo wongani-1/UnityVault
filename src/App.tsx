@@ -11,6 +11,7 @@ import AdminGroupSetup from "./pages/AdminGroupSetup";
 import MemberRegistrationPayment from "./pages/MemberRegistrationPayment";
 import MemberRegistrationDetails from "./pages/MemberRegistrationDetails";
 import MemberContributionPayment from "./pages/MemberContributionPayment";
+import MemberActivate from "./pages/MemberActivate";
 import MemberDashboard from "./pages/MemberDashboard";
 import MemberContributions from "./pages/MemberContributions";
 import MemberLoans from "./pages/MemberLoans";
@@ -45,6 +46,7 @@ const App = () => (
           <Route path="/member/registration-fee" element={<MemberRegistrationPayment />} />
           <Route path="/member/registration-details" element={<MemberRegistrationDetails />} />
           <Route path="/member/pay-contribution" element={<MemberContributionPayment />} />
+          <Route path="/member/activate" element={<MemberActivate />} />
           <Route
             path="/dashboard"
             element={

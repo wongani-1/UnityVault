@@ -24,6 +24,10 @@ export const memberRepository: MemberRepository = {
         member.phone === identifier
     );
   },
+  findByInviteToken(token: string) {
+    const members = Array.from(store.members.values());
+    return members.find((member) => member.inviteToken === token);
+  },
   update(id: string, patch: Partial<Member>) {
     const current = store.members.get(id);
     if (!current) return undefined;

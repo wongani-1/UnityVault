@@ -25,6 +25,35 @@ export const registerMember = asyncHandler(async (req: Request, res: Response) =
   res.status(201).json(member);
 });
 
+export const inviteMember = asyncHandler(async (req: Request, res: Response) => {
+  if (!req.user) throw new ApiError("Unauthorized", 401);
+  const { fullName, username, email, phone } = req.body as {
+    fullName: string;
+    username: string;
+    email?: string;
+    phone?: string;
+  };
+
+  const result = await container.memberService.createInvite({
+    groupId: req.user.groupId,
+    fullName,
+    username,
+    email,
+    phone,
+  });
+
+  // Mock delivery: log invite details for email/SMS handoff.
+  console.log("[Mock Invite Delivery]", {
+    toEmail: email,
+    toPhone: phone,
+    link: result.invite.link,
+    otp: result.invite.otp,
+    expiresAt: result.invite.expiresAt,
+  });
+
+  res.status(201).json(result);
+});
+
 export const approveMember = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) throw new ApiError("Unauthorized", 401);
   const member = container.memberService.approve(req.params.memberId, {
@@ -90,5 +119,32 @@ export const changeMemberPassword = asyncHandler(async (req: Request, res: Respo
     currentPassword,
     newPassword
   );
+  res.json(result);
+});
+
+export const verifyMemberInvite = asyncHandler(async (req: Request, res: Response) => {
+  const { token, otp } = req.body as { token?: string; otp?: string };
+  if (!token || !otp) throw new ApiError("Missing required fields", 400);
+
+  const result = await container.memberService.verifyInvite(token, otp);
+  res.json(result);
+});
+
+export const completeMemberInvite = asyncHandler(async (req: Request, res: Response) => {
+  const { token, otp, newPassword } = req.body as {
+    token?: string;
+    otp?: string;
+    newPassword?: string;
+  };
+
+  if (!token || !otp || !newPassword) {
+    throw new ApiError("Missing required fields", 400);
+  }
+
+  const result = await container.memberService.completeInvite({
+    token,
+    otp,
+    newPassword,
+  });
   res.json(result);
 });

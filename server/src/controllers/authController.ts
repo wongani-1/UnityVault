@@ -5,15 +5,13 @@ import { signToken } from "../utils/jwt";
 import { ApiError } from "../utils/apiError";
 
 export const adminLogin = asyncHandler(async (req: Request, res: Response) => {
-  const { groupId, identifier, password, mode } = req.body as {
-    groupId: string;
+  const { identifier, password, mode } = req.body as {
     identifier: string;
     password: string;
     mode?: "jwt" | "session" | "both";
   };
 
   const user = await container.authService.adminLogin({
-    groupId,
     identifier,
     password,
   });
