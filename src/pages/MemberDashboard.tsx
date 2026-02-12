@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import SummaryCard from "@/components/dashboard/SummaryCard";
@@ -54,6 +54,7 @@ const upcomingPayments = [
 ];
 
 const MemberDashboard = () => {
+  const navigate = useNavigate();
   const storedProfile = useMemo(() => {
     try {
       const raw = localStorage.getItem("unityvault:memberProfile");
@@ -66,6 +67,37 @@ const MemberDashboard = () => {
   }, []);
 
   const [profile, setProfile] = useState(storedProfile);
+  const [isCheckingRegistration, setIsCheckingRegistration] = useState(true);
+
+  // Check if member is fully registered, if not redirect to payment after 5 seconds
+  useEffect(() => {
+    const checkRegistration = () => {
+      const hasProfile = profile?.fullName && profile?.groupId;
+      const hasToken = localStorage.getItem("unityvault:token");
+      const hasRole = localStorage.getItem("unityvault:role") === "member";
+
+      // If user doesn't have a complete profile or auth, they need to register
+      if (!hasProfile || !hasToken || !hasRole) {
+        const timer = setTimeout(() => {
+          // Get group ID from URL if accessing via group link
+          const urlParams = new URLSearchParams(window.location.search);
+          const groupId = urlParams.get("groupId");
+          
+          if (groupId) {
+            localStorage.setItem("unityvault:pendingGroupId", groupId);
+          }
+          
+          navigate("/member/registration-fee");
+        }, 5000);
+
+        return () => clearTimeout(timer);
+      } else {
+        setIsCheckingRegistration(false);
+      }
+    };
+
+    checkRegistration();
+  }, [navigate, profile]);
 
   useEffect(() => {
     if (profile?.fullName && profile?.groupId) return;

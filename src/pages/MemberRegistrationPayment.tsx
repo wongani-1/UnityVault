@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -8,11 +8,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { ArrowLeft, CreditCard, Smartphone, ShieldCheck } from "lucide-react";
+import { toast } from "@/components/ui/sonner";
 
 const MemberRegistrationPayment = () => {
+  const navigate = useNavigate();
   const [method, setMethod] = useState<"mobile" | "card">("mobile");
   const [saveForFuture, setSaveForFuture] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [form, setForm] = useState({
     mobileNumber: "",
     payerName: "",
@@ -26,14 +29,45 @@ const MemberRegistrationPayment = () => {
   const updateField = (field: keyof typeof form, value: string) =>
     setForm((prev) => ({ ...prev, [field]: value }));
 
-  const handlePay = () => {
+  const handlePay = async () => {
     const requiredFields =
       method === "mobile"
         ? [form.mobileNumber, form.payerName]
         : [form.cardName, form.cardNumber, form.cardExpiry, form.cardCvv];
 
     const hasEmpty = requiredFields.some((value) => value.trim().length === 0);
-    setFormError(hasEmpty ? "All fields are required." : null);
+    
+    if (hasEmpty) {
+      setFormError("All fields are required.");
+      return;
+    }
+    
+    setFormError(null);
+    setIsProcessing(true);
+
+    try {
+      // Simulate payment processing
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
+      // Get group ID from localStorage or URL
+      const urlParams = new URLSearchParams(window.location.search);
+      const groupId = urlParams.get("groupId") || localStorage.getItem("unityvault:pendingGroupId");
+
+      toast.success("Payment successful!");
+      
+      // Redirect to registration details page
+      if (groupId) {
+        navigate(`/member/registration-details?groupId=${groupId}`);
+      } else {
+        navigate("/member/registration-details");
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Payment failed";
+      toast.error(message);
+      setFormError(message);
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   return (
@@ -174,8 +208,14 @@ const MemberRegistrationPayment = () => {
               {formError && (
                 <p className="text-center text-sm text-destructive">{formError}</p>
               )}
-              <Button variant="hero" size="lg" className="w-full" onClick={handlePay}>
-                Pay MWK 2,500
+              <Button 
+                variant="hero" 
+                size="lg" 
+                className="w-full" 
+                onClick={handlePay}
+                disabled={isProcessing}
+              >
+                {isProcessing ? "Processing Payment..." : "Pay MWK 2,500"}
               </Button>
               <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
                 <ShieldCheck className="h-3.5 w-3.5" />

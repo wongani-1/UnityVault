@@ -9,6 +9,7 @@ import Register from "./pages/Register";
 import RegisterSuccess from "./pages/RegisterSuccess";
 import AdminGroupSetup from "./pages/AdminGroupSetup";
 import MemberRegistrationPayment from "./pages/MemberRegistrationPayment";
+import MemberRegistrationDetails from "./pages/MemberRegistrationDetails";
 import MemberContributionPayment from "./pages/MemberContributionPayment";
 import MemberDashboard from "./pages/MemberDashboard";
 import MemberContributions from "./pages/MemberContributions";
@@ -42,6 +43,7 @@ const App = () => (
           <Route path="/register/success" element={<RegisterSuccess />} />
           <Route path="/admin/group-rules" element={<AdminGroupSetup />} />
           <Route path="/member/registration-fee" element={<MemberRegistrationPayment />} />
+          <Route path="/member/registration-details" element={<MemberRegistrationDetails />} />
           <Route path="/member/pay-contribution" element={<MemberContributionPayment />} />
           <Route
             path="/dashboard"
