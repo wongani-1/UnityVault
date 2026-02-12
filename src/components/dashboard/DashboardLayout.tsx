@@ -8,6 +8,7 @@ import {
   Bell,
   FileText,
   Users,
+  User,
   Settings,
   LogOut,
   ChevronRight,
@@ -36,6 +37,7 @@ const memberNav = [
   { label: "Contributions", icon: Wallet, href: "/dashboard/contributions" },
   { label: "Loans", icon: CreditCard, href: "/dashboard/loans" },
   { label: "Notifications", icon: Bell, href: "/dashboard/notifications" },
+  { label: "Profile", icon: User, href: "/dashboard/profile" },
 ];
 
 const adminNav = [
@@ -45,6 +47,7 @@ const adminNav = [
   { label: "Penalties", icon: AlertTriangle, href: "/admin/penalties" },
   { label: "Reports", icon: FileText, href: "/admin/reports" },
   { label: "Audit Logs", icon: ShieldCheck, href: "/admin/audit" },
+  { label: "Profile", icon: User, href: "/admin/profile" },
   { label: "Settings", icon: Settings, href: "/admin/settings" },
 ];
 

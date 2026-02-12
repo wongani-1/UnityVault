@@ -96,12 +96,17 @@ const Login = () => {
       const group = await apiRequest<{ id: string; name: string }>(
         `/groups/${auth.user.groupId}`
       );
+      const adminProfile = await apiRequest<{ fullName?: string; email: string; phone?: string; username: string }>(
+        "/admins/me"
+      );
       localStorage.setItem(
         "unityvault:adminGroup",
         JSON.stringify({
           groupId: group.id,
           groupName: group.name,
-          adminName: adminLogin.username,
+          adminName: adminProfile.fullName || adminProfile.username,
+          adminEmail: adminProfile.email,
+          adminPhone: adminProfile.phone,
         })
       );
 

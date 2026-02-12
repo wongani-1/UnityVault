@@ -21,7 +21,9 @@ export type Group = {
 export type Admin = {
   id: string;
   groupId: string;
+  fullName?: string;
   email: string;
+  phone?: string;
   username: string;
   passwordHash: string;
   role: "group_admin";

@@ -5,4 +5,5 @@ export type AdminRepository = {
   getById: (id: string) => Admin | undefined;
   findByGroupAndIdentifier: (groupId: string, identifier: string) => Admin | undefined;
   listByGroup: (groupId: string) => Admin[];
+  update: (id: string, patch: Partial<Admin>) => Admin | undefined;
 };

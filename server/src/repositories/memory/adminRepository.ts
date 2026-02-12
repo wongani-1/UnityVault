@@ -23,4 +23,11 @@ export const adminRepository: AdminRepository = {
       (admin) => admin.groupId === groupId
     );
   },
+  update(id: string, patch: Partial<Admin>) {
+    const current = store.admins.get(id);
+    if (!current) return undefined;
+    const updated = { ...current, ...patch };
+    store.admins.set(id, updated);
+    return updated;
+  },
 };

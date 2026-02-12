@@ -1,7 +1,7 @@
 import type { MemberRepository } from "../repositories/interfaces";
 import type { Member } from "../models/types";
 import { createId } from "../utils/id";
-import { hashPassword } from "../utils/password";
+import { hashPassword, verifyPassword } from "../utils/password";
 import { ApiError } from "../utils/apiError";
 import { AuditService } from "./auditService";
 import { NotificationService } from "./notificationService";
@@ -110,5 +110,24 @@ export class MemberService {
     const member = this.memberRepository.getById(memberId);
     if (!member) throw new ApiError("Member not found", 404);
     return { ...member, passwordHash: "" };
+  }
+
+  updateProfile(memberId: string, patch: { fullName?: string; email?: string; phone?: string; username?: string }) {
+    const updated = this.memberRepository.update(memberId, patch);
+    if (!updated) throw new ApiError("Member not found", 404);
+    return { ...updated, passwordHash: "" };
+  }
+
+  async changePassword(memberId: string, currentPassword: string, newPassword: string) {
+    const member = this.memberRepository.getById(memberId);
+    if (!member) throw new ApiError("Member not found", 404);
+
+    const ok = await verifyPassword(currentPassword, member.passwordHash);
+    if (!ok) throw new ApiError("Current password is incorrect", 400);
+
+    const passwordHash = await hashPassword(newPassword);
+    const updated = this.memberRepository.update(memberId, { passwordHash });
+    if (!updated) throw new ApiError("Failed to update password", 500);
+    return { status: "ok" };
   }
 }

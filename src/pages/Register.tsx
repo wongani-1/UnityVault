@@ -74,6 +74,8 @@ const Register = () => {
             email: form.adminEmail,
             username: form.adminEmail,
             password: form.adminPassword,
+            fullName: `${form.adminFirstName} ${form.adminSurname}`.trim(),
+            phone: form.adminPhone,
           },
         },
       });

@@ -14,6 +14,7 @@ import MemberDashboard from "./pages/MemberDashboard";
 import MemberContributions from "./pages/MemberContributions";
 import MemberLoans from "./pages/MemberLoans";
 import MemberNotifications from "./pages/MemberNotifications";
+import MemberProfile from "./pages/MemberProfile";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminMembers from "./pages/AdminMembers";
 import AdminLoans from "./pages/AdminLoans";
@@ -22,6 +23,7 @@ import AdminSettings from "./pages/AdminSettings";
 import AdminAudit from "./pages/AdminAudit";
 import AdminPenalties from "./pages/AdminPenalties";
 import AdminNotifications from "./pages/AdminNotifications";
+import AdminProfile from "./pages/AdminProfile";
 import NotFound from "./pages/NotFound";
 import RequireAuth from "./components/auth/RequireAuth";
 
@@ -70,6 +72,14 @@ const App = () => (
             element={
               <RequireAuth role="member">
                 <MemberNotifications />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/dashboard/profile"
+            element={
+              <RequireAuth role="member">
+                <MemberProfile />
               </RequireAuth>
             }
           />
@@ -126,6 +136,14 @@ const App = () => (
             element={
               <RequireAuth role="group_admin">
                 <AdminAudit />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/admin/profile"
+            element={
+              <RequireAuth role="group_admin">
+                <AdminProfile />
               </RequireAuth>
             }
           />

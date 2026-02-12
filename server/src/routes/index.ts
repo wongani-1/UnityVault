@@ -8,6 +8,7 @@ import { notificationsRouter } from "./notifications";
 import { auditRouter } from "./audit";
 import { penaltiesRouter } from "./penalties";
 import { reportsRouter } from "./reports";
+import { adminsRouter } from "./admins";
 
 export const apiRouter = Router();
 
@@ -20,3 +21,4 @@ apiRouter.use("/notifications", notificationsRouter);
 apiRouter.use("/penalties", penaltiesRouter);
 apiRouter.use("/audit", auditRouter);
 apiRouter.use("/reports", reportsRouter);
+apiRouter.use("/admins", adminsRouter);
