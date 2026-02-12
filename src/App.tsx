@@ -25,6 +25,13 @@ import AdminAudit from "./pages/AdminAudit";
 import AdminPenalties from "./pages/AdminPenalties";
 import AdminNotifications from "./pages/AdminNotifications";
 import AdminProfile from "./pages/AdminProfile";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import TermsOfService from "./pages/TermsOfService";
+import CookiePolicy from "./pages/CookiePolicy";
+import FAQ from "./pages/FAQ";
+import Contact from "./pages/Contact";
+import HelpCenter from "./pages/HelpCenter";
+import HelpArticle from "./pages/HelpArticle";
 import NotFound from "./pages/NotFound";
 import RequireAuth from "./components/auth/RequireAuth";
 
@@ -41,6 +48,13 @@ const App = () => (
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/register/success" element={<RegisterSuccess />} />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/terms" element={<TermsOfService />} />
+          <Route path="/cookies" element={<CookiePolicy />} />
+          <Route path="/faq" element={<FAQ />} />
+          <Route path="/contact" element={<Contact />} />
+          <Route path="/help" element={<HelpCenter />} />
+          <Route path="/help/:articleId" element={<HelpArticle />} />
           <Route path="/admin/group-rules" element={<AdminGroupSetup />} />
           <Route path="/member/registration-fee" element={<MemberRegistrationPayment />} />
           <Route path="/member/registration-details" element={<MemberRegistrationDetails />} />
