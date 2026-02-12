@@ -221,7 +221,7 @@ const Register = () => {
                 <Input
                   id="adminPhone"
                   type="tel"
-                  placeholder="+256 700 000 000"
+                  placeholder="+265 888 000 000"
                   className="pl-10"
                   value={form.adminPhone}
                   onChange={(e) => updateField("adminPhone", e.target.value)}

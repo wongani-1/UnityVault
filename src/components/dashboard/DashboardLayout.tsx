@@ -37,7 +37,6 @@ const memberNav = [
   { label: "Contributions", icon: Wallet, href: "/dashboard/contributions" },
   { label: "Loans", icon: CreditCard, href: "/dashboard/loans" },
   { label: "Notifications", icon: Bell, href: "/dashboard/notifications" },
-  { label: "Profile", icon: User, href: "/dashboard/profile" },
 ];
 
 const adminNav = [
@@ -47,7 +46,6 @@ const adminNav = [
   { label: "Penalties", icon: AlertTriangle, href: "/admin/penalties" },
   { label: "Reports", icon: FileText, href: "/admin/reports" },
   { label: "Audit Logs", icon: ShieldCheck, href: "/admin/audit" },
-  { label: "Profile", icon: User, href: "/admin/profile" },
   { label: "Settings", icon: Settings, href: "/admin/settings" },
 ];
 
@@ -147,7 +145,7 @@ const DashboardLayout = ({
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 space-y-1 p-4">
+      <nav className="flex-1 space-y-1 overflow-y-auto p-4">
         {nav.map((item) => {
           const isActive = location.pathname === item.href;
           return (
@@ -209,7 +207,7 @@ const DashboardLayout = ({
     <div className="flex min-h-screen bg-background">
       {/* Desktop Sidebar */}
       <aside className="sticky top-0 hidden h-screen w-64 flex-shrink-0 border-r bg-card lg:block">
-        <div className="flex h-full flex-col">
+        <div className="flex h-full flex-col overflow-hidden">
           <SidebarContent />
         </div>
       </aside>
@@ -222,7 +220,7 @@ const DashboardLayout = ({
             onClick={() => setMobileOpen(false)}
           />
           <aside className="relative h-full w-72 bg-card shadow-elevated animate-slide-in-right">
-            <div className="flex h-full flex-col">
+            <div className="flex h-full flex-col overflow-hidden">
               <SidebarContent />
             </div>
           </aside>
@@ -248,13 +246,18 @@ const DashboardLayout = ({
               )}
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <Link to={isAdmin ? "/admin/notifications" : "/dashboard/notifications"}>
-              <Button variant="ghost" size="icon" className="relative">
+              <Button variant="ghost" size="icon" className="relative flex items-center justify-center">
                 <Bell className="h-5 w-5" />
-                <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground">
+                <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground">
                   3
                 </span>
+              </Button>
+            </Link>
+            <Link to={isAdmin ? "/admin/profile" : "/dashboard/profile"}>
+              <Button variant="ghost" size="icon" className="flex items-center justify-center" aria-label="Profile">
+                <User className="h-5 w-5" />
               </Button>
             </Link>
             <div className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary text-sm font-semibold text-secondary-foreground lg:hidden">

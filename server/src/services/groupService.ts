@@ -3,7 +3,7 @@ import type {
   AdminRepository,
 } from "../repositories/interfaces";
 import type { Admin, Group, GroupSettings } from "../models/types";
-import { createId } from "../utils/id";
+import { createGroupId, createId } from "../utils/id";
 import { hashPassword } from "../utils/password";
 import { ApiError } from "../utils/apiError";
 import { AuditService } from "./auditService";
@@ -26,7 +26,7 @@ export class GroupService {
     }
 
     const group: Group = {
-      id: createId("group"),
+      id: createGroupId(),
       name: params.name,
       settings: params.settings,
       createdAt: new Date().toISOString(),
