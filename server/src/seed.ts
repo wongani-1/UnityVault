@@ -9,13 +9,10 @@ export async function seedData() {
     name: "Test Savings Group",
     createdAt: new Date("2025-01-01").toISOString(),
     settings: {
-      shareFee: 10000,
-      monthlyContribution: 50000,
-      initialLoanAmount: 200000,
-      loanInterestPercent: 5,
-      penaltyMonthlyMiss: 5000,
-      penaltyLoanMiss: 2000,
-      seedAmount: 500000,
+      contributionAmount: 50000,
+      loanInterestRate: 5,
+      penaltyRate: 10,
+      compulsoryInterestRate: 2,
     },
   };
   store.groups.set(testGroup.id, testGroup);
@@ -48,6 +45,7 @@ export async function seedData() {
       phone: "+265999111111",
       status: "active",
       balance: 150000,
+      penaltiesTotal: 0,
       createdAt: new Date("2025-01-15").toISOString(),
     },
     {
@@ -60,6 +58,7 @@ export async function seedData() {
       phone: "+265999222222",
       status: "active",
       balance: 100000,
+      penaltiesTotal: 0,
       createdAt: new Date("2025-01-20").toISOString(),
     },
     {
@@ -72,6 +71,7 @@ export async function seedData() {
       phone: "+265999333333",
       status: "pending",
       balance: 0,
+      penaltiesTotal: 0,
       createdAt: new Date("2026-02-01").toISOString(),
     },
   ];
@@ -85,6 +85,8 @@ export async function seedData() {
       groupId: testGroup.id,
       memberId: "member_002",
       principal: 300000,
+      interestRate: 5,
+      totalInterest: 15000,
       totalDue: 315000,
       installments: [],
       status: "pending",
@@ -95,6 +97,8 @@ export async function seedData() {
       groupId: testGroup.id,
       memberId: "member_001",
       principal: 150000,
+      interestRate: 5,
+      totalInterest: 7500,
       totalDue: 157500,
       installments: [],
       status: "approved",
