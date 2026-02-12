@@ -156,17 +156,17 @@ const Login = () => {
               <TabsContent value="member" className="space-y-4">
                 <div className="rounded-lg bg-secondary/50 p-3">
                   <p className="text-xs text-muted-foreground">
-                    Sign in with your phone, email, or username. You'll be automatically directed to your group.
+                    Sign in with your email or phone number. You'll be automatically directed to your group.
                   </p>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="member-id">Phone, Email, or Username</Label>
+                  <Label htmlFor="member-id">Email or Phone Number</Label>
                   <div className="relative">
                     <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
                       id="member-id"
-                      placeholder="+256 700 000 000 or username"
+                      placeholder="member@example.com/+265 888 000 000"
                       className="pl-10"
                       value={memberLogin.identifier}
                       onChange={(e) =>
