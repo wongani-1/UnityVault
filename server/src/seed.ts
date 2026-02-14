@@ -10,9 +10,12 @@ export async function seedData() {
     createdAt: new Date("2025-01-01").toISOString(),
     settings: {
       contributionAmount: 50000,
-      loanInterestRate: 5,
-      penaltyRate: 10,
-      compulsoryInterestRate: 2,
+      loanInterestRate: 0.05, // 5%
+      penaltyRate: 0.10, // 10%
+      compulsoryInterestRate: 0.02, // 2%
+      minimumContributionMonths: 3, // Minimum 3 months of contributions
+      loanToSavingsRatio: 2.0, // Can borrow up to 200% of savings
+      enableAutomaticPenalties: true, // Auto-apply penalties for overdue
     },
   };
   store.groups.set(testGroup.id, testGroup);
@@ -85,11 +88,13 @@ export async function seedData() {
       groupId: testGroup.id,
       memberId: "member_002",
       principal: 300000,
-      interestRate: 5,
-      totalInterest: 15000,
-      totalDue: 315000,
+      interestRate: 0,
+      totalInterest: 0,
+      totalDue: 300000,
+      balance: 300000,
       installments: [],
       status: "pending",
+      reason: "Business expansion",
       createdAt: new Date("2026-02-03").toISOString(),
     },
     {
@@ -97,11 +102,12 @@ export async function seedData() {
       groupId: testGroup.id,
       memberId: "member_001",
       principal: 150000,
-      interestRate: 5,
+      interestRate: 0.05,
       totalInterest: 7500,
       totalDue: 157500,
+      balance: 157500,
       installments: [],
-      status: "approved",
+      status: "active",
       createdAt: new Date("2026-01-28").toISOString(),
       approvedAt: new Date("2026-01-29").toISOString(),
     },

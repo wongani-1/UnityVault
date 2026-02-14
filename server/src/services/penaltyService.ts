@@ -9,7 +9,7 @@ export class PenaltyService {
     private memberRepository: MemberRepository
   ) {}
 
-  create(params: Omit<Penalty, "id" | "createdAt" | "resolved">) {
+  create(params: Omit<Penalty, "id" | "createdAt" | "isPaid">) {
     const member = this.memberRepository.getById(params.memberId);
     if (!member) throw new ApiError("Member not found", 404);
 
@@ -17,7 +17,7 @@ export class PenaltyService {
       ...params,
       id: createId("penalty"),
       createdAt: new Date().toISOString(),
-      resolved: false,
+      isPaid: false,
     };
 
     this.memberRepository.update(member.id, {

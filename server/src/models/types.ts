@@ -1,14 +1,17 @@
 export type Role = "platform_owner" | "group_admin" | "member";
 export type MemberStatus = "pending" | "active" | "rejected";
 export type NotificationStatus = "pending" | "sent" | "failed";
-export type LoanStatus = "pending" | "approved" | "rejected" | "closed";
-export type InstallmentStatus = "due" | "paid" | "late";
+export type LoanStatus = "pending" | "approved" | "rejected" | "active" | "completed";
+export type InstallmentStatus = "unpaid" | "paid" | "overdue";
 
 export type GroupSettings = {
   contributionAmount: number;
   loanInterestRate: number;
   penaltyRate: number;
   compulsoryInterestRate: number;
+  minimumContributionMonths: number; // Minimum months of contributions before loan eligibility
+  loanToSavingsRatio: number; // Maximum loan amount as ratio of total contributions (e.g., 2.0 = 200%)
+  enableAutomaticPenalties: boolean; // Auto-apply penalties for overdue installments
 };
 
 export type Group = {
@@ -74,10 +77,16 @@ export type Loan = {
   interestRate: number;
   totalInterest: number;
   totalDue: number;
+  balance: number; // Remaining amount to be paid
   status: LoanStatus;
   installments: LoanInstallment[];
+  reason?: string; // Optional reason provided by member
   createdAt: string;
   approvedAt?: string;
+  rejectedAt?: string;
+  rejectionReason?: string;
+  completedAt?: string;
+  dueDate?: string; // Final due date (last installment)
 };
 
 export type Penalty = {
@@ -89,7 +98,7 @@ export type Penalty = {
   amount: number;
   reason: string;
   createdAt: string;
-  resolved: boolean;
+  isPaid: boolean;
 };
 
 export type Notification = {

@@ -15,6 +15,11 @@ export const loanRepository: LoanRepository = {
       (loan) => loan.groupId === groupId
     );
   },
+  listByMember(memberId: string) {
+    return Array.from(store.loans.values()).filter(
+      (loan) => loan.memberId === memberId
+    );
+  },
   update(id: string, patch: Partial<Loan>) {
     const current = store.loans.get(id);
     if (!current) return undefined;

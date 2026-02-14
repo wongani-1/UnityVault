@@ -142,10 +142,10 @@ const MemberDashboard = () => {
         const timer = setTimeout(() => {
           // Get group ID from URL if accessing via group link
           const urlParams = new URLSearchParams(window.location.search);
-          const groupId = urlParams.get("groupId");
+          const urlGroupId = urlParams.get("groupId");
           
-          if (groupId) {
-            localStorage.setItem("unityvault:pendingGroupId", groupId);
+          if (urlGroupId) {
+            localStorage.setItem("unityvault:pendingGroupId", urlGroupId);
           }
           
           navigate("/member/registration-fee");

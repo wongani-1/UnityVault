@@ -36,7 +36,10 @@ const loanService = new LoanService(
   loanRepository,
   memberRepository,
   penaltyRepository,
-  groupRepository
+  groupRepository,
+  notificationRepository,
+  contributionRepository,
+  auditRepository
 );
 const authService = new AuthService(
   groupRepository,
