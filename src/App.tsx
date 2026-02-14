@@ -7,6 +7,7 @@ import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import RegisterSuccess from "./pages/RegisterSuccess";
+import ForgotPassword from "./pages/ForgotPassword";
 import AdminGroupSetup from "./pages/AdminGroupSetup";
 import MemberRegistrationPayment from "./pages/MemberRegistrationPayment";
 import MemberRegistrationDetails from "./pages/MemberRegistrationDetails";
@@ -47,6 +48,7 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/register" element={<Register />} />
           <Route path="/register/success" element={<RegisterSuccess />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />

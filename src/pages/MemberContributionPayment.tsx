@@ -13,6 +13,7 @@ const MemberContributionPayment = () => {
   const [method, setMethod] = useState<"mobile" | "card">("mobile");
   const [saveForFuture, setSaveForFuture] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [mobileProvider, setMobileProvider] = useState<"airtel" | "tnm" | null>(null);
   const [form, setForm] = useState({
     mobileNumber: "",
     payerName: "",
@@ -43,7 +44,36 @@ const MemberContributionPayment = () => {
         : [form.cardName, form.cardNumber, form.cardExpiry, form.cardCvv];
 
     const hasEmpty = requiredFields.some((value) => value.trim().length === 0);
-    setFormError(hasEmpty ? "All fields are required." : null);
+    
+    if (hasEmpty) {
+      setFormError("All fields are required.");
+      return;
+    }
+
+    // Validate mobile money provider and format
+    if (method === "mobile") {
+      if (!mobileProvider) {
+        setFormError("Please select a mobile money provider (Airtel or TNM Mpamba).");
+        return;
+      }
+
+      const mobileNumber = form.mobileNumber.replace(/\s/g, "");
+      
+      if (mobileProvider === "airtel") {
+        if (!mobileNumber.match(/^09\d{8}$/)) {
+          setFormError("Airtel Money number must be in format 09XXXXXXXX (10 digits starting with 09).");
+          return;
+        }
+      } else if (mobileProvider === "tnm") {
+        if (!mobileNumber.match(/^08\d{8}$/)) {
+          setFormError("TNM Mpamba number must be in format 08XXXXXXXX (10 digits starting with 08).");
+          return;
+        }
+      }
+    }
+
+    setFormError(null);
+    // Proceed with payment...
   };
 
   return (
@@ -89,6 +119,46 @@ const MemberContributionPayment = () => {
                 </TabsList>
 
                 <TabsContent value="mobile" className="mt-4 space-y-4">
+                  {/* Mobile Money Provider Logos */}
+                  <div className="rounded-lg border bg-muted/30 p-4">
+                    <p className="mb-3 text-center text-xs font-medium text-muted-foreground">
+                      Select Mobile Money Service
+                    </p>
+                    <div className="flex items-center justify-center gap-4">
+                      <button
+                        type="button"
+                        onClick={() => setMobileProvider("airtel")}
+                        className={`flex h-20 w-32 items-center justify-center rounded-md border bg-white p-2 transition-all hover:shadow-md ${
+                          mobileProvider === "airtel" ? "ring-2 ring-primary ring-offset-2" : ""
+                        }`}
+                      >
+                        <img 
+                          src="/Airtel logo.png" 
+                          alt="Airtel Money" 
+                          className="h-full w-full object-contain"
+                        />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setMobileProvider("tnm")}
+                        className={`flex h-20 w-32 items-center justify-center rounded-md border bg-white p-2 transition-all hover:shadow-md ${
+                          mobileProvider === "tnm" ? "ring-2 ring-primary ring-offset-2" : ""
+                        }`}
+                      >
+                        <img 
+                          src="/mpamba.png" 
+                          alt="Mpamba by TNM" 
+                          className="h-full w-full object-contain"
+                        />
+                      </button>
+                    </div>
+                    {mobileProvider && (
+                      <p className="mt-3 text-center text-xs font-medium text-primary">
+                        {mobileProvider === "airtel" ? "Airtel Money selected" : "TNM Mpamba selected"}
+                      </p>
+                    )}
+                  </div>
+
                   <div className="space-y-2">
                     <Label htmlFor="payer-name">Payer name</Label>
                     <Input
@@ -114,11 +184,23 @@ const MemberContributionPayment = () => {
                     <Label htmlFor="mobile-number">Mobile number</Label>
                     <Input
                       id="mobile-number"
-                      placeholder="e.g. 0991 000 000"
+                      placeholder={
+                        mobileProvider === "airtel"
+                          ? "09XXXXXXXX"
+                          : mobileProvider === "tnm"
+                          ? "08XXXXXXXX"
+                          : "e.g. 0991 000 000"
+                      }
                       value={form.mobileNumber}
                       onChange={(e) => updateField("mobileNumber", e.target.value)}
                     />
-                    <p className="text-xs text-muted-foreground">Use the number registered for mobile payments.</p>
+                    <p className="text-xs text-muted-foreground">
+                      {mobileProvider === "airtel"
+                        ? "Airtel Money format: 09XXXXXXXX"
+                        : mobileProvider === "tnm"
+                        ? "TNM Mpamba format: 08XXXXXXXX"
+                        : "Use the number registered for mobile payments."}
+                    </p>
                   </div>
                 </TabsContent>
 

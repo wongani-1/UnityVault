@@ -1,4 +1,4 @@
-const corsOrigin = (process.env.CORS_ORIGIN || "http://localhost:8080,http://localhost:5173")
+const corsOrigin = (process.env.CORS_ORIGIN || "http://localhost:8080,http://localhost:8081,http://localhost:8082,http://localhost:5173")
   .split(",")
   .map((value) => value.trim())
   .filter(Boolean);

@@ -17,13 +17,8 @@ import { Label } from "@/components/ui/label";
 import { apiRequest } from "../lib/api";
 import { toast } from "@/components/ui/sonner";
 
-const fallbackLoans = [
-  { id: "loan-1", amount: "MWK 200,000", status: "Pending", date: "2026-02-03" },
-  { id: "loan-2", amount: "MWK 150,000", status: "Approved", date: "2026-01-20" },
-];
-
 const MemberLoans = () => {
-  const [loans, setLoans] = useState(fallbackLoans);
+  const [loans, setLoans] = useState<Array<{id: string; amount: string; status: string; date: string}>>([]);
   const [loading, setLoading] = useState(true);
   const [amount, setAmount] = useState("");
 
@@ -50,7 +45,7 @@ const MemberLoans = () => {
             : "Pending",
         date: loan.createdAt.slice(0, 10),
       }));
-      setLoans(mapped.length ? mapped : fallbackLoans);
+      setLoans(mapped);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to load loans";
       toast.error(message);
@@ -137,7 +132,7 @@ const MemberLoans = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {loans.map((loan) => (
+              {loans.length > 0 ? loans.map((loan) => (
                 <TableRow key={loan.id}>
                   <TableCell className="font-medium">{loan.id}</TableCell>
                   <TableCell>{loan.amount}</TableCell>
@@ -156,7 +151,13 @@ const MemberLoans = () => {
                   </TableCell>
                   <TableCell className="text-muted-foreground">{loan.date}</TableCell>
                 </TableRow>
-              ))}
+              )) : (
+                <TableRow>
+                  <TableCell colSpan={4} className="text-center text-sm text-muted-foreground py-8">
+                    No loans yet
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </CardContent>

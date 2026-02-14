@@ -181,7 +181,15 @@ const Login = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="member-password">Password</Label>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="member-password">Password</Label>
+                    <Link
+                      to="/forgot-password?role=member"
+                      className="text-xs text-primary hover:underline"
+                    >
+                      Forgot password?
+                    </Link>
+                  </div>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
@@ -242,7 +250,15 @@ const Login = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="admin-password">Password</Label>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="admin-password">Password</Label>
+                    <Link
+                      to="/forgot-password?role=admin"
+                      className="text-xs text-primary hover:underline"
+                    >
+                      Forgot password?
+                    </Link>
+                  </div>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input

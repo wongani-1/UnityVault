@@ -13,13 +13,8 @@ import { Badge } from "@/components/ui/badge";
 import { apiRequest } from "../lib/api";
 import { toast } from "@/components/ui/sonner";
 
-const fallbackContributions = [
-  { date: "2026-02-01", amount: "MWK 50,000", status: "Paid", method: "Mobile Money" },
-  { date: "2026-01-01", amount: "MWK 50,000", status: "Paid", method: "Bank Transfer" },
-];
-
 const MemberContributions = () => {
-  const [items, setItems] = useState(fallbackContributions);
+  const [items, setItems] = useState<Array<{date: string; amount: string; status: string; method: string}>>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -41,7 +36,7 @@ const MemberContributions = () => {
           status: item.paidAt ? "Paid" : "Pending",
           method: "Recorded",
         }));
-        setItems(mapped.length ? mapped : fallbackContributions);
+        setItems(mapped);
       } catch (error) {
         const message = error instanceof Error ? error.message : "Failed to load contributions";
         toast.error(message);
@@ -76,7 +71,7 @@ const MemberContributions = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {items.map((item, index) => (
+              {items.length > 0 ? items.map((item, index) => (
                 <TableRow key={`${item.date}-${index}`}>
                   <TableCell className="font-medium">{item.date}</TableCell>
                   <TableCell>{item.amount}</TableCell>
@@ -93,7 +88,13 @@ const MemberContributions = () => {
                     </Badge>
                   </TableCell>
                 </TableRow>
-              ))}
+              )) : (
+                <TableRow>
+                  <TableCell colSpan={4} className="text-center text-sm text-muted-foreground py-8">
+                    No contributions yet
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </CardContent>

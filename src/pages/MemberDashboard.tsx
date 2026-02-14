@@ -28,30 +28,37 @@ import {
 import { apiRequest } from "../lib/api";
 import { toast } from "@/components/ui/sonner";
 
-const contributions = [
-  { date: "2026-02-01", amount: "MWK 50,000", status: "Paid", method: "Mobile Money" },
-  { date: "2026-01-01", amount: "MWK 50,000", status: "Paid", method: "Bank Transfer" },
-  { date: "2025-12-01", amount: "MWK 50,000", status: "Paid", method: "Mobile Money" },
-  { date: "2025-11-01", amount: "MWK 50,000", status: "Late", method: "Mobile Money" },
-  { date: "2025-10-01", amount: "MWK 50,000", status: "Paid", method: "Cash" },
-];
+interface Contribution {
+  id: string;
+  amount: number;
+  month: string;
+  paidAt?: string;
+  createdAt: string;
+}
 
-const loans = [
-  { id: "LN-001", amount: "MWK 200,000", balance: "MWK 80,000", repaid: 60, status: "Active", dueDate: "2026-03-15", nextPayment: "MWK 40,000" },
-  { id: "LN-002", amount: "MWK 150,000", balance: "MWK 0", repaid: 100, status: "Cleared", dueDate: "2025-09-30", nextPayment: "—" },
-];
+interface Loan {
+  id: string;
+  amount: number;
+  balance: number;
+  status: string;
+  approvedAt?: string;
+  dueDate?: string;
+}
 
-const notifications = [
-  { message: "Monthly contribution due on Feb 28", type: "info", time: "2 days ago" },
-  { message: "Loan repayment of MWK 40,000 due Mar 15", type: "warning", time: "5 days ago" },
-  { message: "Late penalty of MWK 5,000 applied for Nov", type: "error", time: "1 week ago" },
-  { message: "Group meeting scheduled for Mar 1", type: "info", time: "1 week ago" },
-];
+interface Penalty {
+  id: string;
+  amount: number;
+  reason: string;
+  isPaid: boolean;
+  createdAt: string;
+}
 
-const upcomingPayments = [
-  { label: "Monthly Contribution", amount: "MWK 50,000", dueDate: "Feb 28, 2026", daysLeft: 21 },
-  { label: "Loan Repayment (LN-001)", amount: "MWK 40,000", dueDate: "Mar 15, 2026", daysLeft: 36 },
-];
+interface Notification {
+  id: string;
+  message: string;
+  type: string;
+  createdAt: string;
+}
 
 const MemberDashboard = () => {
   const navigate = useNavigate();
@@ -68,6 +75,60 @@ const MemberDashboard = () => {
 
   const [profile, setProfile] = useState(storedProfile);
   const [isCheckingRegistration, setIsCheckingRegistration] = useState(true);
+  
+  // Data state
+  const [contributions, setContributions] = useState<Contribution[]>([]);
+  const [loans, setLoans] = useState<Loan[]>([]);
+  const [penalties, setPenalties] = useState<Penalty[]>([]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Calculated values
+  const totalContributions = useMemo(() => {
+    return contributions
+      .filter(c => c.paidAt)
+      .reduce((sum, c) => sum + c.amount, 0);
+  }, [contributions]);
+
+  const paidContributionsCount = useMemo(() => {
+    return contributions.filter(c => c.paidAt).length;
+  }, [contributions]);
+
+  const outstandingLoans = useMemo(() => {
+    return loans
+      .filter(l => l.status === "approved")
+      .reduce((sum, l) => sum + l.balance, 0);
+  }, [loans]);
+
+  const activeLoansCount = useMemo(() => {
+    return loans.filter(l => l.status === "approved" && l.balance > 0).length;
+  }, [loans]);
+
+  const pendingPenalties = useMemo(() => {
+    return penalties
+      .filter(p => !p.isPaid)
+      .reduce((sum, p) => sum + p.amount, 0);
+  }, [penalties]);
+
+  const pendingPenaltiesCount = useMemo(() => {
+    return penalties.filter(p => !p.isPaid).length;
+  }, [penalties]);
+
+  const totalBalance = useMemo(() => {
+    return totalContributions - outstandingLoans - pendingPenalties;
+  }, [totalContributions, outstandingLoans, pendingPenalties]);
+
+  // Check if member has contribution-related penalties (for "on track" status)
+  const hasContributionPenalties = useMemo(() => {
+    return penalties.some(p => 
+      !p.isPaid && 
+      (p.reason.toLowerCase().includes("contribution") || 
+       p.reason.toLowerCase().includes("monthly") ||
+       p.reason.toLowerCase().includes("payment"))
+    );
+  }, [penalties]);
+
+  const isOnTrack = !hasContributionPenalties;
 
   // Check if member is fully registered, if not redirect to payment after 5 seconds
   useEffect(() => {
@@ -127,9 +188,99 @@ const MemberDashboard = () => {
     };
   }, [profile]);
 
+  // Fetch dashboard data
+  useEffect(() => {
+    let active = true;
+    const loadDashboardData = async () => {
+      try {
+        setLoading(true);
+        
+        // Fetch all data in parallel
+        const [contributionsData, loansData, penaltiesData, notificationsData] = await Promise.all([
+          apiRequest<{ items: Contribution[] }>("/contributions").catch(() => ({ items: [] })),
+          apiRequest<{ items: Loan[] }>("/loans").catch(() => ({ items: [] })),
+          apiRequest<{ items: Penalty[] }>("/penalties").catch(() => ({ items: [] })),
+          apiRequest<{ items: Notification[] }>("/notifications").catch(() => ({ items: [] })),
+        ]);
+
+        if (!active) return;
+
+        setContributions(contributionsData.items || []);
+        setLoans(loansData.items || []);
+        setPenalties(penaltiesData.items || []);
+        setNotifications(notificationsData.items || []);
+      } catch (error) {
+        if (active) {
+          const message = error instanceof Error ? error.message : "Failed to load dashboard data";
+          toast.error(message);
+        }
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+
+    loadDashboardData();
+    
+    // Refresh data every 30 seconds
+    const interval = setInterval(loadDashboardData, 30000);
+
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
+  }, []);
+
   const displayName = profile.fullName || "Member";
   const groupId = profile.groupId || "GB-8F3K2";
   const groupName = profile.groupName || "Your Group";
+
+  // Format contributions for table display
+  const contributionHistory = useMemo(() => {
+    return contributions.slice(0, 5).map(c => ({
+      date: (c.paidAt || c.createdAt).slice(0, 10),
+      amount: `MWK ${c.amount.toLocaleString()}`,
+      status: c.paidAt ? "Paid" : "Pending",
+      method: "Recorded",
+    }));
+  }, [contributions]);
+
+  // Format loans for display
+  const loanHistory = useMemo(() => {
+    return loans.map(l => {
+      const repaidPercentage = l.amount > 0 ? Math.round(((l.amount - l.balance) / l.amount) * 100) : 0;
+      return {
+        id: l.id,
+        amount: `MWK ${l.amount.toLocaleString()}`,
+        balance: `MWK ${l.balance.toLocaleString()}`,
+        repaid: repaidPercentage,
+        status: l.balance === 0 ? "Cleared" : l.status === "approved" ? "Active" : "Pending",
+        dueDate: l.dueDate ? new Date(l.dueDate).toISOString().slice(0, 10) : "—",
+        nextPayment: l.balance > 0 ? `MWK ${Math.ceil(l.balance / 3).toLocaleString()}` : "—",
+      };
+    });
+  }, [loans]);
+
+  // Format notifications for display
+  const recentNotifications = useMemo(() => {
+    const getTimeAgo = (dateString: string) => {
+      const date = new Date(dateString);
+      const now = new Date();
+      const diffMs = now.getTime() - date.getTime();
+      const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+      
+      if (diffDays === 0) return "Today";
+      if (diffDays === 1) return "Yesterday";
+      if (diffDays < 7) return `${diffDays} days ago`;
+      if (diffDays < 30) return `${Math.floor(diffDays / 7)} week${Math.floor(diffDays / 7) > 1 ? 's' : ''} ago`;
+      return `${Math.floor(diffDays / 30)} month${Math.floor(diffDays / 30) > 1 ? 's' : ''} ago`;
+    };
+
+    return notifications.slice(0, 4).map(n => ({
+      message: n.message,
+      type: n.type || "info",
+      time: getTimeAgo(n.createdAt),
+    }));
+  }, [notifications]);
 
   return (
     <DashboardLayout
@@ -142,29 +293,29 @@ const MemberDashboard = () => {
       <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <SummaryCard
           title="My Contributions"
-          value="MWK 250,000"
-          subtitle="5 of 12 months paid"
+          value={`MWK ${totalContributions.toLocaleString()}`}
+          subtitle={`${paidContributionsCount} payment${paidContributionsCount !== 1 ? 's' : ''} made`}
           icon={Wallet}
           variant="primary"
-          trend={{ value: "On track", positive: true }}
+          trend={{ value: isOnTrack ? "On track" : "Off track", positive: isOnTrack }}
         />
         <SummaryCard
           title="Outstanding Loans"
-          value="MWK 80,000"
-          subtitle="1 active loan"
+          value={`MWK ${outstandingLoans.toLocaleString()}`}
+          subtitle={`${activeLoansCount} active loan${activeLoansCount !== 1 ? 's' : ''}`}
           icon={CreditCard}
           variant="info"
         />
         <SummaryCard
           title="Penalties Due"
-          value="MWK 5,000"
-          subtitle="1 pending penalty"
+          value={`MWK ${pendingPenalties.toLocaleString()}`}
+          subtitle={`${pendingPenaltiesCount} pending ${pendingPenaltiesCount !== 1 ? 'penalties' : 'penalty'}`}
           icon={AlertTriangle}
           variant="warning"
         />
         <SummaryCard
           title="Total Balance"
-          value="MWK 165,000"
+          value={`MWK ${totalBalance.toLocaleString()}`}
           subtitle="Net after loans & penalties"
           icon={PiggyBank}
         />
@@ -186,38 +337,8 @@ const MemberDashboard = () => {
         </Link>
       </div>
 
-      {/* Upcoming Payments + Loan Progress */}
-      <div className="mb-6 grid gap-6 lg:grid-cols-2">
-        {/* Upcoming Payments */}
-        <Card className="border-0 shadow-card">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <CalendarClock className="h-4 w-4 text-primary" />
-              Upcoming Payments
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {upcomingPayments.map((p, i) => (
-              <div
-                key={i}
-                className="flex items-center justify-between rounded-lg border bg-muted/30 p-4"
-              >
-                <div>
-                  <p className="text-sm font-medium text-foreground">{p.label}</p>
-                  <p className="text-xs text-muted-foreground">Due {p.dueDate}</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm font-bold text-foreground">{p.amount}</p>
-                  <p className={`text-xs font-medium ${p.daysLeft <= 7 ? "text-destructive" : "text-muted-foreground"}`}>
-                    {p.daysLeft} days left
-                  </p>
-                </div>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-
-        {/* Loan Repayment Progress */}
+      {/* Loan Repayment Progress */}
+      <div className="mb-6">
         <Card className="border-0 shadow-card">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
@@ -226,29 +347,32 @@ const MemberDashboard = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-5">
-            {loans
-              .filter((l) => l.status === "Active")
-              .map((l) => (
-                <div key={l.id} className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-foreground">{l.id}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {l.amount} borrowed · Due {l.dueDate}
-                      </p>
+            {loading ? (
+              <p className="text-center text-sm text-muted-foreground py-4">Loading loans...</p>
+            ) : loanHistory.filter((l) => l.status === "Active").length > 0 ? (
+              loanHistory
+                .filter((l) => l.status === "Active")
+                .map((l) => (
+                  <div key={l.id} className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-foreground">{l.id}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {l.amount} borrowed · Due {l.dueDate}
+                        </p>
+                      </div>
+                      <Badge className="bg-info/10 text-info hover:bg-info/20 border-0">
+                        {l.repaid}% repaid
+                      </Badge>
                     </div>
-                    <Badge className="bg-info/10 text-info hover:bg-info/20 border-0">
-                      {l.repaid}% repaid
-                    </Badge>
+                    <Progress value={l.repaid} className="h-2" />
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>Balance: {l.balance}</span>
+                      <span>Next: {l.nextPayment}</span>
+                    </div>
                   </div>
-                  <Progress value={l.repaid} className="h-2" />
-                  <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>Balance: {l.balance}</span>
-                    <span>Next: {l.nextPayment}</span>
-                  </div>
-                </div>
-              ))}
-            {loans.filter((l) => l.status === "Active").length === 0 && (
+                ))
+            ) : (
               <p className="text-center text-sm text-muted-foreground py-4">
                 No active loans
               </p>
@@ -274,21 +398,35 @@ const MemberDashboard = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {contributions.map((c, i) => (
-                  <TableRow key={i}>
-                    <TableCell className="font-medium">{c.date}</TableCell>
-                    <TableCell>{c.amount}</TableCell>
-                    <TableCell className="text-muted-foreground">{c.method}</TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={c.status === "Paid" ? "default" : "destructive"}
-                        className={c.status === "Paid" ? "bg-success/10 text-success hover:bg-success/20 border-0" : ""}
-                      >
-                        {c.status}
-                      </Badge>
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center text-sm text-muted-foreground">
+                      Loading contributions...
                     </TableCell>
                   </TableRow>
-                ))}
+                ) : contributionHistory.length > 0 ? (
+                  contributionHistory.map((c, i) => (
+                    <TableRow key={i}>
+                      <TableCell className="font-medium">{c.date}</TableCell>
+                      <TableCell>{c.amount}</TableCell>
+                      <TableCell className="text-muted-foreground">{c.method}</TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={c.status === "Paid" ? "default" : "destructive"}
+                          className={c.status === "Paid" ? "bg-success/10 text-success hover:bg-success/20 border-0" : ""}
+                        >
+                          {c.status}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center text-sm text-muted-foreground">
+                      No contributions yet
+                    </TableCell>
+                  </TableRow>
+                )}
               </TableBody>
             </Table>
           </CardContent>
@@ -303,25 +441,35 @@ const MemberDashboard = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {notifications.map((n, i) => (
-                <div key={i} className="flex gap-3 rounded-lg bg-muted/50 p-3">
-                  <div
-                    className={`mt-0.5 h-2 w-2 flex-shrink-0 rounded-full ${
-                      n.type === "error"
-                        ? "bg-destructive"
-                        : n.type === "warning"
-                        ? "bg-warning"
-                        : "bg-info"
-                    }`}
-                  />
-                  <div>
-                    <p className="text-sm text-foreground">{n.message}</p>
-                    <p className="mt-1 text-xs text-muted-foreground">{n.time}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
+            {loading ? (
+              <p className="text-center text-sm text-muted-foreground py-4">Loading notifications...</p>
+            ) : (
+              <div className="space-y-3">
+                {recentNotifications.length > 0 ? (
+                  recentNotifications.map((n, i) => (
+                    <div key={i} className="flex gap-3 rounded-lg bg-muted/50 p-3">
+                      <div
+                        className={`mt-0.5 h-2 w-2 flex-shrink-0 rounded-full ${
+                          n.type === "error"
+                            ? "bg-destructive"
+                            : n.type === "warning"
+                            ? "bg-warning"
+                            : "bg-info"
+                        }`}
+                      />
+                      <div>
+                        <p className="text-sm text-foreground">{n.message}</p>
+                        <p className="mt-1 text-xs text-muted-foreground">{n.time}</p>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-center text-sm text-muted-foreground py-4">
+                    No notifications
+                  </p>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -344,31 +492,45 @@ const MemberDashboard = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {loans.map((l) => (
-                <TableRow key={l.id}>
-                  <TableCell className="font-medium">{l.id}</TableCell>
-                  <TableCell>{l.amount}</TableCell>
-                  <TableCell>{l.balance}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Progress value={l.repaid} className="h-1.5 w-16" />
-                      <span className="text-xs text-muted-foreground">{l.repaid}%</span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">{l.dueDate}</TableCell>
-                  <TableCell>
-                    <Badge
-                      className={
-                        l.status === "Cleared"
-                          ? "bg-success/10 text-success hover:bg-success/20 border-0"
-                          : "bg-info/10 text-info hover:bg-info/20 border-0"
-                      }
-                    >
-                      {l.status}
-                    </Badge>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center text-sm text-muted-foreground">
+                    Loading loans...
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : loanHistory.length > 0 ? (
+                loanHistory.map((l) => (
+                  <TableRow key={l.id}>
+                    <TableCell className="font-medium">{l.id}</TableCell>
+                    <TableCell>{l.amount}</TableCell>
+                    <TableCell>{l.balance}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Progress value={l.repaid} className="h-1.5 w-16" />
+                        <span className="text-xs text-muted-foreground">{l.repaid}%</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">{l.dueDate}</TableCell>
+                    <TableCell>
+                      <Badge
+                        className={
+                          l.status === "Cleared"
+                            ? "bg-success/10 text-success hover:bg-success/20 border-0"
+                            : "bg-info/10 text-info hover:bg-info/20 border-0"
+                        }
+                      >
+                        {l.status}
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center text-sm text-muted-foreground">
+                    No loans yet
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </CardContent>
