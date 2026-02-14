@@ -35,12 +35,65 @@ import {
 import { apiRequest } from "@/lib/api";
 import { toast } from "@/components/ui/sonner";
 
+interface MemberData {
+  id: string;
+  fullName: string;
+  phone?: string;
+  status: string;
+  createdAt: string;
+}
+
+interface LoanData {
+  id: string;
+  memberId: string;
+  principal: number;
+  status: string;
+  totalDue?: number;
+  createdAt: string;
+}
+
+interface PenaltyData {
+  id: string;
+  memberId: string;
+  amount: number;
+  reason?: string;
+  createdAt: string;
+}
+
+interface DisplayMember {
+  id: string;
+  name: string;
+  phone: string;
+  status: string;
+  contributions: string;
+  loans: string;
+  joined: string;
+}
+
+interface DisplayLoan {
+  id: string;
+  member: string;
+  amount: string;
+  purpose: string;
+  date: string;
+  status: string;
+}
+
+interface DisplayPenalty {
+  id: string;
+  member: string;
+  type: string;
+  amount: string;
+  dueDate: string;
+  penalty: string;
+}
+
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const [copiedLink, setCopiedLink] = useState(false);
-  const [members, setMembers] = useState<any[]>([]);
-  const [loanRequests, setLoanRequests] = useState<any[]>([]);
-  const [missedPayments, setMissedPayments] = useState<any[]>([]);
+  const [members, setMembers] = useState<DisplayMember[]>([]);
+  const [loanRequests, setLoanRequests] = useState<DisplayLoan[]>([]);
+  const [missedPayments, setMissedPayments] = useState<DisplayPenalty[]>([]);
   const [loading, setLoading] = useState(true);
   const [totalMembers, setTotalMembers] = useState("0");
   const [totalContributions, setTotalContributions] = useState("MWK 0");
@@ -51,7 +104,7 @@ const AdminDashboard = () => {
     const load = async () => {
       try {
         // Load members
-        const memberData = await apiRequest<{ items: any[] }>("/members");
+        const memberData = await apiRequest<{ items: MemberData[] }>("/members");
         if (active) {
           setMembers(memberData.items.map((m) => ({
             id: m.id,
@@ -65,13 +118,13 @@ const AdminDashboard = () => {
         }
 
         // Load loans
-        const loanData = await apiRequest<{ items: any[] }>("/loans");
+        const loanData = await apiRequest<{ items: LoanData[] }>("/loans");
         if (active) {
-          const memberMap = new Map(memberData.items.map((m: any) => [m.id, m.fullName]));
+          const memberMap = new Map(memberData.items.map((m) => [m.id, m.fullName]));
           const loansMapped = loanData.items
-            .filter((l: any) => l.status === "pending" || l.status === "approved")
+            .filter((l) => l.status === "pending" || l.status === "approved")
             .slice(0, 3)
-            .map((l: any) => ({
+            .map((l) => ({
               id: l.id,
               member: memberMap.get(l.memberId) || "Unknown",
               amount: `MWK ${l.principal.toLocaleString()}`,
@@ -83,10 +136,10 @@ const AdminDashboard = () => {
         }
 
         // Load penalties
-        const penaltyData = await apiRequest<{ items: any[] }>("/penalties");
+        const penaltyData = await apiRequest<{ items: PenaltyData[] }>("/penalties");
         if (active) {
-          const memberMap = new Map(memberData.items.map((m: any) => [m.id, m.fullName]));
-          const penaltiesMapped = penaltyData.items.slice(0, 3).map((p: any) => ({
+          const memberMap = new Map(memberData.items.map((m) => [m.id, m.fullName]));
+          const penaltiesMapped = penaltyData.items.slice(0, 3).map((p) => ({
             id: p.id,
             member: memberMap.get(p.memberId) || "Unknown",
             type: p.reason || "Penalty",
@@ -98,9 +151,9 @@ const AdminDashboard = () => {
         }
 
         // Calculate summary stats
-        const activeCount = memberData.items.filter((m: any) => m.status === "active").length;
+        const activeCount = memberData.items.filter((m) => m.status === "active").length;
         const contribTotal = memberData.items.length * 50000; // Simple estimation
-        const loansTotal = loanData.items.reduce((sum: number, l: any) => sum + (l.totalDue || 0), 0);
+        const loansTotal = loanData.items.reduce((sum: number, l) => sum + (l.totalDue || 0), 0);
 
         if (active) {
           setTotalMembers(String(activeCount));
