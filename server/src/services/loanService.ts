@@ -209,14 +209,21 @@ export class LoanService {
     const totalDue = loan.principal + totalInterest;
     const installmentAmount = totalDue / params.installments;
 
+    // Split each installment into principal and interest portions
+    const principalPerInstallment = loan.principal / params.installments;
+    const interestPerInstallment = totalInterest / params.installments;
+
     // Generate installment plan
     const now = new Date();
     const installments: LoanInstallment[] = Array.from(
       { length: params.installments },
       (_, index) => ({
         id: createId("inst"),
+        installmentNumber: index + 1,
         dueDate: addMonths(now, index + 1).toISOString(),
         amount: Number(installmentAmount.toFixed(2)),
+        principalAmount: Number(principalPerInstallment.toFixed(2)),
+        interestAmount: Number(interestPerInstallment.toFixed(2)),
         status: "unpaid",
       })
     );
@@ -356,32 +363,53 @@ export class LoanService {
 
           // Apply penalty if automatic penalties are enabled
           if (group.settings.enableAutomaticPenalties) {
-            const penaltyAmount = installment.amount * group.settings.penaltyRate;
+            // Check if penalty already exists for this installment
+            const existingPenalties = this.penaltyRepository.listByMember(loan.memberId);
+            const hasPenaltyForInstallment = existingPenalties.some(
+              (p) => p.installmentId === installment.id
+            );
 
-            this.penaltyRepository.create({
-              id: createId("penalty"),
-              groupId: groupId,
-              memberId: loan.memberId,
-              loanId: loan.id,
-              amount: Number(penaltyAmount.toFixed(2)),
-              reason: `Overdue loan installment: ${installment.id}`,
-              createdAt: now.toISOString(),
-              isPaid: false,
-            });
+            if (!hasPenaltyForInstallment) {
+              const penaltyAmount = installment.amount * group.settings.penaltyRate;
+              const penaltyDueDate = new Date(now);
+              penaltyDueDate.setDate(penaltyDueDate.getDate() + 7);
 
-            penaltyApplied = true;
-            results.penaltiesApplied++;
+              this.penaltyRepository.create({
+                id: createId("penalty"),
+                groupId: groupId,
+                memberId: loan.memberId,
+                loanId: loan.id,
+                installmentId: installment.id,
+                amount: Number(penaltyAmount.toFixed(2)),
+                reason: `Overdue loan installment #${installment.installmentNumber}`,
+                status: "unpaid",
+                dueDate: penaltyDueDate.toISOString(),
+                createdAt: now.toISOString(),
+                isPaid: false,
+              });
 
-            // Notify member
-            this.notificationRepository.create({
-              id: createId("notif"),
-              groupId: groupId,
-              memberId: loan.memberId,
-              type: "installment_overdue",
-              message: `Your loan installment of MWK ${installment.amount.toLocaleString()} is overdue. A penalty of MWK ${penaltyAmount.toLocaleString()} has been applied.`,
-              status: "pending",
-              createdAt: now.toISOString(),
-            });
+              // Update member penalties total
+              const member = this.memberRepository.getById(loan.memberId);
+              if (member) {
+                this.memberRepository.update(member.id, {
+                  penaltiesTotal: member.penaltiesTotal + Number(penaltyAmount.toFixed(2)),
+                });
+              }
+
+              penaltyApplied = true;
+              results.penaltiesApplied++;
+
+              // Notify member
+              this.notificationRepository.create({
+                id: createId("notif"),
+                groupId: groupId,
+                memberId: loan.memberId,
+                type: "installment_overdue",
+                message: `Your loan installment #${installment.installmentNumber} of MWK ${installment.amount.toLocaleString()} is overdue. A penalty of MWK ${penaltyAmount.toLocaleString()} has been applied.`,
+                status: "pending",
+                createdAt: now.toISOString(),
+              });
+            }
           }
         }
       }

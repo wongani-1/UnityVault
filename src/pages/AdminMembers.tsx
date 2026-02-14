@@ -243,9 +243,10 @@ const AdminMembers = () => {
                     id="member-phone"
                     value={form.phone}
                     onChange={(e) => updateField("phone", e.target.value)}
-                    placeholder="+256 700 000 000"
+                    placeholder="+265 XXX XXX XXX"
                   />
                 </div>
+                
                 {inviteInfo && (
                   <div className="rounded-lg border bg-secondary/30 p-3 text-sm">
                     <p className="font-semibold text-foreground">Mock delivery</p>

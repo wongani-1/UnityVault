@@ -83,7 +83,7 @@ const MemberActivate = () => {
           {step === "otp" ? (
             <>
               <div className="space-y-2">
-                <Label htmlFor="otp">One-time password</Label>
+                <Label htmlFor="otp">One-Time Pin</Label>
                 <Input
                   id="otp"
                   value={otp}

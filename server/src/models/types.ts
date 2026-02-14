@@ -3,6 +3,9 @@ export type MemberStatus = "pending" | "active" | "rejected";
 export type NotificationStatus = "pending" | "sent" | "failed";
 export type LoanStatus = "pending" | "approved" | "rejected" | "active" | "completed";
 export type InstallmentStatus = "unpaid" | "paid" | "overdue";
+export type ContributionStatus = "unpaid" | "paid" | "overdue";
+export type PenaltyStatus = "unpaid" | "paid";
+export type TransactionType = "contribution" | "loan_disbursement" | "loan_repayment" | "penalty_payment" | "initial_deposit";
 
 export type GroupSettings = {
   contributionAmount: number;
@@ -19,6 +22,9 @@ export type Group = {
   name: string;
   createdAt: string;
   settings: GroupSettings;
+  totalSavings: number; // Total member savings/contributions
+  totalIncome: number; // Group income (interest, penalties, fees)
+  cash: number; // Available cash (savings + income - loans disbursed)
 };
 
 export type Admin = {
@@ -56,15 +62,20 @@ export type Contribution = {
   groupId: string;
   memberId: string;
   amount: number;
-  month: string;
+  month: string; // Format: "YYYY-MM" (e.g., "2026-02")
+  status: ContributionStatus;
+  dueDate: string; // ISO date string
   createdAt: string;
   paidAt?: string;
 };
 
 export type LoanInstallment = {
   id: string;
+  installmentNumber: number;
   dueDate: string;
-  amount: number;
+  amount: number; // Total (principal + interest)
+  principalAmount: number;
+  interestAmount: number;
   status: InstallmentStatus;
   paidAt?: string;
 };
@@ -94,11 +105,15 @@ export type Penalty = {
   groupId: string;
   memberId: string;
   loanId?: string;
+  installmentId?: string;
   contributionId?: string;
   amount: number;
   reason: string;
+  status: PenaltyStatus;
+  dueDate: string; // When penalty should be paid
   createdAt: string;
-  isPaid: boolean;
+  paidAt?: string; // When penalty was actually paid
+  isPaid: boolean; // Deprecated: use status instead, kept for backward compatibility
 };
 
 export type Notification = {
@@ -123,4 +138,24 @@ export type AuditLog = {
   entityId: string;
   createdAt: string;
   meta?: Record<string, unknown>;
+};
+
+export type Transaction = {
+  id: string;
+  groupId: string;
+  memberId: string;
+  type: TransactionType;
+  amount: number;
+  description: string;
+  // Accounting double-entry fields
+  memberSavingsChange: number; // Change to member's savings balance
+  groupIncomeChange: number; // Change to group's income
+  groupCashChange: number; // Change to group's cash
+  // Reference to source entity
+  contributionId?: string;
+  loanId?: string;
+  installmentId?: string;
+  penaltyId?: string;
+  createdAt: string;
+  createdBy: string;
 };

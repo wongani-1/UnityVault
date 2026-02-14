@@ -15,6 +15,9 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Users,
   Wallet,
@@ -31,6 +34,9 @@ import {
   Check,
   Shield,
   Eye,
+  Calendar,
+  RefreshCw,
+  Plus,
 } from "lucide-react";
 import { apiRequest } from "@/lib/api";
 import { toast } from "@/components/ui/sonner";
@@ -98,6 +104,19 @@ const AdminDashboard = () => {
   const [totalMembers, setTotalMembers] = useState("0");
   const [totalContributions, setTotalContributions] = useState("MWK 0");
   const [activeLoans, setActiveLoans] = useState("MWK 0");
+  const [generateDialogOpen, setGenerateDialogOpen] = useState(false);
+  const [checkOverdueDialogOpen, setCheckOverdueDialogOpen] = useState(false);
+  const [generatingContributions, setGeneratingContributions] = useState(false);
+  const [checkingOverdue, setCheckingOverdue] = useState(false);
+  const [contributionForm, setContributionForm] = useState({
+    month: new Date().toISOString().slice(0, 7), // YYYY-MM format
+    amount: "",
+    dueDate: "",
+  });
+  const [overdueForm, setOverdueForm] = useState({
+    penaltyAmount: "",
+    autoGeneratePenalty: true,
+  });
 
   useEffect(() => {
     let active = true;
@@ -214,6 +233,53 @@ const AdminDashboard = () => {
     setTimeout(() => setCopiedLink(false), 2000);
   };
 
+  const handleGenerateContributions = async () => {
+    if (!contributionForm.amount || !contributionForm.dueDate) {
+      toast.error("Please fill in all fields");
+      return;
+    }
+
+    setGeneratingContributions(true);
+    try {
+      const response = await apiRequest<{ message: string; contributions: unknown[] }>("/contributions/generate", {
+        method: "POST",
+        body: {
+          month: contributionForm.month,
+          amount: Number(contributionForm.amount),
+          dueDate: new Date(contributionForm.dueDate).toISOString(),
+        },
+      });
+      toast.success(response.message);
+      setGenerateDialogOpen(false);
+      setContributionForm({ month: new Date().toISOString().slice(0, 7), amount: "", dueDate: "" });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to generate contributions";
+      toast.error(message);
+    } finally {
+      setGeneratingContributions(false);
+    }
+  };
+
+  const handleCheckOverdue = async () => {
+    setCheckingOverdue(true);
+    try {
+      const response = await apiRequest<{ message: string }>("/contributions/check-overdue", {
+        method: "POST",
+        body: {
+          penaltyAmount: overdueForm.penaltyAmount ? Number(overdueForm.penaltyAmount) : undefined,
+          autoGeneratePenalty: overdueForm.autoGeneratePenalty,
+        },
+      });
+      toast.success(response.message);
+      setCheckOverdueDialogOpen(false);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to check overdue contributions";
+      toast.error(message);
+    } finally {
+      setCheckingOverdue(false);
+    }
+  };
+
   return (
     <DashboardLayout
       title="Group Admin"
@@ -279,6 +345,7 @@ const AdminDashboard = () => {
       <Tabs defaultValue="members" className="space-y-6">
         <TabsList className="flex-wrap">
           <TabsTrigger value="members">Members</TabsTrigger>
+          <TabsTrigger value="contributions">Contributions</TabsTrigger>
           <TabsTrigger value="loans">Loan Requests</TabsTrigger>
           <TabsTrigger value="penalties">Penalties</TabsTrigger>
           <TabsTrigger value="reports">Reports</TabsTrigger>
@@ -376,12 +443,270 @@ const AdminDashboard = () => {
           </Card>
         </TabsContent>
 
+        {/* Contributions Tab */}
+        <TabsContent value="contributions">
+          <div className="space-y-6">
+            {/* Quick Actions */}
+            <div className="grid gap-4 md:grid-cols-2">
+              <Card className="border-0 shadow-card">
+                <CardContent className="p-6">
+                  <div className="flex items-start gap-4">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
+                      <Calendar className="h-6 w-6 text-primary" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-foreground">Generate Monthly Contributions</h3>
+                      <p className="text-sm text-muted-foreground mb-3">
+                        Create contribution records for all active members
+                      </p>
+                      <Dialog open={generateDialogOpen} onOpenChange={setGenerateDialogOpen}>
+                        <DialogTrigger asChild>
+                          <Button variant="hero" size="sm">
+                            <Plus className="mr-2 h-4 w-4" />
+                            Generate Contributions
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Generate Monthly Contributions</DialogTitle>
+                            <DialogDescription>
+                              This will create contribution records for all active members for the selected month.
+                            </DialogDescription>
+                          </DialogHeader>
+                          <div className="space-y-4 py-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="month">Month</Label>
+                              <Input
+                                id="month"
+                                type="month"
+                                value={contributionForm.month}
+                                onChange={(e) => setContributionForm({ ...contributionForm, month: e.target.value })}
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="amount">Amount (MWK)</Label>
+                              <Input
+                                id="amount"
+                                type="number"
+                                placeholder="50000"
+                                value={contributionForm.amount}
+                                onChange={(e) => setContributionForm({ ...contributionForm, amount: e.target.value })}
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="dueDate">Due Date</Label>
+                              <Input
+                                id="dueDate"
+                                type="date"
+                                value={contributionForm.dueDate}
+                                onChange={(e) => setContributionForm({ ...contributionForm, dueDate: e.target.value })}
+                              />
+                            </div>
+                          </div>
+                          <DialogFooter>
+                            <Button variant="outline" onClick={() => setGenerateDialogOpen(false)}>
+                              Cancel
+                            </Button>
+                            <Button 
+                              variant="hero" 
+                              onClick={handleGenerateContributions}
+                              disabled={generatingContributions}
+                            >
+                              {generatingContributions ? "Generating..." : "Generate"}
+                            </Button>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-0 shadow-card">
+                <CardContent className="p-6">
+                  <div className="flex items-start gap-4">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-warning/10">
+                      <RefreshCw className="h-6 w-6 text-warning" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-foreground">Check Overdue Contributions</h3>
+                      <p className="text-sm text-muted-foreground mb-3">
+                        Mark overdue contributions and generate penalties
+                      </p>
+                      <Dialog open={checkOverdueDialogOpen} onOpenChange={setCheckOverdueDialogOpen}>
+                        <DialogTrigger asChild>
+                          <Button variant="outline" size="sm">
+                            <AlertTriangle className="mr-2 h-4 w-4" />
+                            Check Overdue
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Check Overdue Contributions</DialogTitle>
+                            <DialogDescription>
+                              This will mark unpaid contributions past their due date as overdue and optionally generate penalties.
+                            </DialogDescription>
+                          </DialogHeader>
+                          <div className="space-y-4 py-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="penaltyAmount">Penalty Amount (MWK) - Optional</Label>
+                              <Input
+                                id="penaltyAmount"
+                                type="number"
+                                placeholder="5000"
+                                value={overdueForm.penaltyAmount}
+                                onChange={(e) => setOverdueForm({ ...overdueForm, penaltyAmount: e.target.value })}
+                              />
+                              <p className="text-xs text-muted-foreground">
+                                Leave empty to mark as overdue without generating penalties
+                              </p>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <input
+                                type="checkbox"
+                                id="autoGenerate"
+                                checked={overdueForm.autoGeneratePenalty}
+                                onChange={(e) => setOverdueForm({ ...overdueForm, autoGeneratePenalty: e.target.checked })}
+                                className="h-4 w-4"
+                              />
+                              <Label htmlFor="autoGenerate" className="text-sm font-normal">
+                                Automatically generate penalty records
+                              </Label>
+                            </div>
+                          </div>
+                          <DialogFooter>
+                            <Button variant="outline" onClick={() => setCheckOverdueDialogOpen(false)}>
+                              Cancel
+                            </Button>
+                            <Button 
+                              variant="default" 
+                              onClick={handleCheckOverdue}
+                              disabled={checkingOverdue}
+                            >
+                              {checkingOverdue ? "Checking..." : "Check Overdue"}
+                            </Button>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Contributions Info */}
+            <Card className="border-0 shadow-card">
+              <CardHeader>
+                <CardTitle className="text-lg">Contribution Management</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="rounded-lg border bg-muted/30 p-4">
+                    <h4 className="font-medium text-foreground mb-2">How It Works</h4>
+                    <ul className="space-y-2 text-sm text-muted-foreground">
+                      <li>• <strong>Generate Contributions:</strong> Creates contribution records for all active members at the start of each month</li>
+                      <li>• <strong>Payment Recording:</strong> Members pay through the payment page, which automatically updates their balance</li>
+                      <li>• <strong>Overdue Check:</strong> Run this to mark late contributions as overdue and optionally apply penalties</li>
+                      <li>• <strong>Automatic Penalties:</strong> When enabled, penalties are automatically created for overdue contributions</li>
+                    </ul>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Shield className="h-4 w-4 text-primary" />
+                    <span>All contribution payments are tracked in the audit log</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
         {/* Loan Requests Tab */}
         <TabsContent value="loans">
-          <Card className="border-0 shadow-card">
-            <CardHeader>
-              <CardTitle className="text-lg">Loan Applications</CardTitle>
-            </CardHeader>
+          <div className="space-y-6">
+            <Card className="border-0 shadow-card">
+              <CardHeader>
+                <CardTitle className="text-lg">Loan Management</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="font-medium text-foreground mb-4">Check Overdue Installments</h4>
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button className="bg-primary hover:bg-primary/90">
+                          <AlertTriangle className="mr-2 h-4 w-4" />
+                          Check Overdue Installments
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Check for Overdue Loan Installments</DialogTitle>
+                          <DialogDescription>
+                            This will mark any loan installments past their due date as overdue and create penalties for them.
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-4">
+                          <div className="rounded-lg border bg-muted/30 p-4 space-y-2">
+                            <p className="text-sm font-medium">What happens:</p>
+                            <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
+                              <li>All loan installments past their due date will be marked as overdue</li>
+                              <li>Penalties will be created automatically for each overdue installment</li>
+                              <li>Members will be notified about overdue installments</li>
+                              <li>All actions are logged in the audit trail</li>
+                            </ul>
+                          </div>
+                          <DialogFooter>
+                            <Button
+                              onClick={async () => {
+                                try {
+                                  const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/loans/check-overdue`, {
+                                    method: 'POST',
+                                    headers: {
+                                      'Authorization': `Bearer ${localStorage.getItem('token')}`
+                                    }
+                                  });
+                                  
+                                  if (!response.ok) {
+                                    throw new Error('Failed to check overdue installments');
+                                  }
+                                  
+                                  const result = await response.json();
+                                  alert(`Success! Processed ${result.processed} installments. Marked ${result.markedOverdue} as overdue and created ${result.penaltiesCreated} penalties.`);
+                                } catch (error) {
+                                  console.error('Error checking overdue installments:', error);
+                                  alert('Failed to check overdue installments. Please try again.');
+                                }
+                              }}
+                              className="bg-primary hover:bg-primary/90"
+                            >
+                              Run Check Now
+                            </Button>
+                          </DialogFooter>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+                  <div className="rounded-lg border bg-muted/30 p-4">
+                    <h4 className="font-medium text-foreground mb-2">How It Works</h4>
+                    <ul className="space-y-2 text-sm text-muted-foreground">
+                      <li>• <strong>Loan Approval:</strong> When a loan is approved, installments are automatically generated with principal and interest amounts</li>
+                      <li>• <strong>Payment Recording:</strong> Members pay through the payment page, which records payments against specific installments</li>
+                      <li>• <strong>Overdue Check:</strong> Run this to mark late installments as overdue and apply penalties</li>
+                      <li>• <strong>Automatic Penalties:</strong> Penalties are automatically created for each overdue installment (only once per installment)</li>
+                    </ul>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Shield className="h-4 w-4 text-primary" />
+                    <span>All loan payments are tracked in the audit log</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-0 shadow-card">
+              <CardHeader>
+                <CardTitle className="text-lg">Loan Applications</CardTitle>
+              </CardHeader>
             <CardContent>
               {loading && <p className="text-sm text-muted-foreground">Loading loans...</p>}
               {!loading && (
@@ -449,6 +774,7 @@ const AdminDashboard = () => {
               )}
             </CardContent>
           </Card>
+          </div>
         </TabsContent>
 
         {/* Penalties Tab */}

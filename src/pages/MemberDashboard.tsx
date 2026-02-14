@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import {
   Wallet,
   CreditCard,
@@ -24,6 +25,8 @@ import {
   Bell,
   CalendarClock,
   TrendingUp,
+  DollarSign,
+  Banknote,
 } from "lucide-react";
 import { apiRequest } from "../lib/api";
 import { toast } from "@/components/ui/sonner";
@@ -75,6 +78,7 @@ const MemberDashboard = () => {
 
   const [profile, setProfile] = useState(storedProfile);
   const [isCheckingRegistration, setIsCheckingRegistration] = useState(true);
+  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   
   // Data state
   const [contributions, setContributions] = useState<Contribution[]>([]);
@@ -285,7 +289,7 @@ const MemberDashboard = () => {
   return (
     <DashboardLayout
       title="My Dashboard"
-      subtitle={`Welcome back, ${displayName}`}
+      subtitle={`Welcome, ${displayName}`}
       groupId={groupId}
       groupName={groupName}
     >
@@ -323,12 +327,74 @@ const MemberDashboard = () => {
 
       {/* Quick Actions */}
       <div className="mb-8 flex flex-wrap gap-3">
-        <Link to="/member/pay-contribution">
-          <Button variant="hero" size="lg">
-            <Plus className="mr-2 h-4 w-4" />
-            Pay Contribution
-          </Button>
-        </Link>
+        <Dialog open={paymentDialogOpen} onOpenChange={setPaymentDialogOpen}>
+          <DialogTrigger asChild>
+            <Button variant="hero" size="lg">
+              <Plus className="mr-2 h-4 w-4" />
+              Make Payments
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Select Payment Type</DialogTitle>
+              <DialogDescription>
+                Choose what you would like to pay for
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3 pt-4">
+              <Button
+                variant="outline"
+                className="w-full justify-start gap-3 h-auto py-4 px-4 hover:bg-primary/5 hover:border-primary"
+                onClick={() => {
+                  setPaymentDialogOpen(false);
+                  navigate("/member/pay-contribution?type=contribution");
+                }}
+              >
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                  <Wallet className="h-5 w-5 text-primary" />
+                </div>
+                <div className="flex-1 text-left">
+                  <p className="font-semibold text-foreground">Monthly Contribution</p>
+                  <p className="text-sm text-muted-foreground">Pay your monthly group contribution</p>
+                </div>
+              </Button>
+
+              <Button
+                variant="outline"
+                className="w-full justify-start gap-3 h-auto py-4 px-4 hover:bg-info/5 hover:border-info"
+                onClick={() => {
+                  setPaymentDialogOpen(false);
+                  navigate("/member/pay-contribution?type=loan");
+                }}
+              >
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-info/10">
+                  <CreditCard className="h-5 w-5 text-info" />
+                </div>
+                <div className="flex-1 text-left">
+                  <p className="font-semibold text-foreground">Loan Payment</p>
+                  <p className="text-sm text-muted-foreground">Repay your loan with interest</p>
+                </div>
+              </Button>
+
+              <Button
+                variant="outline"
+                className="w-full justify-start gap-3 h-auto py-4 px-4 hover:bg-warning/5 hover:border-warning"
+                onClick={() => {
+                  setPaymentDialogOpen(false);
+                  navigate("/member/pay-contribution?type=penalty");
+                }}
+              >
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-warning/10">
+                  <AlertTriangle className="h-5 w-5 text-warning" />
+                </div>
+                <div className="flex-1 text-left">
+                  <p className="font-semibold text-foreground">Penalty Payment</p>
+                  <p className="text-sm text-muted-foreground">Clear your pending penalties</p>
+                </div>
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
         <Link to="/dashboard/loans">
           <Button variant="hero-outline" size="lg">
             <HandCoins className="mr-2 h-4 w-4" />

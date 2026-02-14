@@ -111,3 +111,17 @@ export const repayInstallment = asyncHandler(async (req: Request, res: Response)
 
   res.json(loan);
 });
+
+export const checkOverdueInstallments = asyncHandler(async (req: Request, res: Response) => {
+  if (!req.user) throw new ApiError("Unauthorized", 401);
+  if (req.user.role !== "group_admin") {
+    throw new ApiError("Only admins can check overdue installments", 403);
+  }
+
+  const results = container.loanService.processOverdueInstallments(req.user.groupId);
+
+  res.json({
+    message: `Processed ${results.processed} loans, applied ${results.penaltiesApplied} penalties`,
+    ...results,
+  });
+});

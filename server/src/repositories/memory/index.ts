@@ -6,3 +6,4 @@ export { loanRepository } from "./loanRepository";
 export { penaltyRepository } from "./penaltyRepository";
 export { notificationRepository } from "./notificationRepository";
 export { auditRepository } from "./auditRepository";
+export { transactionRepository } from "./transactionRepository";

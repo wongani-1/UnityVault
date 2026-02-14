@@ -7,6 +7,7 @@ import {
   memberRepository,
   notificationRepository,
   penaltyRepository,
+  transactionRepository,
 } from "./repositories/memory";
 import { AuditService } from "./services/auditService";
 import { AdminService } from "./services/adminService";
@@ -21,7 +22,12 @@ import { AuthService } from "./services/authService";
 const auditService = new AuditService(auditRepository);
 const adminService = new AdminService(adminRepository);
 const notificationService = new NotificationService(notificationRepository);
-const penaltyService = new PenaltyService(penaltyRepository, memberRepository);
+const penaltyService = new PenaltyService(
+  penaltyRepository,
+  memberRepository,
+  groupRepository,
+  transactionRepository
+);
 const groupService = new GroupService(groupRepository, adminRepository, auditService);
 const memberService = new MemberService(
   memberRepository,
@@ -30,7 +36,8 @@ const memberService = new MemberService(
 );
 const contributionService = new ContributionService(
   contributionRepository,
-  memberRepository
+  memberRepository,
+  penaltyRepository
 );
 const loanService = new LoanService(
   loanRepository,

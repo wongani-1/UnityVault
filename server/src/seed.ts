@@ -1,6 +1,6 @@
 import { store } from "./repositories/memory/store";
 import { hashPassword } from "./utils/password";
-import type { Group, Admin, Member, Loan } from "./models/types";
+import type { Group, Admin, Member, Loan, Contribution } from "./models/types";
 
 export async function seedData() {
   // Create test group
@@ -17,6 +17,9 @@ export async function seedData() {
       loanToSavingsRatio: 2.0, // Can borrow up to 200% of savings
       enableAutomaticPenalties: true, // Auto-apply penalties for overdue
     },
+    totalSavings: 0, // Will be updated as members contribute
+    totalIncome: 0, // Interest and penalties
+    cash: 0, // Available cash
   };
   store.groups.set(testGroup.id, testGroup);
 
@@ -115,9 +118,95 @@ export async function seedData() {
 
   testLoans.forEach((loan) => store.loans.set(loan.id, loan));
 
+  // Create test contributions
+  const testContributions: Contribution[] = [
+    // Alice's contributions (3 paid)
+    {
+      id: "contrib_001",
+      groupId: testGroup.id,
+      memberId: "member_001",
+      amount: 50000,
+      month: "2025-01",
+      status: "paid",
+      dueDate: new Date("2025-01-31").toISOString(),
+      createdAt: new Date("2025-01-15").toISOString(),
+      paidAt: new Date("2025-01-20").toISOString(),
+    },
+    {
+      id: "contrib_002",
+      groupId: testGroup.id,
+      memberId: "member_001",
+      amount: 50000,
+      month: "2025-02",
+      status: "paid",
+      dueDate: new Date("2025-02-28").toISOString(),
+      createdAt: new Date("2025-02-01").toISOString(),
+      paidAt: new Date("2025-02-15").toISOString(),
+    },
+    {
+      id: "contrib_003",
+      groupId: testGroup.id,
+      memberId: "member_001",
+      amount: 50000,
+      month: "2026-01",
+      status: "paid",
+      dueDate: new Date("2026-01-31").toISOString(),
+      createdAt: new Date("2026-01-01").toISOString(),
+      paidAt: new Date("2026-01-25").toISOString(),
+    },
+    {
+      id: "contrib_004",
+      groupId: testGroup.id,
+      memberId: "member_001",
+      amount: 50000,
+      month: "2026-02",
+      status: "unpaid",
+      dueDate: new Date("2026-02-28").toISOString(),
+      createdAt: new Date("2026-02-01").toISOString(),
+    },
+    // Robert's contributions (2 paid)
+    {
+      id: "contrib_005",
+      groupId: testGroup.id,
+      memberId: "member_002",
+      amount: 50000,
+      month: "2025-02",
+      status: "paid",
+      dueDate: new Date("2025-02-28").toISOString(),
+      createdAt: new Date("2025-02-01").toISOString(),
+      paidAt: new Date("2025-02-10").toISOString(),
+    },
+    {
+      id: "contrib_006",
+      groupId: testGroup.id,
+      memberId: "member_002",
+      amount: 50000,
+      month: "2026-01",
+      status: "paid",
+      dueDate: new Date("2026-01-31").toISOString(),
+      createdAt: new Date("2026-01-01").toISOString(),
+      paidAt: new Date("2026-01-28").toISOString(),
+    },
+    {
+      id: "contrib_007",
+      groupId: testGroup.id,
+      memberId: "member_002",
+      amount: 50000,
+      month: "2026-02",
+      status: "unpaid",
+      dueDate: new Date("2026-02-28").toISOString(),
+      createdAt: new Date("2026-02-01").toISOString(),
+    },
+  ];
+
+  testContributions.forEach((contribution) => 
+    store.contributions.set(contribution.id, contribution)
+  );
+
   console.log("✅ Test data seeded successfully");
   console.log("   Group:", testGroup.name, `(${testGroup.id})`);
   console.log("   Admin:", testAdmin.username, "/ admin123");
   console.log("   Members:", testMembers.length, "(username: alice, robert, grace / password: member123)");
   console.log("   Loans:", testLoans.length);
+  console.log("   Contributions:", testContributions.length);
 }

@@ -8,3 +8,10 @@ export const listPenalties = asyncHandler(async (req: Request, res: Response) =>
   const items = container.penaltyService.listByGroup(req.user.groupId);
   res.json({ items });
 });
+
+export const payPenalty = asyncHandler(async (req: Request, res: Response) => {
+  if (!req.user) throw new ApiError("Unauthorized", 401);
+  const { id } = req.params;
+  const penalty = container.penaltyService.payPenalty(id, req.user.id, req.user.id);
+  res.json({ penalty });
+});

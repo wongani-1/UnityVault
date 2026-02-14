@@ -6,3 +6,4 @@ export type { LoanRepository } from "./loanRepository";
 export type { PenaltyRepository } from "./penaltyRepository";
 export type { NotificationRepository } from "./notificationRepository";
 export type { AuditRepository } from "./auditRepository";
+export type { TransactionRepository } from "./transactionRepository";

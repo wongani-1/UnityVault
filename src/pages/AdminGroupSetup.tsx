@@ -72,6 +72,20 @@ const AdminGroupSetup = () => {
                 <p className="text-xs text-muted-foreground">One-time fee per member.</p>
               </div>
 
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="seed-amount">Initial Seed Amount (MWK)</Label>
+                <Input
+                  id="seed-amount"
+                  type="number"
+                  min="0"
+                  step="1"
+                  placeholder="e.g. 100,000"
+                  value={form.seedAmount}
+                  onChange={(e) => updateField("seedAmount", e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">Opening balance to start the group fund.</p>
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="monthly-contribution">Monthly Contribution (MWK)</Label>
                 <Input
@@ -142,19 +156,6 @@ const AdminGroupSetup = () => {
                 <p className="text-xs text-muted-foreground">Applied when loan repayment is late.</p>
               </div>
 
-              <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="seed-amount">Initial Seed Amount (MWK)</Label>
-                <Input
-                  id="seed-amount"
-                  type="number"
-                  min="0"
-                  step="1"
-                  placeholder="e.g. 100,000"
-                  value={form.seedAmount}
-                  onChange={(e) => updateField("seedAmount", e.target.value)}
-                />
-                <p className="text-xs text-muted-foreground">Opening balance to start the group fund.</p>
-              </div>
             </div>
 
             {formError && (

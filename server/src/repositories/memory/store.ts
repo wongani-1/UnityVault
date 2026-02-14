@@ -7,6 +7,7 @@ import type {
   Penalty,
   Notification,
   AuditLog,
+  Transaction,
 } from "../../models/types";
 
 export const store = {
@@ -18,4 +19,5 @@ export const store = {
   penalties: new Map<string, Penalty>(),
   notifications: new Map<string, Notification>(),
   auditLogs: new Map<string, AuditLog>(),
+  transactions: new Map<string, Transaction>(),
 };

@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { useMemo, useState, useEffect } from "react";
+import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -7,13 +7,60 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, CreditCard, Smartphone, ShieldCheck } from "lucide-react";
+import { ArrowLeft, CreditCard, Smartphone, ShieldCheck, Loader2 } from "lucide-react";
+import { apiRequest } from "@/lib/api";
+import { toast } from "@/components/ui/sonner";
+
+interface Contribution {
+  id: string;
+  amount: number;
+  month: string;
+  status: string;
+  dueDate: string;
+}
+
+interface LoanInstallment {
+  id: string;
+  installmentNumber: number;
+  amount: number;
+  principalAmount: number;
+  interestAmount: number;
+  status: string;
+  dueDate: string;
+  paidAt?: string;
+}
+
+interface Loan {
+  id: string;
+  balance: number;
+  principal: number;
+  totalDue: number;
+  installments: LoanInstallment[];
+}
+
+interface Penalty {
+  id: string;
+  amount: number;
+  isPaid: boolean;
+}
 
 const MemberContributionPayment = () => {
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const paymentType = searchParams.get("type") || "contribution";
+  
   const [method, setMethod] = useState<"mobile" | "card">("mobile");
   const [saveForFuture, setSaveForFuture] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [mobileProvider, setMobileProvider] = useState<"airtel" | "tnm" | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [processing, setProcessing] = useState(false);
+  const [paymentData, setPaymentData] = useState<{
+    contributions: Contribution[];
+    loans: Loan[];
+    penalties: Penalty[];
+  }>({ contributions: [], loans: [], penalties: [] });
+  
   const [form, setForm] = useState({
     mobileNumber: "",
     payerName: "",
@@ -23,6 +70,51 @@ const MemberContributionPayment = () => {
     cardCvv: "",
     email: "",
   });
+
+  useEffect(() => {
+    const loadData = async () => {
+      setLoading(true);
+      try {
+        if (paymentType === "contribution") {
+          const data = await apiRequest<{ items: Contribution[] }>("/contributions");
+          setPaymentData(prev => ({ ...prev, contributions: data.items }));
+        } else if (paymentType === "loan") {
+          const data = await apiRequest<{ items: Loan[] }>("/loans");
+          setPaymentData(prev => ({ ...prev, loans: data.items }));
+        } else if (paymentType === "penalty") {
+          const data = await apiRequest<{ items: Penalty[] }>("/penalties");
+          setPaymentData(prev => ({ ...prev, penalties: data.items }));
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Failed to load payment data";
+        toast.error(message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadData();
+  }, [paymentType]);
+
+  const loadPaymentData = async () => {
+    setLoading(true);
+    try {
+      if (paymentType === "contribution") {
+        const data = await apiRequest<{ items: Contribution[] }>("/contributions");
+        setPaymentData(prev => ({ ...prev, contributions: data.items }));
+      } else if (paymentType === "loan") {
+        const data = await apiRequest<{ items: Loan[] }>("/loans");
+        setPaymentData(prev => ({ ...prev, loans: data.items }));
+      } else if (paymentType === "penalty") {
+        const data = await apiRequest<{ items: Penalty[] }>("/penalties");
+        setPaymentData(prev => ({ ...prev, penalties: data.items }));
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to load payment data";
+      toast.error(message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const updateField = (field: keyof typeof form, value: string) =>
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -37,7 +129,79 @@ const MemberContributionPayment = () => {
     }
   }, []);
 
-  const handlePay = () => {
+  const paymentInfo = useMemo(() => {
+    if (loading) {
+      return {
+        title: "Loading...",
+        description: "Fetching payment details",
+        amount: "0",
+        label: "Please wait",
+        itemId: null,
+        installmentId: undefined,
+      };
+    }
+
+    switch (paymentType) {
+      case "loan": {
+        const activeLoans = paymentData.loans.filter(l => l.balance > 0);
+        let nextInstallment: LoanInstallment | null = null;
+        let loanId: string | null = null;
+
+        // Find the first unpaid installment across all active loans
+        for (const loan of activeLoans) {
+          const unpaidInstallments = loan.installments.filter(
+            inst => inst.status === "unpaid" || inst.status === "overdue"
+          );
+          if (unpaidInstallments.length > 0) {
+            nextInstallment = unpaidInstallments[0];
+            loanId = loan.id;
+            break;
+          }
+        }
+
+        return {
+          title: "Loan Payment",
+          description: "Repay your loan installment",
+          amount: nextInstallment ? nextInstallment.amount.toLocaleString() : "0",
+          label: nextInstallment 
+            ? `Installment #${nextInstallment.installmentNumber} (P: ${nextInstallment.principalAmount.toLocaleString()} + I: ${nextInstallment.interestAmount.toLocaleString()})`
+            : "No installments due",
+          itemId: loanId,
+          installmentId: nextInstallment?.id,
+        };
+      }
+      case "penalty": {
+        const unpaidPenalties = paymentData.penalties.filter(p => !p.isPaid);
+        const totalDue = unpaidPenalties.reduce((sum, p) => sum + p.amount, 0);
+        return {
+          title: "Penalty Payment",
+          description: "Clear your pending penalties",
+          amount: totalDue.toLocaleString(),
+          label: `${unpaidPenalties.length} pending ${unpaidPenalties.length !== 1 ? 'penalties' : 'penalty'}`,
+          itemId: unpaidPenalties[0]?.id || null,
+          installmentId: undefined,
+        };
+      }
+      default: {
+        const unpaidContributions = paymentData.contributions.filter(
+          c => c.status === "unpaid" || c.status === "overdue"
+        );
+        const totalDue = unpaidContributions.reduce((sum, c) => sum + c.amount, 0);
+        return {
+          title: "Pay Contribution",
+          description: "Complete your monthly contribution payment",
+          amount: totalDue > 0 ? totalDue.toLocaleString() : contributionAmount,
+          label: unpaidContributions.length > 0 
+            ? `${unpaidContributions.length} unpaid contribution${unpaidContributions.length !== 1 ? 's' : ''}`
+            : "Monthly contribution",
+          itemId: unpaidContributions[0]?.id || null,
+          installmentId: undefined,
+        };
+      }
+    }
+  }, [paymentType, contributionAmount, paymentData, loading]);
+
+  const handlePay = async () => {
     const requiredFields =
       method === "mobile"
         ? [form.mobileNumber, form.payerName]
@@ -73,7 +237,43 @@ const MemberContributionPayment = () => {
     }
 
     setFormError(null);
-    // Proceed with payment...
+    setProcessing(true);
+
+    try {
+      // Process payment based on type
+      if (paymentType === "contribution" && paymentInfo.itemId) {
+        await apiRequest("/contributions/pay", {
+          method: "POST",
+          body: { contributionId: paymentInfo.itemId },
+        });
+        toast.success("Contribution payment recorded successfully!");
+      } else if (paymentType === "loan" && paymentInfo.itemId && paymentInfo.installmentId) {
+        await apiRequest(`/loans/${paymentInfo.itemId}/repay`, {
+          method: "POST",
+          body: { installmentId: paymentInfo.installmentId },
+        });
+        toast.success("Loan installment payment recorded successfully!");
+      } else if (paymentType === "penalty" && paymentInfo.itemId) {
+        await apiRequest(`/penalties/${paymentInfo.itemId}/pay`, {
+          method: "POST",
+        });
+        toast.success("Penalty payment recorded successfully!");
+      } else {
+        toast.error("No unpaid items found");
+        return;
+      }
+
+      // Navigate back to dashboard after successful payment
+      setTimeout(() => {
+        navigate("/dashboard");
+      }, 1500);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Payment failed";
+      toast.error(message);
+      setFormError(message);
+    } finally {
+      setProcessing(false);
+    }
   };
 
   return (
@@ -91,15 +291,15 @@ const MemberContributionPayment = () => {
 
         <Card className="border-0 shadow-elevated">
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl">Pay Contribution</CardTitle>
-            <CardDescription>Complete your monthly contribution payment.</CardDescription>
+            <CardTitle className="text-2xl">{paymentInfo.title}</CardTitle>
+            <CardDescription>{paymentInfo.description}</CardDescription>
           </CardHeader>
 
           <CardContent className="space-y-6">
             {/* Amount Display */}
             <div className="text-center">
-              <div className="text-4xl font-bold text-foreground">MWK {contributionAmount}</div>
-              <p className="mt-1 text-sm text-muted-foreground">Monthly contribution</p>
+              <div className="text-4xl font-bold text-foreground">MWK {paymentInfo.amount}</div>
+              <p className="mt-1 text-sm text-muted-foreground">{paymentInfo.label}</p>
             </div>
             <Separator />
 
@@ -189,7 +389,7 @@ const MemberContributionPayment = () => {
                           ? "09XXXXXXXX"
                           : mobileProvider === "tnm"
                           ? "08XXXXXXXX"
-                          : "e.g. 0991 000 000"
+                          : "e.g. 0991 XXX XXX"
                       }
                       value={form.mobileNumber}
                       onChange={(e) => updateField("mobileNumber", e.target.value)}
@@ -267,8 +467,25 @@ const MemberContributionPayment = () => {
               {formError && (
                 <p className="text-center text-sm text-destructive">{formError}</p>
               )}
-              <Button variant="hero" size="lg" className="w-full" onClick={handlePay}>
-                Pay MWK {contributionAmount}
+              <Button 
+                variant="hero" 
+                size="lg" 
+                className="w-full" 
+                onClick={handlePay}
+                disabled={processing || loading || !paymentInfo.itemId}
+              >
+                {processing ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Processing...
+                  </>
+                ) : loading ? (
+                  "Loading..."
+                ) : !paymentInfo.itemId ? (
+                  "No payments due"
+                ) : (
+                  `Pay MWK ${paymentInfo.amount}`
+                )}
               </Button>
               <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
                 <ShieldCheck className="h-3.5 w-3.5" />
