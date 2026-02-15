@@ -18,7 +18,9 @@ import { MemberService } from "./services/memberService";
 import { ContributionService } from "./services/contributionService";
 import { LoanService } from "./services/loanService";
 import { AuthService } from "./services/authService";
+import { EmailService } from "./services/emailService";
 
+const emailService = new EmailService();
 const auditService = new AuditService(auditRepository);
 const adminService = new AdminService(adminRepository);
 const notificationService = new NotificationService(notificationRepository);
@@ -32,13 +34,15 @@ const groupService = new GroupService(groupRepository, adminRepository, auditSer
 const memberService = new MemberService(
   memberRepository,
   auditService,
-  notificationService
+  notificationService,
+  emailService
 );
 const contributionService = new ContributionService(
   contributionRepository,
   memberRepository,
   penaltyRepository,
-  groupRepository
+  groupRepository,
+  emailService
 );
 const loanService = new LoanService(
   loanRepository,
@@ -58,6 +62,7 @@ const authService = new AuthService(
 export const container = {
   adminService,
   auditService,
+  emailService,
   notificationService,
   penaltyService,
   groupService,

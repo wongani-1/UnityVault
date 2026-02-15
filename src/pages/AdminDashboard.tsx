@@ -139,17 +139,10 @@ const AdminDashboard = () => {
   const [totalContributions, setTotalContributions] = useState("MWK 0");
   const [activeLoans, setActiveLoans] = useState("MWK 0");
   const [generateDialogOpen, setGenerateDialogOpen] = useState(false);
-  const [checkOverdueDialogOpen, setCheckOverdueDialogOpen] = useState(false);
   const [generatingContributions, setGeneratingContributions] = useState(false);
-  const [checkingOverdue, setCheckingOverdue] = useState(false);
   const [contributionForm, setContributionForm] = useState({
     month: new Date().toISOString().slice(0, 7), // YYYY-MM format
-    amount: "",
     dueDate: "",
-  });
-  const [overdueForm, setOverdueForm] = useState({
-    penaltyAmount: "",
-    autoGeneratePenalty: true,
   });
 
   const loadDashboardData = async () => {
@@ -305,8 +298,13 @@ const AdminDashboard = () => {
   };
 
   const handleGenerateContributions = async () => {
-    if (!contributionForm.amount || !contributionForm.dueDate) {
-      toast.error("Please fill in all fields");
+    if (!contributionForm.dueDate) {
+      toast.error("Please select a due date");
+      return;
+    }
+
+    if (!groupSettings?.contributionAmount) {
+      toast.error("Group contribution amount not set");
       return;
     }
 
@@ -316,7 +314,7 @@ const AdminDashboard = () => {
         method: "POST",
         body: {
           month: contributionForm.month,
-          amount: Number(contributionForm.amount),
+          amount: groupSettings.contributionAmount,
           dueDate: new Date(contributionForm.dueDate).toISOString(),
         },
       });
@@ -324,7 +322,6 @@ const AdminDashboard = () => {
       setGenerateDialogOpen(false);
       setContributionForm({ 
         month: new Date().toISOString().slice(0, 7), 
-        amount: groupSettings?.contributionAmount.toString() || "", 
         dueDate: "" 
       });
       // Reload dashboard data to reflect new contributions
@@ -337,25 +334,7 @@ const AdminDashboard = () => {
     }
   };
 
-  const handleCheckOverdue = async () => {
-    setCheckingOverdue(true);
-    try {
-      const response = await apiRequest<{ message: string }>("/contributions/check-overdue", {
-        method: "POST",
-        body: {
-          penaltyAmount: overdueForm.penaltyAmount ? Number(overdueForm.penaltyAmount) : undefined,
-          autoGeneratePenalty: overdueForm.autoGeneratePenalty,
-        },
-      });
-      toast.success(response.message);
-      setCheckOverdueDialogOpen(false);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to check overdue contributions";
-      toast.error(message);
-    } finally {
-      setCheckingOverdue(false);
-    }
-  };
+
 
   return (
     <DashboardLayout
@@ -564,16 +543,13 @@ const AdminDashboard = () => {
                               <Label htmlFor="amount">Amount (MWK)</Label>
                               <Input
                                 id="amount"
-                                type="number"
-                                placeholder="50000"
-                                value={contributionForm.amount}
-                                onChange={(e) => setContributionForm({ ...contributionForm, amount: e.target.value })}
+                                type="text"
+                                value={groupSettings ? `MWK ${groupSettings.contributionAmount.toLocaleString()}` : "Loading..."}
+                                disabled
+                                className="bg-muted"
                               />
                               <p className="text-xs text-muted-foreground">
-                                {groupSettings 
-                                  ? `Default from group settings: MWK ${groupSettings.contributionAmount.toLocaleString()}`
-                                  : "Amount per member for this month"
-                                }
+                                This amount is set in your group's rules and fees settings
                               </p>
                             </div>
                             <div className="space-y-2">
@@ -604,77 +580,6 @@ const AdminDashboard = () => {
                   </div>
                 </CardContent>
               </Card>
-
-              <Card className="border-0 shadow-card">
-                <CardContent className="p-6">
-                  <div className="flex items-start gap-4">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-warning/10">
-                      <RefreshCw className="h-6 w-6 text-warning" />
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-foreground">Check Overdue Contributions</h3>
-                      <p className="text-sm text-muted-foreground mb-3">
-                        Mark overdue contributions and generate penalties
-                      </p>
-                      <Dialog open={checkOverdueDialogOpen} onOpenChange={setCheckOverdueDialogOpen}>
-                        <DialogTrigger asChild>
-                          <Button variant="outline" size="sm">
-                            <AlertTriangle className="mr-2 h-4 w-4" />
-                            Check Overdue
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                          <DialogHeader>
-                            <DialogTitle>Check Overdue Contributions</DialogTitle>
-                            <DialogDescription>
-                              This will mark unpaid contributions past their due date as overdue and optionally generate penalties.
-                            </DialogDescription>
-                          </DialogHeader>
-                          <div className="space-y-4 py-4">
-                            <div className="space-y-2">
-                              <Label htmlFor="penaltyAmount">Penalty Amount (MWK) - Optional</Label>
-                              <Input
-                                id="penaltyAmount"
-                                type="number"
-                                placeholder="5000"
-                                value={overdueForm.penaltyAmount}
-                                onChange={(e) => setOverdueForm({ ...overdueForm, penaltyAmount: e.target.value })}
-                              />
-                              <p className="text-xs text-muted-foreground">
-                                Leave empty to mark as overdue without generating penalties
-                              </p>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <input
-                                type="checkbox"
-                                id="autoGenerate"
-                                checked={overdueForm.autoGeneratePenalty}
-                                onChange={(e) => setOverdueForm({ ...overdueForm, autoGeneratePenalty: e.target.checked })}
-                                className="h-4 w-4"
-                              />
-                              <Label htmlFor="autoGenerate" className="text-sm font-normal">
-                                Automatically generate penalty records
-                              </Label>
-                            </div>
-                          </div>
-                          <DialogFooter>
-                            <Button variant="outline" onClick={() => setCheckOverdueDialogOpen(false)}>
-                              Cancel
-                            </Button>
-                            <Button 
-                              variant="default" 
-                              onClick={handleCheckOverdue}
-                              disabled={checkingOverdue}
-                            >
-                              {checkingOverdue ? "Checking..." : "Check Overdue"}
-                            </Button>
-                          </DialogFooter>
-                        </DialogContent>
-                      </Dialog>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
             </div>
 
             {/* Contributions Info */}
@@ -685,17 +590,19 @@ const AdminDashboard = () => {
               <CardContent>
                 <div className="space-y-4">
                   <div className="rounded-lg border bg-muted/30 p-4">
-                    <h4 className="font-medium text-foreground mb-2">How It Works</h4>
+                    <h4 className="font-medium text-foreground mb-2">Automatic Contribution Management</h4>
                     <ul className="space-y-2 text-sm text-muted-foreground">
                       <li>• <strong>Generate Contributions:</strong> Creates contribution records for all active members at the start of each month</li>
                       <li>• <strong>Payment Recording:</strong> Members pay through the payment page, which automatically updates their balance</li>
-                      <li>• <strong>Overdue Check:</strong> Run this to mark late contributions as overdue and optionally apply penalties</li>
-                      <li>• <strong>Automatic Penalties:</strong> When enabled, penalties are automatically created for overdue contributions</li>
+                      <li>• <strong>Automatic Overdue Check:</strong> The system automatically checks for overdue contributions every time contribution data is accessed</li>
+                      <li>• <strong>Automatic Penalties:</strong> When a contribution becomes overdue, the system automatically applies penalties based on the group's contribution penalty rate</li>
+                      <li>• <strong>Penalty Calculation:</strong> Penalty = Contribution Amount × Group Contribution Penalty Rate (e.g., MWK 10,000 × 10% = MWK 1,000)</li>
+                      <li>• <strong>Smart Detection:</strong> Penalties are only created once per overdue contribution to prevent duplicates</li>
                     </ul>
                   </div>
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Shield className="h-4 w-4 text-primary" />
-                    <span>All contribution payments are tracked in the audit log</span>
+                    <span>All contribution payments and penalties are tracked in the audit log</span>
                   </div>
                 </div>
               </CardContent>

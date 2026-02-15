@@ -35,4 +35,7 @@ export const memberRepository: MemberRepository = {
     store.members.set(id, updated);
     return updated;
   },
+  delete(id: string) {
+    return store.members.delete(id);
+  },
 };

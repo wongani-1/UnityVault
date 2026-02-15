@@ -9,4 +9,8 @@ export const env = {
   sessionSecret: process.env.SESSION_SECRET || "dev_session_secret",
   corsOrigin,
   appBaseUrl: process.env.APP_BASE_URL || "http://localhost:5173",
+  email: {
+    user: process.env.GMAIL_USER || "",
+    pass: process.env.GMAIL_PASS || "",
+  },
 };

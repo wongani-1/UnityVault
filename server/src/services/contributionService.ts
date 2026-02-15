@@ -2,13 +2,15 @@ import type { ContributionRepository, MemberRepository, PenaltyRepository, Group
 import type { Contribution, Penalty } from "../models/types";
 import { createId } from "../utils/id";
 import { ApiError } from "../utils/apiError";
+import { EmailService } from "./emailService";
 
 export class ContributionService {
   constructor(
     private contributionRepository: ContributionRepository,
     private memberRepository: MemberRepository,
     private penaltyRepository: PenaltyRepository,
-    private groupRepository: GroupRepository
+    private groupRepository: GroupRepository,
+    private emailService: EmailService
   ) {}
 
   /**
@@ -77,16 +79,35 @@ export class ContributionService {
     });
 
     // Update member balance (savings)
-    this.memberRepository.update(member.id, {
+    const updatedMember = this.memberRepository.update(member.id, {
       balance: member.balance + contribution.amount,
     });
+
+    // Send payment confirmation email if member has email
+    if (member.email && updated && updatedMember) {
+      const group = this.groupRepository.getById(params.groupId);
+      const groupName = group?.name || "Your Group";
+      
+      // Send email asynchronously, don't block the response
+      this.emailService.sendContributionConfirmation({
+        to: member.email,
+        memberName: member.fullName,
+        groupName,
+        amount: contribution.amount,
+        month: contribution.month,
+        transactionId: contribution.id,
+        newBalance: updatedMember.balance,
+      }).catch(error => {
+        console.error("Failed to send payment confirmation email:", error);
+      });
+    }
 
     return updated;
   }
 
   /**
-   * Check for overdue contributions and mark them
-   * This should be called daily (automated job)
+   * Automatically check for overdue contributions and apply penalties
+   * Called automatically when contributions are accessed
    */
   markOverdueContributions(params: {
     groupId: string;
@@ -193,10 +214,35 @@ export class ContributionService {
   }
 
   listByGroup(groupId: string) {
+    // Automatically process overdue contributions before returning data
+    // This ensures penalties are applied without requiring manual admin action
+    try {
+      this.markOverdueContributions({
+        groupId,
+        autoGeneratePenalty: true, // Always auto-generate penalties
+      });
+    } catch (error) {
+      // Log error but don't fail the request
+      console.error("Error processing overdue contributions:", error);
+    }
+    
     return this.contributionRepository.listByGroup(groupId);
   }
 
   listByMember(memberId: string) {
+    // Get member's group to run overdue check
+    const member = this.memberRepository.getById(memberId);
+    if (member) {
+      try {
+        this.markOverdueContributions({
+          groupId: member.groupId,
+          autoGeneratePenalty: true,
+        });
+      } catch (error) {
+        console.error("Error processing overdue contributions:", error);
+      }
+    }
+    
     return this.contributionRepository.listByMember(memberId);
   }
 

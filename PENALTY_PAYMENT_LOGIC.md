@@ -269,7 +269,8 @@ Penalties are automatically created when:
 
 1. **Overdue Contributions**: System automatically checks when contributions are accessed
    - Marks unpaid contributions past due date as "overdue"
-   - Creates penalties based on group's contribution penalty rate
+   - Creates penalties based on group's contribution penalty rate (only once per contribution)
+   - Applies percentage-based penalty (e.g., 10% of contribution amount)
    
 2. **Overdue Installments**: System automatically checks when loan data is accessed
    - Marks unpaid installments past due date as "overdue"
@@ -277,8 +278,10 @@ Penalties are automatically created when:
    - Applies percentage-based penalty (e.g., 15% of installment amount)
 
 **Note**: The system automatically processes overdue checks whenever:
+- Contribution data is fetched (member or admin viewing contributions)
 - Loan data is fetched (member or admin viewing loans)
 - Loan eligibility is checked
+- Member list is accessed (triggers both contribution and loan checks)
 - No manual admin intervention required
 
 ## Key Implementation Files

@@ -7,4 +7,5 @@ export type MemberRepository = {
   findByIdentifier: (identifier: string) => Member | undefined;
   findByInviteToken: (token: string) => Member | undefined;
   update: (id: string, patch: Partial<Member>) => Member | undefined;
+  delete: (id: string) => boolean;
 };

@@ -1,4 +1,4 @@
-import type { MemberRepository } from "../repositories/interfaces";
+import type { MemberRepository, GroupRepository } from "../repositories/interfaces";
 import type { Member } from "../models/types";
 import { createId } from "../utils/id";
 import { hashPassword, verifyPassword } from "../utils/password";
@@ -7,12 +7,15 @@ import { env } from "../config/env";
 import { ApiError } from "../utils/apiError";
 import { AuditService } from "./auditService";
 import { NotificationService } from "./notificationService";
+import { EmailService } from "./emailService";
+import { groupRepository } from "../repositories/memory";
 
 export class MemberService {
   constructor(
     private memberRepository: MemberRepository,
     private auditService: AuditService,
-    private notificationService: NotificationService
+    private notificationService: NotificationService,
+    private emailService: EmailService
   ) {}
 
   async register(params: {
@@ -104,6 +107,24 @@ export class MemberService {
       memberId: member.id,
     });
 
+    // Send invitation email if email is provided
+    if (params.email) {
+      const group = groupRepository.getById(params.groupId);
+      const groupName = group?.name || "Your Group";
+      
+      // Send email asynchronously, don't block the response
+      this.emailService.sendMemberInvite({
+        to: params.email,
+        memberName: params.fullName,
+        groupName,
+        otp,
+        link,
+        expiresAt: inviteExpiresAt,
+      }).catch(error => {
+        console.error("Failed to send invitation email:", error);
+      });
+    }
+
     return {
       member: { ...member, passwordHash: "", inviteOtpHash: "" },
       invite: { otp, link, expiresAt: inviteExpiresAt, token: inviteToken },
@@ -187,6 +208,23 @@ export class MemberService {
       message: "Your membership has been approved",
     });
 
+    // Send approval email if email is provided
+    if (member.email) {
+      const group = groupRepository.getById(actor.groupId);
+      const groupName = group?.name || "Your Group";
+      const loginUrl = `${env.appBaseUrl}/login`;
+      
+      // Send email asynchronously, don't block the response
+      this.emailService.sendMemberApproval({
+        to: member.email,
+        memberName: member.fullName,
+        groupName,
+        loginUrl,
+      }).catch(error => {
+        console.error("Failed to send approval email:", error);
+      });
+    }
+
     return { ...updated, passwordHash: "" };
   }
 
@@ -211,10 +249,47 @@ export class MemberService {
   }
 
   listByGroup(groupId: string) {
+    // Automatically clean up pending members older than 24 hours
+    this.cleanupOldPendingMembers(groupId);
+    
     return this.memberRepository.listByGroup(groupId).map((member) => ({
       ...member,
       passwordHash: "",
     }));
+  }
+
+  /**
+   * Automatically delete pending members that have been waiting for more than 24 hours
+   * This keeps the member list clean and removes stale pending registrations
+   */
+  private cleanupOldPendingMembers(groupId: string) {
+    const members = this.memberRepository.listByGroup(groupId);
+    const now = new Date();
+    const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
+    for (const member of members) {
+      if (member.status === "pending") {
+        const createdAt = new Date(member.createdAt);
+        if (createdAt < twentyFourHoursAgo) {
+          // Delete the member
+          this.memberRepository.delete(member.id);
+          
+          // Log the cleanup action
+          this.auditService.log({
+            groupId,
+            actorId: "system",
+            actorRole: "group_admin",
+            action: "member_auto_deleted",
+            entityType: "member",
+            entityId: member.id,
+            meta: {
+              reason: "Pending for more than 24 hours",
+              createdAt: member.createdAt,
+            },
+          });
+        }
+      }
+    }
   }
 
   getById(memberId: string) {
