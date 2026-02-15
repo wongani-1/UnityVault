@@ -10,7 +10,8 @@ export type TransactionType = "contribution" | "loan_disbursement" | "loan_repay
 export type GroupSettings = {
   contributionAmount: number;
   loanInterestRate: number;
-  penaltyRate: number;
+  penaltyRate: number; // Penalty rate for missed loan payments (as decimal, e.g., 0.15 = 15%)
+  contributionPenaltyRate: number; // Penalty rate for missed contributions (as decimal, e.g., 0.10 = 10%)
   compulsoryInterestRate: number;
   minimumContributionMonths: number; // Minimum months of contributions before loan eligibility
   loanToSavingsRatio: number; // Maximum loan amount as ratio of total contributions (e.g., 2.0 = 200%)

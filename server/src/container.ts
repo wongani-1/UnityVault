@@ -37,7 +37,8 @@ const memberService = new MemberService(
 const contributionService = new ContributionService(
   contributionRepository,
   memberRepository,
-  penaltyRepository
+  penaltyRepository,
+  groupRepository
 );
 const loanService = new LoanService(
   loanRepository,

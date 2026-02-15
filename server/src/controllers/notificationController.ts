@@ -30,9 +30,10 @@ export const listNotifications = asyncHandler(async (req: Request, res: Response
 
   if (req.user.role === "member") {
     const items = container.notificationService.listByMember(req.user.userId);
-    return res.json({ items });
+    res.json({ items });
+    return;
   }
 
   const items = container.notificationService.listByGroup(req.user.groupId);
-  return res.json({ items });
+  res.json({ items });
 });

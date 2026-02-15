@@ -12,6 +12,6 @@ export const listPenalties = asyncHandler(async (req: Request, res: Response) =>
 export const payPenalty = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) throw new ApiError("Unauthorized", 401);
   const { id } = req.params;
-  const penalty = container.penaltyService.payPenalty(id, req.user.id, req.user.id);
+  const penalty = container.penaltyService.payPenalty(id, req.user.userId, req.user.userId);
   res.json({ penalty });
 });

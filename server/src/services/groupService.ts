@@ -30,6 +30,9 @@ export class GroupService {
       name: params.name,
       settings: params.settings,
       createdAt: new Date().toISOString(),
+      totalSavings: 0,
+      totalIncome: 0,
+      cash: 0,
     };
 
     const admin: Admin = {
@@ -73,6 +76,7 @@ export class GroupService {
       settings.contributionAmount < 0 ||
       settings.loanInterestRate < 0 ||
       settings.penaltyRate < 0 ||
+      settings.contributionPenaltyRate < 0 ||
       settings.compulsoryInterestRate < 0
     ) {
       throw new ApiError("Settings values must be non-negative", 400);

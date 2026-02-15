@@ -67,14 +67,12 @@ export const checkOverdueContributions = asyncHandler(async (req: Request, res: 
   if (!req.user) throw new ApiError("Unauthorized", 401);
   if (req.user.role !== "group_admin") throw new ApiError("Only admins can check overdue contributions", 403);
 
-  const { penaltyAmount, autoGeneratePenalty } = req.body as {
-    penaltyAmount?: number;
+  const { autoGeneratePenalty } = req.body as {
     autoGeneratePenalty?: boolean;
   };
 
   const result = container.contributionService.markOverdueContributions({
     groupId: req.user.groupId,
-    penaltyAmount,
     autoGeneratePenalty,
   });
 

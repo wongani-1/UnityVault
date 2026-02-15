@@ -61,8 +61,12 @@ const Register = () => {
       const settings = {
         contributionAmount: Number(rules.monthlyContribution || 50000),
         loanInterestRate: Number(rules.loanInterestPercent || 5) / 100,
-        penaltyRate: Number(rules.penaltyLoanMiss || 2000) / 100000,
+        penaltyRate: Number(rules.penaltyLoanMiss || 10) / 100,
+        contributionPenaltyRate: Number(rules.penaltyMonthlyMiss || 10) / 100,
         compulsoryInterestRate: 0.01,
+        minimumContributionMonths: 3,
+        loanToSavingsRatio: 2.0,
+        enableAutomaticPenalties: true,
       };
 
       const result = await apiRequest<{ group: { id: string; name: string } }>("/groups", {

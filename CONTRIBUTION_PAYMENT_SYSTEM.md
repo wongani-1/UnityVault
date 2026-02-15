@@ -111,7 +111,6 @@ If the `due_date` passes and `status = "unpaid"`:
 **Request:**
 ```json
 {
-  "penaltyAmount": 5000,
   "autoGeneratePenalty": true
 }
 ```
@@ -128,13 +127,15 @@ If the `due_date` passes and `status = "unpaid"`:
 **Automated Actions:**
 1. Status changes to `"overdue"`
 2. Penalty record is generated (if enabled in group settings)
+   - Penalty amount is calculated as: `contribution.amount × group.settings.contributionPenaltyRate`
+   - Example: If contribution is 50,000 MWK and contributionPenaltyRate is 0.10 (10%), penalty = 5,000 MWK
 3. Member is notified (future implementation)
 
 **Penalty Record Fields:**
 - `contribution_id` - Links to the overdue contribution
 - `member_id` - Member who is late
 - `group_id` - Group identifier
-- `amount` - Penalty amount
+- `amount` - Calculated penalty amount (contribution amount × contributionPenaltyRate)
 - `reason` - e.g., "Late contribution for 2026-02"
 - `isPaid` - Initially false
 
@@ -234,7 +235,6 @@ POST /contributions/pay
 # System checks for overdue contributions
 POST /contributions/check-overdue
 {
-  "penaltyAmount": 5000,
   "autoGeneratePenalty": true
 }
 ```

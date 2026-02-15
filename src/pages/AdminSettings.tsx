@@ -29,6 +29,7 @@ const AdminSettings = () => {
           contributionAmount: number;
           loanInterestRate: number;
           penaltyRate: number;
+          contributionPenaltyRate: number;
           compulsoryInterestRate: number;
         }>("/groups/settings");
 
@@ -38,8 +39,8 @@ const AdminSettings = () => {
           monthlyContribution: String(data.contributionAmount ?? ""),
           initialLoanAmount: "",
           loanInterestPercent: String((data.loanInterestRate || 0) * 100),
-          penaltyMonthlyMiss: "",
-          penaltyLoanMiss: String(Math.round((data.penaltyRate || 0) * 100000)),
+          penaltyMonthlyMiss: String((data.contributionPenaltyRate || 0) * 100),
+          penaltyLoanMiss: String((data.penaltyRate || 0) * 100),
           seedAmount: "",
         });
       } catch (error) {
@@ -76,7 +77,8 @@ const AdminSettings = () => {
         body: {
           contributionAmount: Number(form.monthlyContribution || 0),
           loanInterestRate: Number(form.loanInterestPercent || 0) / 100,
-          penaltyRate: Number(form.penaltyLoanMiss || 0) / 100000,
+          penaltyRate: Number(form.penaltyLoanMiss || 0) / 100,
+          contributionPenaltyRate: Number(form.penaltyMonthlyMiss || 0) / 100,
           compulsoryInterestRate: 0.01,
         },
       });
@@ -166,29 +168,29 @@ const AdminSettings = () => {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="penalty-contribution">Penalty: Missed Contribution (MWK)</Label>
+            <Label htmlFor="penalty-contribution">Penalty: Missed Contribution (%)</Label>
             <Input
               id="penalty-contribution"
               type="number"
               min="0"
-              step="1"
+              step="0.1"
               value={form.penaltyMonthlyMiss}
               onChange={(e) => updateField("penaltyMonthlyMiss", e.target.value)}
             />
-            <p className="text-xs text-muted-foreground">Applied when a contribution is late.</p>
+            <p className="text-xs text-muted-foreground">Percentage of the missed contribution amount.</p>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="penalty-loan">Penalty: Missed Loan Payment (MWK)</Label>
+            <Label htmlFor="penalty-loan">Penalty: Missed Loan Payment (%)</Label>
             <Input
               id="penalty-loan"
               type="number"
               min="0"
-              step="1"
+              step="0.1"
               value={form.penaltyLoanMiss}
               onChange={(e) => updateField("penaltyLoanMiss", e.target.value)}
             />
-            <p className="text-xs text-muted-foreground">Applied when repayment is late.</p>
+            <p className="text-xs text-muted-foreground">Percentage of the missed loan payment amount.</p>
           </div>
 
           <div className="space-y-2 md:col-span-2">

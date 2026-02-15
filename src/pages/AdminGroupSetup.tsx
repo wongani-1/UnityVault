@@ -58,19 +58,6 @@ const AdminGroupSetup = () => {
 
           <CardContent className="space-y-6">
             <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="share-fee">Share Fee (MWK)</Label>
-                <Input
-                  id="share-fee"
-                  type="number"
-                  min="0"
-                  step="1"
-                  placeholder="e.g. 1,000"
-                  value={form.shareFee}
-                  onChange={(e) => updateField("shareFee", e.target.value)}
-                />
-                <p className="text-xs text-muted-foreground">One-time fee per member.</p>
-              </div>
 
               <div className="space-y-2 md:col-span-2">
                 <Label htmlFor="seed-amount">Initial Seed Amount (MWK)</Label>
@@ -84,6 +71,20 @@ const AdminGroupSetup = () => {
                   onChange={(e) => updateField("seedAmount", e.target.value)}
                 />
                 <p className="text-xs text-muted-foreground">Opening balance to start the group fund.</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="share-fee">Share Fee (MWK)</Label>
+                <Input
+                  id="share-fee"
+                  type="number"
+                  min="0"
+                  step="1"
+                  placeholder="e.g. 1,000"
+                  value={form.shareFee}
+                  onChange={(e) => updateField("shareFee", e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">One-time fee per member.</p>
               </div>
 
               <div className="space-y-2">
@@ -129,31 +130,31 @@ const AdminGroupSetup = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="penalty-contribution">Penalty: Missed Contribution (MWK)</Label>
+                <Label htmlFor="penalty-contribution">Penalty: Missed Contribution (%)</Label>
                 <Input
                   id="penalty-contribution"
                   type="number"
                   min="0"
-                  step="1"
-                  placeholder="e.g. 1,500"
+                  step="0.1"
+                  placeholder="e.g. 10"
                   value={form.penaltyMonthlyMiss}
                   onChange={(e) => updateField("penaltyMonthlyMiss", e.target.value)}
                 />
-                <p className="text-xs text-muted-foreground">Applied when a contribution is late.</p>
+                <p className="text-xs text-muted-foreground">Percentage of the missed contribution amount.</p>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="penalty-loan">Penalty: Missed Loan Payment (MWK)</Label>
+                <Label htmlFor="penalty-loan">Penalty: Missed Loan Payment (%)</Label>
                 <Input
                   id="penalty-loan"
                   type="number"
                   min="0"
-                  step="1"
-                  placeholder="e.g. 2,500"
+                  step="0.1"
+                  placeholder="e.g. 15"
                   value={form.penaltyLoanMiss}
                   onChange={(e) => updateField("penaltyLoanMiss", e.target.value)}
                 />
-                <p className="text-xs text-muted-foreground">Applied when loan repayment is late.</p>
+                <p className="text-xs text-muted-foreground">Percentage of the missed loan payment amount.</p>
               </div>
 
             </div>

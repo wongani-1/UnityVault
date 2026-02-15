@@ -10,7 +10,11 @@ export const createGroup = asyncHandler(async (req: Request, res: Response) => {
       contributionAmount: number;
       loanInterestRate: number;
       penaltyRate: number;
+      contributionPenaltyRate: number;
       compulsoryInterestRate: number;
+      minimumContributionMonths: number;
+      loanToSavingsRatio: number;
+      enableAutomaticPenalties: boolean;
     };
     admin: { email: string; username: string; password: string };
   };
@@ -44,7 +48,11 @@ export const updateGroupSettings = asyncHandler(async (req: Request, res: Respon
     contributionAmount: number;
     loanInterestRate: number;
     penaltyRate: number;
+    contributionPenaltyRate: number;
     compulsoryInterestRate: number;
+    minimumContributionMonths: number;
+    loanToSavingsRatio: number;
+    enableAutomaticPenalties: boolean;
   };
 
   const updated = container.groupService.updateSettings(req.user.groupId, settings);

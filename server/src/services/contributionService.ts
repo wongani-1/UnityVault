@@ -1,4 +1,4 @@
-import type { ContributionRepository, MemberRepository, PenaltyRepository } from "../repositories/interfaces";
+import type { ContributionRepository, MemberRepository, PenaltyRepository, GroupRepository } from "../repositories/interfaces";
 import type { Contribution, Penalty } from "../models/types";
 import { createId } from "../utils/id";
 import { ApiError } from "../utils/apiError";
@@ -7,7 +7,8 @@ export class ContributionService {
   constructor(
     private contributionRepository: ContributionRepository,
     private memberRepository: MemberRepository,
-    private penaltyRepository: PenaltyRepository
+    private penaltyRepository: PenaltyRepository,
+    private groupRepository: GroupRepository
   ) {}
 
   /**
@@ -89,12 +90,14 @@ export class ContributionService {
    */
   markOverdueContributions(params: {
     groupId: string;
-    penaltyAmount?: number;
     autoGeneratePenalty?: boolean;
   }) {
     const now = new Date().toISOString();
     const contributions = this.contributionRepository.listByGroup(params.groupId);
     const overdueCount = { marked: 0, penaltiesGenerated: 0 };
+
+    const group = this.groupRepository.getById(params.groupId);
+    if (!group) throw new ApiError("Group not found", 404);
 
     for (const contribution of contributions) {
       if (contribution.status === "unpaid" && contribution.dueDate < now) {
@@ -104,20 +107,23 @@ export class ContributionService {
         });
         overdueCount.marked++;
 
-        // Generate penalty if enabled and not already exists
-        if (params.autoGeneratePenalty && params.penaltyAmount && params.penaltyAmount > 0) {
+        // Generate penalty if enabled
+        if (params.autoGeneratePenalty && group.settings.contributionPenaltyRate > 0) {
           const existingPenalties = this.penaltyRepository.listByContribution(contribution.id);
           
           if (existingPenalties.length === 0) {
             const penaltyDueDate = new Date();
             penaltyDueDate.setDate(penaltyDueDate.getDate() + 7);
 
+            // Calculate penalty as percentage of contribution amount
+            const penaltyAmount = contribution.amount * group.settings.contributionPenaltyRate;
+
             const penalty: Penalty = {
               id: createId("penalty"),
               groupId: contribution.groupId,
               memberId: contribution.memberId,
               contributionId: contribution.id,
-              amount: params.penaltyAmount,
+              amount: Number(penaltyAmount.toFixed(2)),
               reason: `Late contribution for ${contribution.month}`,
               status: "unpaid",
               dueDate: penaltyDueDate.toISOString(),
@@ -132,7 +138,7 @@ export class ContributionService {
             const member = this.memberRepository.getById(contribution.memberId);
             if (member) {
               this.memberRepository.update(member.id, {
-                penaltiesTotal: member.penaltiesTotal + params.penaltyAmount,
+                penaltiesTotal: member.penaltiesTotal + Number(penaltyAmount.toFixed(2)),
               });
             }
           }

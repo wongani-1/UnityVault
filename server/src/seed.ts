@@ -11,7 +11,8 @@ export async function seedData() {
     settings: {
       contributionAmount: 50000,
       loanInterestRate: 0.05, // 5%
-      penaltyRate: 0.10, // 10%
+      penaltyRate: 0.10, // 10% penalty for missed loan payments
+      contributionPenaltyRate: 0.10, // 10% penalty for missed contributions
       compulsoryInterestRate: 0.02, // 2%
       minimumContributionMonths: 3, // Minimum 3 months of contributions
       loanToSavingsRatio: 2.0, // Can borrow up to 200% of savings

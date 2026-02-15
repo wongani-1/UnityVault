@@ -911,16 +911,16 @@ const AdminDashboard = () => {
                 {[
                   {
                     label: "Missed Contribution",
-                    desc: "Applied when a contribution is late",
+                    desc: "Percentage of the missed contribution amount",
                     val: storedRules.penaltyMonthlyMiss
-                      ? `MWK ${storedRules.penaltyMonthlyMiss}`
+                      ? `${storedRules.penaltyMonthlyMiss}%`
                       : "Not set",
                   },
                   {
                     label: "Missed Loan Payment",
-                    desc: "Applied when loan repayment is late",
+                    desc: "Percentage of the missed loan payment amount",
                     val: storedRules.penaltyLoanMiss
-                      ? `MWK ${storedRules.penaltyLoanMiss}`
+                      ? `${storedRules.penaltyLoanMiss}%`
                       : "Not set",
                   },
                   {
