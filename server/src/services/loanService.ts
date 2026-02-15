@@ -339,6 +339,10 @@ export class LoanService {
    * Mark overdue installments and apply penalties automatically
    * Should be run periodically (e.g., daily cron job)
    */
+  /**
+   * Automatically process overdue installments and apply penalties
+   * Called automatically when loans are accessed
+   */
   processOverdueInstallments(groupId: string) {
     const loans = this.loanRepository.listByGroup(groupId);
     const activeLoans = loans.filter((loan) => loan.status === "active");

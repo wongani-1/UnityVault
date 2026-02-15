@@ -10,55 +10,84 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 import { AlertTriangle } from "lucide-react";
 import { apiRequest } from "../lib/api";
 import { toast } from "@/components/ui/sonner";
 
-const fallbackPenalties = [
-  {
-    member: "Robert Ochieng",
-    type: "Contribution",
-    amount: "MWK 50,000",
-    dueDate: "2026-01-01",
-    penalty: "MWK 5,000",
-    memberId: "member-1",
-  },
-  {
-    member: "David Mukiibi",
-    type: "Loan Repayment",
-    amount: "MWK 40,000",
-    dueDate: "2026-01-15",
-    penalty: "MWK 2,000",
-    memberId: "member-2",
-  },
-];
+type Penalty = {
+  id: string;
+  memberId: string;
+  loanId?: string;
+  installmentId?: string;
+  contributionId?: string;
+  amount: number;
+  reason: string;
+  status: "unpaid" | "paid";
+  dueDate: string;
+  createdAt: string;
+  paidAt?: string;
+};
+
+type Member = {
+  id: string;
+  fullName: string;
+};
+
+type Contribution = {
+  id: string;
+  amount: number;
+};
+
+type DisplayPenalty = {
+  id: string;
+  member: string;
+  type: string;
+  amount: string;
+  dueDate: string;
+  penalty: string;
+  status: string;
+  memberId: string;
+};
 
 const AdminPenalties = () => {
-  const [penalties, setPenalties] = useState(fallbackPenalties);
+  const [penalties, setPenalties] = useState<DisplayPenalty[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let active = true;
     const load = async () => {
       try {
-        const data = await apiRequest<{ items: Array<{
-          id: string;
-          memberId: string;
-          amount: number;
-          reason: string;
-          createdAt: string;
-        }> }>("/penalties");
+        // Load members for name lookup
+        const memberData = await apiRequest<{ items: Member[] }>("/members");
+        const memberMap = new Map(memberData.items.map((m) => [m.id, m.fullName]));
+
+        // Load contributions for amount lookup
+        const contributionData = await apiRequest<{ items: Contribution[] }>("/contributions");
+        const contributionMap = new Map(contributionData.items.map((c) => [c.id, c.amount]));
+
+        // Load penalties
+        const data = await apiRequest<{ items: Penalty[] }>("/penalties");
 
         if (!active) return;
-        const mapped = data.items.map((item) => ({
-          member: item.memberId,
-          memberId: item.memberId,
-          type: item.reason,
-          amount: "—",
-          dueDate: item.createdAt.slice(0, 10),
-          penalty: `MWK ${item.amount}`,
-        }));
-        setPenalties(mapped.length ? mapped : fallbackPenalties);
+        const mapped = data.items.map((item) => {
+          let relatedAmount = "—";
+          if (item.contributionId && contributionMap.has(item.contributionId)) {
+            relatedAmount = `MWK ${(contributionMap.get(item.contributionId) || 0).toLocaleString()}`;
+          }
+
+          return {
+            id: item.id,
+            member: memberMap.get(item.memberId) || "Unknown",
+            memberId: item.memberId,
+            type: item.reason || "Penalty",
+            amount: relatedAmount,
+            dueDate: item.dueDate ? item.dueDate.slice(0, 10) : item.createdAt.slice(0, 10),
+            penalty: `MWK ${item.amount.toLocaleString()}`,
+            status: item.status,
+          };
+        });
+        setPenalties(mapped);
       } catch (error) {
         const message = error instanceof Error ? error.message : "Failed to load penalties";
         toast.error(message);
@@ -111,29 +140,51 @@ const AdminPenalties = () => {
                 <TableHead>Amount Due</TableHead>
                 <TableHead>Due Date</TableHead>
                 <TableHead>Penalty</TableHead>
+                <TableHead>Status</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {penalties.map((item) => (
-                <TableRow key={`${item.member}-${item.dueDate}`}>
-                  <TableCell className="font-medium">{item.member}</TableCell>
-                  <TableCell>{item.type}</TableCell>
-                  <TableCell>{item.amount}</TableCell>
-                  <TableCell className="text-muted-foreground">{item.dueDate}</TableCell>
-                  <TableCell className="font-medium text-destructive">{item.penalty}</TableCell>
-                  <TableCell className="text-right">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-muted-foreground"
-                      onClick={() => handleNotify(item.memberId, item.type)}
-                    >
-                      Notify
-                    </Button>
+              {penalties.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                    No penalties recorded yet
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : (
+                penalties.map((item) => (
+                  <TableRow key={item.id}>
+                    <TableCell className="font-medium">{item.member}</TableCell>
+                    <TableCell>{item.type}</TableCell>
+                    <TableCell>{item.amount}</TableCell>
+                    <TableCell className="text-muted-foreground">{item.dueDate}</TableCell>
+                    <TableCell className="font-medium text-destructive">{item.penalty}</TableCell>
+                    <TableCell>
+                      <Badge
+                        className={
+                          item.status === "paid"
+                            ? "bg-success/10 text-success hover:bg-success/20 border-0"
+                            : "bg-destructive/10 text-destructive hover:bg-destructive/20 border-0"
+                        }
+                      >
+                        {item.status === "paid" ? "Paid" : "Unpaid"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {item.status === "unpaid" && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-muted-foreground"
+                          onClick={() => handleNotify(item.memberId, item.type)}
+                        >
+                          Notify
+                        </Button>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </CardContent>

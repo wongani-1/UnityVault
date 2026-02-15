@@ -46,6 +46,8 @@ interface MemberData {
   fullName: string;
   phone?: string;
   status: string;
+  balance: number;
+  penaltiesTotal: number;
   createdAt: string;
 }
 
@@ -53,16 +55,28 @@ interface LoanData {
   id: string;
   memberId: string;
   principal: number;
+  interestRate: number;
+  totalInterest: number;
+  totalDue: number;
+  balance: number;
   status: string;
-  totalDue?: number;
+  reason?: string;
   createdAt: string;
+  approvedAt?: string;
+  rejectedAt?: string;
+  completedAt?: string;
 }
 
 interface PenaltyData {
   id: string;
   memberId: string;
+  loanId?: string;
+  installmentId?: string;
+  contributionId?: string;
   amount: number;
   reason?: string;
+  status: string;
+  dueDate: string;
   createdAt: string;
 }
 
@@ -81,6 +95,8 @@ interface DisplayLoan {
   member: string;
   amount: string;
   purpose: string;
+  balance: string;
+  totalDue: string;
   date: string;
   status: string;
 }
@@ -92,6 +108,17 @@ interface DisplayPenalty {
   amount: string;
   dueDate: string;
   penalty: string;
+  status: string;
+}
+
+interface ContributionData {
+  id: string;
+  memberId: string;
+  amount: number;
+  month: string;
+  status: string;
+  dueDate: string;
+  paidAt?: string;
 }
 
 const AdminDashboard = () => {
@@ -100,7 +127,14 @@ const AdminDashboard = () => {
   const [members, setMembers] = useState<DisplayMember[]>([]);
   const [loanRequests, setLoanRequests] = useState<DisplayLoan[]>([]);
   const [missedPayments, setMissedPayments] = useState<DisplayPenalty[]>([]);
+  const [contributions, setContributions] = useState<ContributionData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [groupSettings, setGroupSettings] = useState<{
+    contributionAmount: number;
+    loanInterestRate: number;
+    penaltyRate: number;
+    contributionPenaltyRate: number;
+  } | null>(null);
   const [totalMembers, setTotalMembers] = useState("0");
   const [totalContributions, setTotalContributions] = useState("MWK 0");
   const [activeLoans, setActiveLoans] = useState("MWK 0");
@@ -118,80 +152,117 @@ const AdminDashboard = () => {
     autoGeneratePenalty: true,
   });
 
+  const loadDashboardData = async () => {
+    try {
+      // Load group settings
+      const settings = await apiRequest<{
+        contributionAmount: number;
+        loanInterestRate: number;
+        penaltyRate: number;
+        contributionPenaltyRate: number;
+      }>("/groups/settings");
+      setGroupSettings(settings);
+
+      // Load members
+      const memberData = await apiRequest<{ items: MemberData[] }>("/members");
+      
+      // Load loans
+      const loanData = await apiRequest<{ items: LoanData[] }>("/loans");
+      const memberMap = new Map(memberData.items.map((m) => [m.id, m.fullName]));
+      
+      // Calculate member loan totals
+      const memberLoans = new Map<string, number>();
+      loanData.items.forEach((loan) => {
+        if (loan.status === "active" || loan.status === "approved") {
+          const currentTotal = memberLoans.get(loan.memberId) || 0;
+          memberLoans.set(loan.memberId, currentTotal + (loan.balance || 0));
+        }
+      });
+
+      // Set members with actual loan balances
+      setMembers(memberData.items.map((m) => ({
+        id: m.id,
+        name: m.fullName,
+        phone: m.phone || "+—",
+        status: m.status === "active" ? "Active" : "Pending",
+        contributions: `MWK ${m.balance.toLocaleString()}`,
+        loans: `MWK ${(memberLoans.get(m.id) || 0).toLocaleString()}`,
+        joined: m.createdAt.slice(0, 10),
+      })));
+      
+      const loansMapped = loanData.items
+        .map((l) => ({
+          id: l.id,
+          member: memberMap.get(l.memberId) || "Unknown",
+          amount: `MWK ${(l.principal || 0).toLocaleString()}`,
+          purpose: l.reason || "General Loan",
+          balance: `MWK ${(l.balance || 0).toLocaleString()}`,
+          totalDue: `MWK ${(l.totalDue || 0).toLocaleString()}`,
+          date: l.createdAt ? l.createdAt.slice(0, 10) : "N/A",
+          status: l.status === "pending" ? "Pending" : 
+                  l.status === "approved" ? "Approved" : 
+                  l.status === "active" ? "Active" :
+                  l.status === "completed" ? "Completed" :
+                  l.status === "rejected" ? "Rejected" : "Unknown",
+        }));
+      setLoanRequests(loansMapped);
+
+      // Load contributions for penalty amount lookup
+      const contributionData = await apiRequest<{ items: ContributionData[] }>("/contributions");
+      setContributions(contributionData.items);
+      const contributionMap = new Map(contributionData.items.map((c) => [c.id, c.amount]));
+
+      // Load penalties
+      const penaltyData = await apiRequest<{ items: PenaltyData[] }>("/penalties");
+      const penaltiesMapped = penaltyData.items.map((p) => {
+        let relatedAmount = "—";
+        if (p.contributionId && contributionMap.has(p.contributionId)) {
+          relatedAmount = `MWK ${(contributionMap.get(p.contributionId) || 0).toLocaleString()}`;
+        }
+
+        return {
+          id: p.id,
+          member: memberMap.get(p.memberId) || "Unknown",
+          type: p.reason || "Penalty",
+          amount: relatedAmount,
+          dueDate: p.dueDate ? p.dueDate.slice(0, 10) : p.createdAt.slice(0, 10),
+          penalty: `MWK ${p.amount.toLocaleString()}`,
+          status: p.status === "paid" ? "Paid" : "Unpaid",
+        };
+      });
+      setMissedPayments(penaltiesMapped);
+
+      // Calculate summary stats
+      const activeCount = memberData.items.filter((m) => m.status === "active").length;
+      const contribTotal = memberData.items.reduce((sum, m) => sum + m.balance, 0);
+      // Only count active and approved loans
+      const activeLoansList = loanData.items.filter((l) => l.status === "active" || l.status === "approved");
+      const loansTotal = activeLoansList.reduce((sum: number, l) => sum + (l.balance || 0), 0);
+
+      setTotalMembers(String(activeCount));
+      setTotalContributions(`MWK ${contribTotal.toLocaleString()}`);
+      setActiveLoans(`MWK ${loansTotal.toLocaleString()}`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to load dashboard data";
+      toast.error(message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    let active = true;
-    const load = async () => {
-      try {
-        // Load members
-        const memberData = await apiRequest<{ items: MemberData[] }>("/members");
-        if (active) {
-          setMembers(memberData.items.map((m) => ({
-            id: m.id,
-            name: m.fullName,
-            phone: m.phone || "+—",
-            status: m.status === "active" ? "Active" : "Pending",
-            contributions: "MWK 0",
-            loans: "MWK 0",
-            joined: m.createdAt.slice(0, 10),
-          })));
-        }
-
-        // Load loans
-        const loanData = await apiRequest<{ items: LoanData[] }>("/loans");
-        if (active) {
-          const memberMap = new Map(memberData.items.map((m) => [m.id, m.fullName]));
-          const loansMapped = loanData.items
-            .filter((l) => l.status === "pending" || l.status === "approved")
-            .slice(0, 3)
-            .map((l) => ({
-              id: l.id,
-              member: memberMap.get(l.memberId) || "Unknown",
-              amount: `MWK ${l.principal.toLocaleString()}`,
-              purpose: "Loan",
-              date: l.createdAt.slice(0, 10),
-              status: l.status === "pending" ? "Pending" : l.status === "approved" ? "Approved" : "Disbursed",
-            }));
-          setLoanRequests(loansMapped);
-        }
-
-        // Load penalties
-        const penaltyData = await apiRequest<{ items: PenaltyData[] }>("/penalties");
-        if (active) {
-          const memberMap = new Map(memberData.items.map((m) => [m.id, m.fullName]));
-          const penaltiesMapped = penaltyData.items.slice(0, 3).map((p) => ({
-            id: p.id,
-            member: memberMap.get(p.memberId) || "Unknown",
-            type: p.reason || "Penalty",
-            amount: "MWK 0",
-            dueDate: p.createdAt.slice(0, 10),
-            penalty: `MWK ${p.amount}`,
-          }));
-          setMissedPayments(penaltiesMapped);
-        }
-
-        // Calculate summary stats
-        const activeCount = memberData.items.filter((m) => m.status === "active").length;
-        const contribTotal = memberData.items.length * 50000; // Simple estimation
-        const loansTotal = loanData.items.reduce((sum: number, l) => sum + (l.totalDue || 0), 0);
-
-        if (active) {
-          setTotalMembers(String(activeCount));
-          setTotalContributions(`MWK ${contribTotal.toLocaleString()}`);
-          setActiveLoans(`MWK ${loansTotal.toLocaleString()}`);
-        }
-      } catch (error) {
-        const message = error instanceof Error ? error.message : "Failed to load dashboard data";
-        toast.error(message);
-      } finally {
-        if (active) setLoading(false);
-      }
-    };
-
-    load();
-    return () => {
-      active = false;
-    };
+    loadDashboardData();
   }, []);
+
+  // Update contribution form when group settings are loaded
+  useEffect(() => {
+    if (groupSettings) {
+      setContributionForm(prev => ({
+        ...prev,
+        amount: groupSettings.contributionAmount.toString(),
+      }));
+    }
+  }, [groupSettings]);
 
   const storedGroup = useMemo(() => {
     try {
@@ -251,7 +322,13 @@ const AdminDashboard = () => {
       });
       toast.success(response.message);
       setGenerateDialogOpen(false);
-      setContributionForm({ month: new Date().toISOString().slice(0, 7), amount: "", dueDate: "" });
+      setContributionForm({ 
+        month: new Date().toISOString().slice(0, 7), 
+        amount: groupSettings?.contributionAmount.toString() || "", 
+        dueDate: "" 
+      });
+      // Reload dashboard data to reflect new contributions
+      await loadDashboardData();
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to generate contributions";
       toast.error(message);
@@ -329,7 +406,7 @@ const AdminDashboard = () => {
         <SummaryCard
           title="Active Loans"
           value={activeLoans}
-          subtitle={`${loanRequests.length} active loans`}
+          subtitle={`${loanRequests.filter((l) => l.status === "Active" || l.status === "Approved").length} active loans`}
           icon={CreditCard}
           variant="info"
         />
@@ -492,6 +569,12 @@ const AdminDashboard = () => {
                                 value={contributionForm.amount}
                                 onChange={(e) => setContributionForm({ ...contributionForm, amount: e.target.value })}
                               />
+                              <p className="text-xs text-muted-foreground">
+                                {groupSettings 
+                                  ? `Default from group settings: MWK ${groupSettings.contributionAmount.toLocaleString()}`
+                                  : "Amount per member for this month"
+                                }
+                              </p>
                             </div>
                             <div className="space-y-2">
                               <Label htmlFor="dueDate">Due Date</Label>
@@ -617,6 +700,70 @@ const AdminDashboard = () => {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Recent Contributions Table */}
+            <Card className="border-0 shadow-card">
+              <CardHeader>
+                <CardTitle className="text-lg">Recent Contributions</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Member</TableHead>
+                        <TableHead>Month</TableHead>
+                        <TableHead>Amount</TableHead>
+                        <TableHead>Due Date</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Paid Date</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {contributions.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={6} className="text-center text-muted-foreground">
+                            No contributions generated yet. Click "Generate Contributions" to create records.
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        contributions.slice(0, 10).map((contrib) => {
+                          const member = members.find(m => m.id === contrib.memberId);
+                          const statusColor = 
+                            contrib.status === "paid" ? "bg-green-500/10 text-green-700" :
+                            contrib.status === "overdue" ? "bg-red-500/10 text-red-700" :
+                            "bg-yellow-500/10 text-yellow-700";
+                          
+                          return (
+                            <TableRow key={contrib.id}>
+                              <TableCell className="font-medium">{member?.name || "Unknown"}</TableCell>
+                              <TableCell>{contrib.month}</TableCell>
+                              <TableCell>MWK {contrib.amount.toLocaleString()}</TableCell>
+                              <TableCell>{new Date(contrib.dueDate).toLocaleDateString()}</TableCell>
+                              <TableCell>
+                                <Badge className={statusColor}>
+                                  {contrib.status === "paid" ? "Paid" : contrib.status === "overdue" ? "Overdue" : "Unpaid"}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                {contrib.paidAt ? new Date(contrib.paidAt).toLocaleDateString() : "—"}
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+                {contributions.length > 10 && (
+                  <div className="mt-4 text-center">
+                    <Button variant="outline" size="sm" onClick={() => navigate("/admin/contributions")}>
+                      View All Contributions
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
         </TabsContent>
 
@@ -629,75 +776,19 @@ const AdminDashboard = () => {
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="space-y-4">
-                  <div>
-                    <h4 className="font-medium text-foreground mb-4">Check Overdue Installments</h4>
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <Button className="bg-primary hover:bg-primary/90">
-                          <AlertTriangle className="mr-2 h-4 w-4" />
-                          Check Overdue Installments
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Check for Overdue Loan Installments</DialogTitle>
-                          <DialogDescription>
-                            This will mark any loan installments past their due date as overdue and create penalties for them.
-                          </DialogDescription>
-                        </DialogHeader>
-                        <div className="space-y-4">
-                          <div className="rounded-lg border bg-muted/30 p-4 space-y-2">
-                            <p className="text-sm font-medium">What happens:</p>
-                            <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
-                              <li>All loan installments past their due date will be marked as overdue</li>
-                              <li>Penalties will be created automatically for each overdue installment</li>
-                              <li>Members will be notified about overdue installments</li>
-                              <li>All actions are logged in the audit trail</li>
-                            </ul>
-                          </div>
-                          <DialogFooter>
-                            <Button
-                              onClick={async () => {
-                                try {
-                                  const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/loans/check-overdue`, {
-                                    method: 'POST',
-                                    headers: {
-                                      'Authorization': `Bearer ${localStorage.getItem('token')}`
-                                    }
-                                  });
-                                  
-                                  if (!response.ok) {
-                                    throw new Error('Failed to check overdue installments');
-                                  }
-                                  
-                                  const result = await response.json();
-                                  alert(`Success! Processed ${result.processed} installments. Marked ${result.markedOverdue} as overdue and created ${result.penaltiesCreated} penalties.`);
-                                } catch (error) {
-                                  console.error('Error checking overdue installments:', error);
-                                  alert('Failed to check overdue installments. Please try again.');
-                                }
-                              }}
-                              className="bg-primary hover:bg-primary/90"
-                            >
-                              Run Check Now
-                            </Button>
-                          </DialogFooter>
-                        </div>
-                      </DialogContent>
-                    </Dialog>
-                  </div>
                   <div className="rounded-lg border bg-muted/30 p-4">
-                    <h4 className="font-medium text-foreground mb-2">How It Works</h4>
+                    <h4 className="font-medium text-foreground mb-2">Automatic Loan Management</h4>
                     <ul className="space-y-2 text-sm text-muted-foreground">
-                      <li>• <strong>Loan Approval:</strong> When a loan is approved, installments are automatically generated with principal and interest amounts</li>
+                      <li>• <strong>Loan Approval:</strong> When a loan is approved, installments are automatically generated with due dates, principal and interest amounts</li>
                       <li>• <strong>Payment Recording:</strong> Members pay through the payment page, which records payments against specific installments</li>
-                      <li>• <strong>Overdue Check:</strong> Run this to mark late installments as overdue and apply penalties</li>
-                      <li>• <strong>Automatic Penalties:</strong> Penalties are automatically created for each overdue installment (only once per installment)</li>
+                      <li>• <strong>Automatic Overdue Check:</strong> The system automatically checks for overdue installments every time loan data is accessed</li>
+                      <li>• <strong>Automatic Penalties:</strong> When an installment becomes overdue, the system automatically applies penalties based on the group's penalty rate and notifies the member</li>
+                      <li>• <strong>Smart Detection:</strong> Penalties are only created once per overdue installment to prevent duplicates</li>
                     </ul>
                   </div>
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Shield className="h-4 w-4 text-primary" />
-                    <span>All loan payments are tracked in the audit log</span>
+                    <span>All loan payments and penalties are tracked in the audit log</span>
                   </div>
                 </div>
               </CardContent>
@@ -715,6 +806,8 @@ const AdminDashboard = () => {
                     <TableRow>
                       <TableHead>Member</TableHead>
                       <TableHead>Amount</TableHead>
+                      <TableHead>Balance</TableHead>
+                      <TableHead>Total Due</TableHead>
                       <TableHead>Purpose</TableHead>
                       <TableHead>Date</TableHead>
                       <TableHead>Status</TableHead>
@@ -722,26 +815,39 @@ const AdminDashboard = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {loanRequests.map((l) => (
-                      <TableRow key={l.id}>
-                        <TableCell className="font-medium">{l.member}</TableCell>
-                        <TableCell>{l.amount}</TableCell>
-                        <TableCell className="text-muted-foreground">{l.purpose}</TableCell>
-                        <TableCell className="text-muted-foreground">{l.date}</TableCell>
-                        <TableCell>
-                          <Badge
-                            className={
-                              l.status === "Approved"
-                                ? "bg-success/10 text-success hover:bg-success/20 border-0"
-                                : l.status === "Pending"
-                                ? "bg-warning/10 text-warning hover:bg-warning/20 border-0"
-                                : "bg-info/10 text-info hover:bg-info/20 border-0"
-                            }
-                          >
-                            {l.status}
-                          </Badge>
+                    {loanRequests.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={8} className="text-center text-muted-foreground">
+                          No loan applications yet
                         </TableCell>
-                        <TableCell className="text-right">
+                      </TableRow>
+                    ) : (
+                      loanRequests.map((l) => (
+                        <TableRow key={l.id}>
+                          <TableCell className="font-medium">{l.member}</TableCell>
+                          <TableCell>{l.amount}</TableCell>
+                          <TableCell>{l.balance}</TableCell>
+                          <TableCell>{l.totalDue}</TableCell>
+                          <TableCell className="text-muted-foreground">{l.purpose}</TableCell>
+                          <TableCell className="text-muted-foreground">{l.date}</TableCell>
+                          <TableCell>
+                            <Badge
+                              className={
+                                l.status === "Approved" || l.status === "Active"
+                                  ? "bg-success/10 text-success hover:bg-success/20 border-0"
+                                  : l.status === "Pending"
+                                  ? "bg-warning/10 text-warning hover:bg-warning/20 border-0"
+                                  : l.status === "Completed"
+                                  ? "bg-blue-500/10 text-blue-700 hover:bg-blue-500/20 border-0"
+                                  : l.status === "Rejected"
+                                  ? "bg-red-500/10 text-red-700 hover:bg-red-500/20 border-0"
+                                  : "bg-info/10 text-info hover:bg-info/20 border-0"
+                              }
+                            >
+                              {l.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
                           {l.status === "Pending" ? (
                             <div className="flex justify-end gap-2">
                               <Button variant="default" size="sm" onClick={() => navigate("/admin/loans")}>
@@ -768,7 +874,7 @@ const AdminDashboard = () => {
                           )}
                         </TableCell>
                       </TableRow>
-                    ))}
+                    )))}
                   </TableBody>
                 </Table>
               )}
@@ -797,31 +903,51 @@ const AdminDashboard = () => {
                       <TableHead>Amount Due</TableHead>
                       <TableHead>Due Date</TableHead>
                       <TableHead>Penalty</TableHead>
+                      <TableHead>Status</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {missedPayments.map((p) => (
-                      <TableRow key={p.id}>
-                        <TableCell className="font-medium">{p.member}</TableCell>
-                        <TableCell>{p.type}</TableCell>
-                        <TableCell>{p.amount}</TableCell>
-                        <TableCell className="text-muted-foreground">{p.dueDate}</TableCell>
-                        <TableCell>
-                          <span className="font-medium text-destructive">{p.penalty}</span>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-muted-foreground"
-                            onClick={() => navigate("/admin/penalties")}
-                          >
-                            Notify
-                          </Button>
+                    {missedPayments.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center text-muted-foreground">
+                          No penalties recorded yet
                         </TableCell>
                       </TableRow>
-                    ))}
+                    ) : (
+                      missedPayments.slice(0, 5).map((p) => (
+                        <TableRow key={p.id}>
+                          <TableCell className="font-medium">{p.member}</TableCell>
+                          <TableCell>{p.type}</TableCell>
+                          <TableCell>{p.amount}</TableCell>
+                          <TableCell className="text-muted-foreground">{p.dueDate}</TableCell>
+                          <TableCell>
+                            <span className="font-medium text-destructive">{p.penalty}</span>
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              className={
+                                p.status === "Paid"
+                                  ? "bg-success/10 text-success hover:bg-success/20 border-0"
+                                  : "bg-destructive/10 text-destructive hover:bg-destructive/20 border-0"
+                              }
+                            >
+                              {p.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-muted-foreground"
+                              onClick={() => navigate("/admin/penalties")}
+                            >
+                              View
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
                   </TableBody>
                 </Table>
               )}
@@ -874,9 +1000,9 @@ const AdminDashboard = () => {
                   {
                     label: "Monthly Contribution",
                     desc: "Required contribution per member",
-                    val: storedRules.monthlyContribution
-                      ? `MWK ${storedRules.monthlyContribution}`
-                      : "Not set",
+                    val: groupSettings 
+                      ? `MWK ${groupSettings.contributionAmount.toLocaleString()}` 
+                      : "Loading...",
                   },
                   {
                     label: "Initial Loan Amount",
@@ -912,23 +1038,23 @@ const AdminDashboard = () => {
                   {
                     label: "Missed Contribution",
                     desc: "Percentage of the missed contribution amount",
-                    val: storedRules.penaltyMonthlyMiss
-                      ? `${storedRules.penaltyMonthlyMiss}%`
-                      : "Not set",
+                    val: groupSettings
+                      ? `${(groupSettings.contributionPenaltyRate * 100).toFixed(1)}%`
+                      : "Loading...",
                   },
                   {
                     label: "Missed Loan Payment",
                     desc: "Percentage of the missed loan payment amount",
-                    val: storedRules.penaltyLoanMiss
-                      ? `${storedRules.penaltyLoanMiss}%`
-                      : "Not set",
+                    val: groupSettings
+                      ? `${(groupSettings.penaltyRate * 100).toFixed(1)}%`
+                      : "Loading...",
                   },
                   {
                     label: "Loan Interest",
                     desc: "Monthly interest rate",
-                    val: storedRules.loanInterestPercent
-                      ? `${storedRules.loanInterestPercent}%`
-                      : "Not set",
+                    val: groupSettings
+                      ? `${(groupSettings.loanInterestRate * 100).toFixed(1)}%`
+                      : "Loading...",
                   },
                 ].map((rule) => (
                   <div key={rule.label} className="flex items-center justify-between rounded-lg bg-muted/50 p-3">

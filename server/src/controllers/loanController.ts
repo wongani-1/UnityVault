@@ -32,6 +32,13 @@ export const checkEligibility = asyncHandler(async (req: Request, res: Response)
 
   const requestedAmount = amount ? parseFloat(amount) : 0;
 
+  // Automatically process overdue installments when checking eligibility
+  try {
+    container.loanService.processOverdueInstallments(req.user.groupId);
+  } catch (error) {
+    console.error("Error processing overdue installments:", error);
+  }
+
   const eligibility = await container.loanService.checkEligibility({
     groupId: req.user.groupId,
     memberId: req.user.userId,
@@ -43,6 +50,15 @@ export const checkEligibility = asyncHandler(async (req: Request, res: Response)
 
 export const listLoans = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) throw new ApiError("Unauthorized", 401);
+
+  // Automatically process overdue installments before returning loans
+  // This ensures penalties are applied without requiring manual admin action
+  try {
+    container.loanService.processOverdueInstallments(req.user.groupId);
+  } catch (error) {
+    // Log error but don't fail the request
+    console.error("Error processing overdue installments:", error);
+  }
 
   const loans = container.loanService.listByGroup(req.user.groupId);
   const items =

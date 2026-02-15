@@ -43,7 +43,8 @@ type Loan = {
   memberId: string;
   principal: number;
   totalDue: number;
-  status: "pending" | "approved" | "rejected" | "closed";
+  balance: number;
+  status: "pending" | "approved" | "active" | "rejected" | "completed";
   createdAt: string;
 };
 
@@ -73,6 +74,7 @@ const AdminMembers = () => {
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [contributions, setContributions] = useState<Contribution[]>([]);
   const [loans, setLoans] = useState<Loan[]>([]);
+  const [allLoans, setAllLoans] = useState<Loan[]>([]);
   const [penalties, setPenalties] = useState<Penalty[]>([]);
   const [inviteInfo, setInviteInfo] = useState<InviteInfo | null>(null);
   const [form, setForm] = useState({
@@ -88,12 +90,23 @@ const AdminMembers = () => {
     try {
       const data = await apiRequest<{ items: Member[] }>("/members");
       setMembers(data.items);
+      
+      // Load all loans to calculate outstanding loans per member
+      const loanData = await apiRequest<{ items: Loan[] }>("/loans");
+      setAllLoans(loanData.items);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to load members";
       toast.error(message);
     } finally {
       setLoading(false);
     }
+  };
+
+  // Calculate outstanding loans for a specific member
+  const getOutstandingLoans = (memberId: string): number => {
+    return allLoans
+      .filter((loan) => loan.memberId === memberId && (loan.status === "active" || loan.status === "approved"))
+      .reduce((sum, loan) => sum + (loan.balance || 0), 0);
   };
 
   useEffect(() => {
@@ -295,6 +308,7 @@ const AdminMembers = () => {
                 <TableHead>Phone</TableHead>
                 <TableHead>Contributions</TableHead>
                 <TableHead>Outstanding Loans</TableHead>
+                <TableHead>Penalties</TableHead>
                 <TableHead>Joined</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
@@ -305,8 +319,9 @@ const AdminMembers = () => {
                 <TableRow key={member.id}>
                   <TableCell className="font-medium">{member.fullName}</TableCell>
                   <TableCell className="text-muted-foreground">{member.phone || "-"}</TableCell>
-                  <TableCell>MWK 0</TableCell>
-                  <TableCell>MWK 0</TableCell>
+                  <TableCell>MWK {(member.balance || 0).toLocaleString()}</TableCell>
+                  <TableCell>MWK {getOutstandingLoans(member.id).toLocaleString()}</TableCell>
+                  <TableCell>MWK {(member.penaltiesTotal || 0).toLocaleString()}</TableCell>
                   <TableCell className="text-muted-foreground">
                     {member.createdAt.slice(0, 10)}
                   </TableCell>
@@ -418,8 +433,8 @@ const AdminMembers = () => {
                       <p className="text-sm text-muted-foreground">
                         Outstanding: {formatCurrency(
                           loans
-                            .filter((loan) => loan.status !== "closed" && loan.status !== "rejected")
-                            .reduce((sum, loan) => sum + (loan.totalDue || 0), 0)
+                            .filter((loan) => loan.status === "active" || loan.status === "approved")
+                            .reduce((sum, loan) => sum + (loan.balance || 0), 0)
                         )}
                       </p>
                     </div>
@@ -432,7 +447,9 @@ const AdminMembers = () => {
                             <span className="text-muted-foreground">
                               {loan.createdAt.slice(0, 10)} • {loan.status}
                             </span>
-                            <span className="font-medium text-foreground">{formatCurrency(loan.totalDue)}</span>
+                            <span className="font-medium text-foreground">
+                              {formatCurrency(loan.balance || 0)} / {formatCurrency(loan.totalDue || 0)}
+                            </span>
                           </div>
                         ))}
                       </div>

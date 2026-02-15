@@ -55,6 +55,7 @@ const MemberContributionPayment = () => {
   const [mobileProvider, setMobileProvider] = useState<"airtel" | "tnm" | null>(null);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
+  const [contributionAmount, setContributionAmount] = useState(50000);
   const [paymentData, setPaymentData] = useState<{
     contributions: Contribution[];
     loans: Loan[];
@@ -75,6 +76,14 @@ const MemberContributionPayment = () => {
     const loadData = async () => {
       setLoading(true);
       try {
+        // Load group settings first to get contribution amount
+        const settings = await apiRequest<{
+          contributionAmount: number;
+          loanInterestRate: number;
+          penaltyRate: number;
+        }>("/groups/settings");
+        setContributionAmount(settings.contributionAmount);
+
         if (paymentType === "contribution") {
           const data = await apiRequest<{ items: Contribution[] }>("/contributions");
           setPaymentData(prev => ({ ...prev, contributions: data.items }));
@@ -98,6 +107,14 @@ const MemberContributionPayment = () => {
   const loadPaymentData = async () => {
     setLoading(true);
     try {
+      // Reload group settings
+      const settings = await apiRequest<{
+        contributionAmount: number;
+        loanInterestRate: number;
+        penaltyRate: number;
+      }>("/groups/settings");
+      setContributionAmount(settings.contributionAmount);
+
       if (paymentType === "contribution") {
         const data = await apiRequest<{ items: Contribution[] }>("/contributions");
         setPaymentData(prev => ({ ...prev, contributions: data.items }));
@@ -118,16 +135,6 @@ const MemberContributionPayment = () => {
 
   const updateField = (field: keyof typeof form, value: string) =>
     setForm((prev) => ({ ...prev, [field]: value }));
-
-  const contributionAmount = useMemo(() => {
-    try {
-      const raw = localStorage.getItem("unityvault:groupRules");
-      const rules = raw ? (JSON.parse(raw) as { monthlyContribution?: string }) : {};
-      return rules.monthlyContribution || "50,000";
-    } catch {
-      return "50,000";
-    }
-  }, []);
 
   const paymentInfo = useMemo(() => {
     if (loading) {
@@ -190,7 +197,7 @@ const MemberContributionPayment = () => {
         return {
           title: "Pay Contribution",
           description: "Complete your monthly contribution payment",
-          amount: totalDue > 0 ? totalDue.toLocaleString() : contributionAmount,
+          amount: totalDue > 0 ? totalDue.toLocaleString() : contributionAmount.toLocaleString(),
           label: unpaidContributions.length > 0 
             ? `${unpaidContributions.length} unpaid contribution${unpaidContributions.length !== 1 ? 's' : ''}`
             : "Monthly contribution",

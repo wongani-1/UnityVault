@@ -18,9 +18,16 @@ type Loan = {
   id: string;
   memberId: string;
   principal: number;
+  interestRate: number;
+  totalInterest: number;
   totalDue: number;
-  status: "pending" | "approved" | "rejected" | "closed";
+  balance: number;
+  status: "pending" | "approved" | "active" | "rejected" | "completed";
+  reason?: string;
   createdAt: string;
+  approvedAt?: string;
+  rejectedAt?: string;
+  completedAt?: string;
 };
 
 type Member = {
@@ -28,35 +35,19 @@ type Member = {
   fullName: string;
 };
 
-const fallbackLoans = [
-  {
-    id: "ln-1",
-    member: "Robert Ochieng",
-    amount: "MWK 300,000",
-    purpose: "School fees",
-    date: "2026-02-03",
-    status: "Pending",
-  },
-  {
-    id: "ln-2",
-    member: "Alice Namukasa",
-    amount: "MWK 150,000",
-    purpose: "Medical",
-    date: "2026-01-28",
-    status: "Approved",
-  },
-  {
-    id: "ln-3",
-    member: "David Mukiibi",
-    amount: "MWK 200,000",
-    purpose: "Business stock",
-    date: "2026-01-15",
-    status: "Disbursed",
-  },
-];
+type DisplayLoan = {
+  id: string;
+  member: string;
+  amount: string;
+  purpose: string;
+  balance: string;
+  totalDue: string;
+  date: string;
+  status: string;
+};
 
 const AdminLoans = () => {
-  const [loans, setLoans] = useState(fallbackLoans);
+  const [loans, setLoans] = useState<DisplayLoan[]>([]);
   const [members, setMembers] = useState<Map<string, string>>(new Map());
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -74,20 +65,25 @@ const AdminLoans = () => {
       const mapped = loanData.items.map((loan) => ({
         id: loan.id,
         member: memberMap.get(loan.memberId) || "Unknown",
-        amount: `MWK ${loan.principal.toLocaleString()}`,
-        purpose: "Loan",
-        date: loan.createdAt.slice(0, 10),
+        amount: `MWK ${(loan.principal || 0).toLocaleString()}`,
+        purpose: loan.reason || "General Loan",
+        balance: `MWK ${(loan.balance || 0).toLocaleString()}`,
+        totalDue: `MWK ${(loan.totalDue || 0).toLocaleString()}`,
+        date: loan.createdAt ? loan.createdAt.slice(0, 10) : "N/A",
         status:
           loan.status === "pending"
             ? "Pending"
             : loan.status === "approved"
             ? "Approved"
+            : loan.status === "active"
+            ? "Active"
             : loan.status === "rejected"
             ? "Rejected"
-            : "Closed",
-        loanId: loan.id,
+            : loan.status === "completed"
+            ? "Completed"
+            : "Unknown",
       }));
-      setLoans(mapped.length ? mapped : fallbackLoans);
+      setLoans(mapped);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to load loans";
       toast.error(message);
@@ -148,6 +144,8 @@ const AdminLoans = () => {
                 <TableRow>
                   <TableHead>Member</TableHead>
                   <TableHead>Amount</TableHead>
+                  <TableHead>Balance</TableHead>
+                  <TableHead>Total Due</TableHead>
                   <TableHead>Purpose</TableHead>
                   <TableHead>Date</TableHead>
                   <TableHead>Status</TableHead>
@@ -155,21 +153,32 @@ const AdminLoans = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {loans.map((loan: any) => (
+                {loans.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                      No loan applications yet
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  loans.map((loan) => (
                   <TableRow key={loan.id}>
                     <TableCell className="font-medium">{loan.member}</TableCell>
                     <TableCell>{loan.amount}</TableCell>
+                    <TableCell>{loan.balance}</TableCell>
+                    <TableCell>{loan.totalDue}</TableCell>
                     <TableCell className="text-muted-foreground">{loan.purpose}</TableCell>
                     <TableCell className="text-muted-foreground">{loan.date}</TableCell>
                     <TableCell>
                       <Badge
                         className={
-                          loan.status === "Approved"
+                          loan.status === "Approved" || loan.status === "Active"
                             ? "bg-success/10 text-success hover:bg-success/20 border-0"
                             : loan.status === "Pending"
                             ? "bg-warning/10 text-warning hover:bg-warning/20 border-0"
                             : loan.status === "Rejected"
                             ? "bg-destructive/10 text-destructive hover:bg-destructive/20 border-0"
+                            : loan.status === "Completed"
+                            ? "bg-blue-500/10 text-blue-700 hover:bg-blue-500/20 border-0"
                             : "bg-info/10 text-info hover:bg-info/20 border-0"
                         }
                       >
@@ -204,7 +213,8 @@ const AdminLoans = () => {
                       )}
                     </TableCell>
                   </TableRow>
-                ))}
+                ))
+                )}
               </TableBody>
             </Table>
           )}
