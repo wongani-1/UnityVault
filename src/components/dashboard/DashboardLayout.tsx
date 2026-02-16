@@ -88,18 +88,18 @@ const DashboardLayout = ({
     }
   }, [isAdmin]);
 
-  const resolvedGroupId = groupId || storedGroup.groupId || "GB-8F3K2";
-  const resolvedGroupName = groupName || storedGroup.groupName || "Your Group";
+  const resolvedGroupId = groupId || storedGroup.groupId || "";
+  const resolvedGroupName = groupName || storedGroup.groupName || "";
   const resolvedUserName =
     userName || (isAdmin ? (storedGroup as { adminName?: string }).adminName : (storedGroup as { fullName?: string }).fullName);
 
-  const displayName = resolvedUserName || "John Doe";
+  const displayName = resolvedUserName || "";
   const initials = displayName
     .split(" ")
     .filter(Boolean)
     .slice(0, 2)
     .map((part) => part[0]?.toUpperCase())
-    .join("") || "JD";
+    .join("") || "?";
 
   const handleCopyGroupId = () => {
     navigator.clipboard.writeText(resolvedGroupId);
@@ -132,17 +132,19 @@ const DashboardLayout = ({
         <div className="rounded-lg bg-secondary/70 p-3">
           <p className="text-xs font-medium text-muted-foreground">Group</p>
           <p className="truncate text-sm font-semibold text-foreground">{resolvedGroupName}</p>
-          <div className="mt-1.5 flex items-center gap-1.5">
-            <Hash className="h-3 w-3 text-muted-foreground" />
-            <span className="font-mono text-xs tracking-wider text-muted-foreground">{resolvedGroupId}</span>
-            <button
-              onClick={handleCopyGroupId}
-              className="ml-auto text-muted-foreground hover:text-foreground transition-colors"
-              title="Copy Group ID"
-            >
-              {copiedId ? <Check className="h-3 w-3 text-success" /> : <Copy className="h-3 w-3" />}
-            </button>
-          </div>
+          {isAdmin && (
+            <div className="mt-1.5 flex items-center gap-1.5">
+              <Hash className="h-3 w-3 text-muted-foreground" />
+              <span className="font-mono text-xs tracking-wider text-muted-foreground">{resolvedGroupId}</span>
+              <button
+                onClick={handleCopyGroupId}
+                className="ml-auto text-muted-foreground hover:text-foreground transition-colors"
+                title="Copy Group ID"
+              >
+                {copiedId ? <Check className="h-3 w-3 text-success" /> : <Copy className="h-3 w-3" />}
+              </button>
+            </div>
+          )}
         </div>
       </div>
 

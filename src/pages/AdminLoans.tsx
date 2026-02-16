@@ -66,7 +66,7 @@ const AdminLoans = () => {
         id: loan.id,
         member: memberMap.get(loan.memberId) || "Unknown",
         amount: `MWK ${(loan.principal || 0).toLocaleString()}`,
-        purpose: loan.reason || "General Loan",
+        purpose: loan.reason || "—",
         balance: `MWK ${(loan.balance || 0).toLocaleString()}`,
         totalDue: `MWK ${(loan.totalDue || 0).toLocaleString()}`,
         date: loan.createdAt ? loan.createdAt.slice(0, 10) : "N/A",

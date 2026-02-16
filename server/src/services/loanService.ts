@@ -161,6 +161,7 @@ export class LoanService {
       type: "loan_request",
       message: `${member.fullName} has requested a loan of MWK ${params.principal.toLocaleString()}`,
       status: "pending",
+      isRead: false,
       createdAt: new Date().toISOString(),
     });
 
@@ -252,6 +253,7 @@ export class LoanService {
       type: "loan_approved",
       message: `Your loan of MWK ${loan.principal.toLocaleString()} has been approved. Total repayment: MWK ${totalDue.toLocaleString()} in ${params.installments} installments`,
       status: "pending",
+      isRead: false,
       createdAt: now.toISOString(),
     });
 
@@ -311,6 +313,7 @@ export class LoanService {
       type: "loan_rejected",
       message: `Your loan request of MWK ${loan.principal.toLocaleString()} has been rejected${params.reason ? `: ${params.reason}` : ""}`,
       status: "pending",
+      isRead: false,
       createdAt: now,
     });
 
@@ -411,6 +414,7 @@ export class LoanService {
                 type: "installment_overdue",
                 message: `Your loan installment #${installment.installmentNumber} of MWK ${installment.amount.toLocaleString()} is overdue. A penalty of MWK ${penaltyAmount.toLocaleString()} has been applied.`,
                 status: "pending",
+                isRead: false,
                 createdAt: now.toISOString(),
               });
             }
@@ -504,6 +508,7 @@ export class LoanService {
         type: "loan_completed",
         message: `Congratulations! Your loan of MWK ${loan.principal.toLocaleString()} has been fully repaid.`,
         status: "pending",
+        isRead: false,
         createdAt: now.toISOString(),
       });
 

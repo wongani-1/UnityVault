@@ -108,8 +108,10 @@ export type NotificationRow = {
   type: string;
   message: string;
   status: string;
+  is_read: boolean;
   created_at: string;
   sent_at: string | null;
+  read_at: string | null;
 };
 
 export type AuditRow = {
@@ -408,8 +410,10 @@ export const toNotificationRow = (notification: Notification): NotificationRow =
   type: notification.type,
   message: notification.message,
   status: notification.status,
+  is_read: notification.isRead,
   created_at: notification.createdAt,
   sent_at: notification.sentAt || null,
+  read_at: notification.readAt || null,
 });
 
 export const toNotificationPatch = (patch: Partial<Notification>): Partial<NotificationRow> => ({
@@ -431,8 +435,10 @@ export const fromNotificationRow = (row: NotificationRow): Notification => ({
   type: row.type,
   message: row.message,
   status: row.status as Notification["status"],
+  isRead: row.is_read,
   createdAt: row.created_at,
   sentAt: row.sent_at || undefined,
+  readAt: row.read_at || undefined,
 });
 
 export const toAuditRow = (log: AuditLog): AuditRow => ({

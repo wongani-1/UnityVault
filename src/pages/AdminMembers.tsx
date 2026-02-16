@@ -139,7 +139,7 @@ const AdminMembers = () => {
         },
       });
       setInviteInfo(result.invite);
-      toast.success("Invite generated (mock delivery)");
+      toast.success("Invite generated");
       setForm({ fullName: "", email: "", phone: "", username: "" });
       await loadMembers();
     } catch (error) {
@@ -262,7 +262,7 @@ const AdminMembers = () => {
                 
                 {inviteInfo && (
                   <div className="rounded-lg border bg-secondary/30 p-3 text-sm">
-                    <p className="font-semibold text-foreground">Mock delivery</p>
+                    <p className="font-semibold text-foreground">Delivery pending</p>
                     <p className="text-muted-foreground">Share this link and OTP with the member.</p>
                     <div className="mt-2 space-y-1">
                       <p>

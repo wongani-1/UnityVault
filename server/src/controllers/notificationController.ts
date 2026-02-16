@@ -37,3 +37,15 @@ export const listNotifications = asyncHandler(async (req: Request, res: Response
   const items = await container.notificationService.listByGroup(req.user.groupId);
   res.json({ items });
 });
+
+export const markNotificationsAsRead = asyncHandler(async (req: Request, res: Response) => {
+  if (!req.user) throw new ApiError("Unauthorized", 401);
+
+  if (req.user.role === "member") {
+    await container.notificationService.markAllAsReadForMember(req.user.userId);
+  } else if (req.user.role === "group_admin") {
+    await container.notificationService.markAllAsReadForAdmin(req.user.userId);
+  }
+
+  res.json({ message: "Notifications marked as read" });
+});

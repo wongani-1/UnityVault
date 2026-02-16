@@ -1,39 +1,12 @@
 import { useEffect, useState } from "react";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Bell } from "lucide-react";
 import { apiRequest } from "../lib/api";
 import { toast } from "@/components/ui/sonner";
 
-const fallbackNotifications = [
-  {
-    title: "Member registration pending",
-    body: "Grace Atim requested to join the group.",
-    status: "pending",
-    time: "2026-02-06 09:10",
-  },
-  {
-    title: "Loan approved",
-    body: "Loan for Robert Ochieng approved and ready to disburse.",
-    status: "sent",
-    time: "2026-02-05 16:22",
-  },
-  {
-    title: "Penalty applied",
-    body: "Late repayment penalty applied to David Mukiibi.",
-    status: "sent",
-    time: "2026-02-04 07:05",
-  },
-];
-
-const statusClass = (status: string) =>
-  status === "pending"
-    ? "bg-warning/10 text-warning hover:bg-warning/20 border-0"
-    : "bg-success/10 text-success hover:bg-success/20 border-0";
-
 const AdminNotifications = () => {
-  const [notifications, setNotifications] = useState(fallbackNotifications);
+  const [notifications, setNotifications] = useState<Array<{ title: string; body: string; status: string; time: string }>>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -55,7 +28,10 @@ const AdminNotifications = () => {
           status: item.status,
           time: item.createdAt.slice(0, 16).replace("T", " "),
         }));
-        setNotifications(mapped.length ? mapped : fallbackNotifications);
+        setNotifications(mapped);
+
+        // Mark all notifications as read
+        await apiRequest("/notifications/mark-read", { method: "POST" });
       } catch (error) {
         const message = error instanceof Error ? error.message : "Failed to load notifications";
         toast.error(message);
@@ -83,17 +59,19 @@ const AdminNotifications = () => {
           {loading && (
             <p className="text-sm text-muted-foreground">Loading notifications...</p>
           )}
+          {!loading && notifications.length === 0 && (
+            <p className="text-center text-sm text-muted-foreground py-8">No notifications yet</p>
+          )}
           {notifications.map((note) => (
             <div
               key={`${note.title}-${note.time}`}
-              className="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-card p-4"
+              className="flex items-start justify-between gap-3 rounded-lg border bg-card p-4"
             >
-              <div>
+              <div className="flex-1">
                 <p className="text-sm font-semibold text-foreground">{note.title}</p>
-                <p className="text-xs text-muted-foreground">{note.body}</p>
+                <p className="text-sm text-muted-foreground mt-1">{note.body}</p>
+                <span className="text-xs text-muted-foreground mt-2 block">{note.time}</span>
               </div>
-              <Badge className={statusClass(note.status)}>{note.status}</Badge>
-              <span className="text-xs text-muted-foreground">{note.time}</span>
             </div>
           ))}
         </CardContent>

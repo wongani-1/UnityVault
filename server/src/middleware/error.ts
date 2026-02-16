@@ -14,5 +14,10 @@ export const errorHandler = (
   const status = err instanceof ApiError ? err.status : 500;
   const message = err instanceof ApiError ? err.message : "Server error";
 
+  // Log the full error for debugging
+  if (!(err instanceof ApiError)) {
+    console.error("Internal server error:", err);
+  }
+
   res.status(status).json({ error: message });
 };

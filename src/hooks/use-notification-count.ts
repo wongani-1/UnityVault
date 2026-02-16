@@ -16,12 +16,15 @@ export const useNotificationCount = (pollInterval: number = 5000) => {
             id: string;
             message: string;
             status: string;
+            isRead: boolean;
             createdAt: string;
           }>;
         }>("/notifications");
 
         if (!active) return;
-        setCount(data.items.length);
+        // Only count unread notifications
+        const unreadCount = data.items.filter(item => !item.isRead).length;
+        setCount(unreadCount);
         setLoading(false);
       } catch (error) {
         // Silently fail on notification count fetch to avoid disrupting UI

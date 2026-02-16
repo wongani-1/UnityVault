@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from "react";
+﻿import { useMemo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import SummaryCard from "@/components/dashboard/SummaryCard";
@@ -138,6 +138,8 @@ const AdminDashboard = () => {
   const [totalMembers, setTotalMembers] = useState("0");
   const [totalContributions, setTotalContributions] = useState("MWK 0");
   const [activeLoans, setActiveLoans] = useState("MWK 0");
+  const [collectionRate, setCollectionRate] = useState("0%");
+  const [collectionRateSubtitle, setCollectionRateSubtitle] = useState("No data yet");
   const [generateDialogOpen, setGenerateDialogOpen] = useState(false);
   const [generatingContributions, setGeneratingContributions] = useState(false);
   const [contributionForm, setContributionForm] = useState({
@@ -235,6 +237,19 @@ const AdminDashboard = () => {
       setTotalMembers(String(activeCount));
       setTotalContributions(`MWK ${contribTotal.toLocaleString()}`);
       setActiveLoans(`MWK ${loansTotal.toLocaleString()}`);
+
+      // Calculate collection rate
+      const paidContributions = contributionData.items.filter(c => c.status === "paid").length;
+      const totalContributions = contributionData.items.length;
+      if (totalContributions > 0) {
+        const rate = Math.round((paidContributions / totalContributions) * 100);
+        setCollectionRate(`${rate}%`);
+        const target = 90;
+        setCollectionRateSubtitle(rate >= target ? `Above target (${target}%)` : `Below target (${target}%)`);
+      } else {
+        setCollectionRate("--");
+        setCollectionRateSubtitle("No contributions yet");
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to load dashboard data";
       toast.error(message);
@@ -380,7 +395,6 @@ const AdminDashboard = () => {
           value={totalContributions}
           subtitle="This cycle"
           icon={Wallet}
-          trend={{ value: "+12% from last month", positive: true }}
         />
         <SummaryCard
           title="Active Loans"
@@ -391,10 +405,9 @@ const AdminDashboard = () => {
         />
         <SummaryCard
           title="Collection Rate"
-          value="94%"
-          subtitle="Above target (90%)"
+          value={collectionRate}
+          subtitle={collectionRateSubtitle}
           icon={TrendingUp}
-          trend={{ value: "+2% improvement", positive: true }}
         />
       </div>
 
@@ -866,8 +879,8 @@ const AdminDashboard = () => {
         <TabsContent value="reports">
           <div className="grid gap-6 md:grid-cols-2">
             {[
-              { title: "Monthly Report", desc: "February 2026 financial summary" },
-              { title: "Yearly Report", desc: "2025 annual audit report" },
+              { title: "Monthly Report", desc: "Current month financial summary" },
+              { title: "Yearly Report", desc: "Annual audit report" },
               { title: "Contribution Report", desc: "Member-by-member breakdown" },
               { title: "Loan Portfolio", desc: "Active loans & repayment status" },
             ].map((report) => (
@@ -882,7 +895,7 @@ const AdminDashboard = () => {
                   </div>
                   <Button variant="outline" size="sm" onClick={() => navigate("/admin/reports")}>
                     <Download className="mr-2 h-4 w-4" />
-                    Export
+                    Export PDF
                   </Button>
                 </CardContent>
               </Card>

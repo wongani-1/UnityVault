@@ -234,9 +234,9 @@ const MemberDashboard = () => {
     };
   }, []);
 
-  const displayName = profile.fullName || "Member";
-  const groupId = profile.groupId || "GB-8F3K2";
-  const groupName = profile.groupName || "Your Group";
+  const displayName = profile.fullName || "";
+  const groupId = profile.groupId || "";
+  const groupName = profile.groupName || "";
 
   // Format contributions for table display
   const contributionHistory = useMemo(() => {

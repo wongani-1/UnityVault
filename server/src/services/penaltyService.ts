@@ -44,6 +44,10 @@ export class PenaltyService {
     return this.penaltyRepository.listByGroup(groupId);
   }
 
+  async listByMember(memberId: string) {
+    return this.penaltyRepository.listByMember(memberId);
+  }
+
   async payPenalty(penaltyId: string, memberId: string, actorId: string) {
     const penalty = await this.penaltyRepository.getById(penaltyId);
     if (!penalty) throw new ApiError("Penalty not found", 404);

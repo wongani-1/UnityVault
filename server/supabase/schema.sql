@@ -96,8 +96,10 @@ create table if not exists public.notifications (
   type text not null,
   message text not null,
   status text not null,
+  is_read boolean not null default false,
   created_at timestamptz not null default now(),
-  sent_at timestamptz
+  sent_at timestamptz,
+  read_at timestamptz
 );
 
 create table if not exists public.audit_logs (

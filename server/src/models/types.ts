@@ -125,8 +125,10 @@ export type Notification = {
   type: string;
   message: string;
   status: NotificationStatus;
+  isRead: boolean;
   createdAt: string;
   sentAt?: string;
+  readAt?: string;
 };
 
 export type AuditLog = {

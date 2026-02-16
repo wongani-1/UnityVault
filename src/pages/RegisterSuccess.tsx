@@ -24,7 +24,7 @@ const RegisterSuccess = () => {
     }
   }, []);
 
-  const groupId = state.groupId || storedGroupId || "GB-XXXXXX";
+  const groupId = state.groupId || storedGroupId || "";
 
   const handleCopyGroupId = () => {
     navigator.clipboard.writeText(groupId);
