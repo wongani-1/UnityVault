@@ -38,6 +38,13 @@ export type Admin = {
   passwordHash: string;
   role: "group_admin";
   createdAt: string;
+  // 2FA fields
+  twoFactorEnabled: boolean;
+  twoFactorSecret?: string; // TOTP secret for authenticator apps
+  twoFactorBackupCodes?: string[]; // Backup codes for 2FA
+  // Password reset fields
+  passwordResetToken?: string;
+  passwordResetExpiresAt?: string;
 };
 
 export type Member = {
@@ -56,6 +63,13 @@ export type Member = {
   inviteOtpHash?: string;
   inviteExpiresAt?: string;
   inviteSentAt?: string;
+  // 2FA fields
+  twoFactorEnabled: boolean;
+  twoFactorSecret?: string; // TOTP secret for authenticator apps
+  twoFactorBackupCodes?: string[]; // Backup codes for 2FA
+  // Password reset fields
+  passwordResetToken?: string;
+  passwordResetExpiresAt?: string;
 };
 
 export type Contribution = {
@@ -161,4 +175,27 @@ export type Transaction = {
   penaltyId?: string;
   createdAt: string;
   createdBy: string;
+};
+
+export type Session = {
+  id: string;
+  userId: string;
+  userRole: Role;
+  deviceName: string; // Browser/device identifier
+  ipAddress: string;
+  userAgent: string;
+  expiresAt: string;
+  createdAt: string;
+  lastActivityAt: string;
+  isActive: boolean;
+};
+
+export type PasswordReset = {
+  id: string;
+  userId: string;
+  userRole: Role;
+  token: string;
+  expiresAt: string;
+  createdAt: string;
+  usedAt?: string;
 };

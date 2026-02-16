@@ -11,6 +11,11 @@ export class AdminService {
     return { ...admin, passwordHash: "" };
   }
 
+  async listByGroup(groupId: string) {
+    const admins = await this.adminRepository.listByGroup(groupId);
+    return admins.map(admin => ({ ...admin, passwordHash: "" }));
+  }
+
   async updateProfile(adminId: string, patch: { fullName?: string; email?: string; phone?: string; username?: string }) {
     const updated = await this.adminRepository.update(adminId, patch);
     if (!updated) throw new ApiError("Admin not found", 404);

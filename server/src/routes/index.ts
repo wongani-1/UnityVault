@@ -9,6 +9,12 @@ import { auditRouter } from "./audit";
 import { penaltiesRouter } from "./penalties";
 import { reportsRouter } from "./reports";
 import { adminsRouter } from "./admins";
+import { passwordResetRouter } from "./passwordReset";
+import { twoFactorRouter } from "./twoFactor";
+import { sessionsRouter } from "./sessions";
+import { dataExportRouter } from "./dataExport";
+import { receiptRoutes } from "./receipts";
+import { pushRoutes } from "./push";
 
 export const apiRouter = Router();
 
@@ -22,3 +28,9 @@ apiRouter.use("/penalties", penaltiesRouter);
 apiRouter.use("/audit", auditRouter);
 apiRouter.use("/reports", reportsRouter);
 apiRouter.use("/admins", adminsRouter);
+apiRouter.use("/password-reset", passwordResetRouter);
+apiRouter.use("/2fa", twoFactorRouter);
+apiRouter.use("/sessions", sessionsRouter);
+apiRouter.use("/export", dataExportRouter);
+apiRouter.use("/receipts", receiptRoutes);
+apiRouter.use("/push", pushRoutes);

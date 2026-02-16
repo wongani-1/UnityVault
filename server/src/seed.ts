@@ -36,6 +36,7 @@ export async function seedData() {
     fullName: "Test Admin",
     phone: "+265999001122",
     createdAt: new Date("2025-01-01").toISOString(),
+    twoFactorEnabled: false,
   };
   store.admins.set(testAdmin.id, testAdmin);
 
@@ -54,6 +55,7 @@ export async function seedData() {
       balance: 150000,
       penaltiesTotal: 0,
       createdAt: new Date("2025-01-15").toISOString(),
+      twoFactorEnabled: false,
     },
     {
       id: "member_002",
@@ -67,6 +69,7 @@ export async function seedData() {
       balance: 100000,
       penaltiesTotal: 0,
       createdAt: new Date("2025-01-20").toISOString(),
+      twoFactorEnabled: false,
     },
     {
       id: "member_003",
@@ -80,6 +83,7 @@ export async function seedData() {
       balance: 0,
       penaltiesTotal: 0,
       createdAt: new Date("2026-02-01").toISOString(),
+      twoFactorEnabled: false,
     },
   ];
 

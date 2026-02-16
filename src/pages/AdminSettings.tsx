@@ -6,6 +6,17 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { apiRequest } from "../lib/api";
 import { toast } from "@/components/ui/sonner";
+import { Monitor, Smartphone, LogOut, Download } from "lucide-react";
+
+type Session = {
+  id: string;
+  deviceName: string;
+  ipAddress: string;
+  userAgent: string;
+  createdAt: string;
+  lastActivityAt: string;
+  isActive: boolean;
+};
 
 const AdminSettings = () => {
   const [form, setForm] = useState({
@@ -20,6 +31,8 @@ const AdminSettings = () => {
   const [status, setStatus] = useState<"idle" | "saved">("idle");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [loadingSessions, setLoadingSessions] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -97,9 +110,87 @@ const AdminSettings = () => {
     setError(null);
   };
 
+  const loadSessions = async () => {
+    setLoadingSessions(true);
+    try {
+      const data = await apiRequest<Session[]>("/sessions");
+      setSessions(data);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to load sessions";
+      toast.error(message);
+    } finally {
+      setLoadingSessions(false);
+    }
+  };
+
+  const handleRevokeSession = async (sessionId: string) => {
+    try {
+      await apiRequest(`/sessions/${sessionId}`, { method: "DELETE" });
+      toast.success("Session logged out");
+      loadSessions();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to revoke session";
+      toast.error(message);
+    }
+  };
+
+  const handleRevokeAllSessions = async () => {
+    try {
+      await apiRequest("/sessions/revoke-all", { method: "POST" });
+      toast.success("All other sessions logged out");
+      loadSessions();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to revoke sessions";
+      toast.error(message);
+    }
+  };
+
+  const handleExportGroupData = async () => {
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL || "http://localhost:4000/api"}/export/group-data`,
+        {
+          headers: { Authorization: `Bearer ${localStorage.getItem("unityvault:token")}` },
+        }
+      );
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `group-data-${new Date().toISOString().split("T")[0]}.pdf`;
+      a.click();
+      toast.success("Group data exported successfully");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to export data";
+      toast.error(message);
+    }
+  };
+
+  const handleExportMembers = async () => {
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL || "http://localhost:4000/api"}/export/members`,
+        {
+          headers: { Authorization: `Bearer ${localStorage.getItem("unityvault:token")}` },
+        }
+      );
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `members-list-${new Date().toISOString().split("T")[0]}.pdf`;
+      a.click();
+      toast.success("Members list exported successfully");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to export members";
+      toast.error(message);
+    }
+  };
+
   return (
     <DashboardLayout title="Settings" subtitle="Manage group rules and fees" isAdmin>
-      <Card className="border-0 shadow-card">
+      <div className="space-y-6">
+        <Card className="border-0 shadow-card">
         <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <CardTitle className="text-lg">Group Rules</CardTitle>
           <div className="flex gap-2">
@@ -217,6 +308,81 @@ const AdminSettings = () => {
           )}
         </CardContent>
       </Card>
+
+      <Card className="border-0 shadow-card">
+        <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <CardTitle className="text-lg">Active Sessions</CardTitle>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={loadSessions}>
+              Refresh
+            </Button>
+            <Button variant="destructive" size="sm" onClick={handleRevokeAllSessions}>
+              <LogOut className="mr-2 h-4 w-4" />
+              Logout All Devices
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {loadingSessions && (
+            <p className="text-sm text-muted-foreground">Loading sessions...</p>
+          )}
+          {!loadingSessions && sessions.length === 0 && (
+            <p className="text-sm text-muted-foreground">No active sessions found. Click Refresh to load.</p>
+          )}
+          <div className="space-y-3">
+            {sessions.map((session) => (
+              <div
+                key={session.id}
+                className="flex items-center justify-between rounded-lg border p-4"
+              >
+                <div className="flex items-center gap-3">
+                  {session.deviceName.toLowerCase().includes("mobile") ? (
+                    <Smartphone className="h-5 w-5 text-muted-foreground" />
+                  ) : (
+                    <Monitor className="h-5 w-5 text-muted-foreground" />
+                  )}
+                  <div>
+                    <p className="text-sm font-medium">{session.deviceName}</p>
+                    <p className="text-xs text-muted-foreground">{session.ipAddress}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Last active: {new Date(session.lastActivityAt).toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleRevokeSession(session.id)}
+                >
+                  Logout
+                </Button>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="border-0 shadow-card">
+        <CardHeader>
+          <CardTitle className="text-lg">Export Data</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="mb-4 text-sm text-muted-foreground">
+            Download group data and member lists for record keeping and analysis.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" onClick={handleExportGroupData}>
+              <Download className="mr-2 h-4 w-4" />
+              Export Group Data (PDF)
+            </Button>
+            <Button variant="outline" onClick={handleExportMembers}>
+              <Download className="mr-2 h-4 w-4" />
+              Export Members List (PDF)
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+      </div>
     </DashboardLayout>
   );
 };

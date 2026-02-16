@@ -11,6 +11,9 @@ import { ContributionService } from "./services/contributionService";
 import { LoanService } from "./services/loanService";
 import { AuthService } from "./services/authService";
 import { EmailService } from "./services/emailService";
+import { PasswordResetService } from "./services/passwordResetService";
+import { TwoFactorService } from "./services/twoFactorService";
+import { SessionService } from "./services/sessionService";
 
 const repositories =
   env.dataStore === "supabase" ? supabaseRepositories : memoryRepositories;
@@ -58,6 +61,15 @@ const authService = new AuthService(
   repositories.adminRepository,
   repositories.memberRepository
 );
+const passwordResetService = new PasswordResetService(
+  repositories.adminRepository,
+  repositories.memberRepository
+);
+const twoFactorService = new TwoFactorService(
+  repositories.adminRepository,
+  repositories.memberRepository
+);
+const sessionService = new SessionService();
 
 export const container = {
   adminService,
@@ -70,4 +82,7 @@ export const container = {
   contributionService,
   loanService,
   authService,
+  passwordResetService,
+  twoFactorService,
+  sessionService,
 };

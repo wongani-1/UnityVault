@@ -32,6 +32,11 @@ export type AdminRow = {
   password_hash: string;
   role: "group_admin";
   created_at: string;
+  two_factor_enabled?: boolean;
+  two_factor_secret?: string | null;
+  two_factor_backup_codes?: string[] | null;
+  password_reset_token?: string | null;
+  password_reset_expires_at?: string | null;
 };
 
 export type MemberRow = {
@@ -50,6 +55,11 @@ export type MemberRow = {
   invite_otp_hash: string | null;
   invite_expires_at: string | null;
   invite_sent_at: string | null;
+  two_factor_enabled?: boolean;
+  two_factor_secret?: string | null;
+  two_factor_backup_codes?: string[] | null;
+  password_reset_token?: string | null;
+  password_reset_expires_at?: string | null;
 };
 
 export type ContributionRow = {
@@ -206,6 +216,11 @@ export const fromAdminRow = (row: AdminRow): Admin => ({
   passwordHash: row.password_hash,
   role: row.role,
   createdAt: row.created_at,
+  twoFactorEnabled: row.two_factor_enabled || false,
+  twoFactorSecret: row.two_factor_secret || undefined,
+  twoFactorBackupCodes: row.two_factor_backup_codes || undefined,
+  passwordResetToken: row.password_reset_token || undefined,
+  passwordResetExpiresAt: row.password_reset_expires_at || undefined,
 });
 
 export const toMemberRow = (member: Member): MemberRow => ({
@@ -258,6 +273,11 @@ export const fromMemberRow = (row: MemberRow): Member => ({
   inviteToken: row.invite_token || undefined,
   inviteOtpHash: row.invite_otp_hash || undefined,
   inviteExpiresAt: row.invite_expires_at || undefined,
+  twoFactorEnabled: row.two_factor_enabled || false,
+  twoFactorSecret: row.two_factor_secret || undefined,
+  twoFactorBackupCodes: row.two_factor_backup_codes || undefined,
+  passwordResetToken: row.password_reset_token || undefined,
+  passwordResetExpiresAt: row.password_reset_expires_at || undefined,
   inviteSentAt: row.invite_sent_at || undefined,
 });
 

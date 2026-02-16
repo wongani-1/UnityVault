@@ -42,6 +42,7 @@ export class MemberService {
       createdAt: new Date().toISOString(),
       balance: 0,
       penaltiesTotal: 0,
+      twoFactorEnabled: false,
     };
 
     await this.memberRepository.create(member);
@@ -93,6 +94,7 @@ export class MemberService {
       inviteOtpHash,
       inviteExpiresAt,
       inviteSentAt: new Date().toISOString(),
+      twoFactorEnabled: false,
     };
 
     await this.memberRepository.create(member);

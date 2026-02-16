@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,14 +13,51 @@ const ForgotPassword = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const defaultRole = searchParams.get("role") || "member";
+  const urlToken = searchParams.get("token");
   
   const [step, setStep] = useState<"verify" | "reset" | "success">("verify");
   const [role, setRole] = useState<"member" | "admin">(defaultRole as "member" | "admin");
   const [identifier, setIdentifier] = useState("");
+  const [resetToken, setResetToken] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [validatingToken, setValidatingToken] = useState(false);
+  const [successType, setSuccessType] = useState<"email-sent" | "password-reset">("email-sent");
+
+  // Validate token from URL if present
+  useEffect(() => {
+    const validateToken = async () => {
+      if (!urlToken) return;
+
+      setValidatingToken(true);
+      try {
+        // Validate the token with the backend
+        await apiRequest("/password-reset/validate", {
+          method: "POST",
+          body: {
+            token: urlToken,
+            role: role === "admin" ? "group_admin" : "member",
+          },
+        });
+        
+        // Token is valid, allow access to reset step
+        setResetToken(urlToken);
+        setStep("reset");
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Invalid or expired reset link";
+        toast.error(message);
+        setError(message);
+        // Keep user on verify step if token is invalid
+        setStep("verify");
+      } finally {
+        setValidatingToken(false);
+      }
+    };
+
+    validateToken();
+  }, [urlToken, role]);
 
   const handleVerify = async () => {
     if (!identifier.trim()) {
@@ -32,11 +69,21 @@ const ForgotPassword = () => {
     setError(null);
 
     try {
-      // Simulate verification - in real app, this would send an OTP or verification code
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      
-      toast.success("Verification successful! You can now reset your password.");
-      setStep("reset");
+      await apiRequest<{ message: string; token?: string }>(
+        "/password-reset/request",
+        {
+          method: "POST",
+          body: {
+            identifier,
+            role: role === "admin" ? "group_admin" : "member",
+          },
+        }
+      );
+
+      // Don't automatically move to reset step - user must use email link
+      toast.success("Password reset link sent! Check your email.");
+      setSuccessType("email-sent");
+      setStep("success"); // Show success message instead
     } catch (err) {
       const message = err instanceof Error ? err.message : "Verification failed";
       setError(message);
@@ -57,8 +104,8 @@ const ForgotPassword = () => {
       return;
     }
 
-    if (newPassword.length < 6) {
-      setError("Password must be at least 6 characters long");
+    if (newPassword.length < 8) {
+      setError("Password must be at least 8 characters long");
       return;
     }
 
@@ -66,10 +113,24 @@ const ForgotPassword = () => {
     setError(null);
 
     try {
-      // In a real application, this would call an API to reset the password
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      // Use the validated token
+      const token = resetToken;
+      
+      if (!token) {
+        throw new Error("Reset token not found. Please request a new reset link.");
+      }
+
+      await apiRequest("/password-reset/confirm", {
+        method: "POST",
+        body: {
+          token,
+          newPassword,
+          role: role === "admin" ? "group_admin" : "member",
+        },
+      });
       
       toast.success("Password reset successfully!");
+      setSuccessType("password-reset");
       setStep("success");
     } catch (err) {
       const message = err instanceof Error ? err.message : "Password reset failed";
@@ -101,19 +162,29 @@ const ForgotPassword = () => {
               className="mx-auto mb-2 h-12 w-12 rounded-lg"
             />
             <CardTitle className="text-2xl">
-              {step === "verify" && "Reset Password"}
-              {step === "reset" && "Create New Password"}
-              {step === "success" && "Password Reset Complete"}
+              {validatingToken && "Validating Reset Link"}
+              {!validatingToken && step === "verify" && "Reset Password"}
+              {!validatingToken && step === "reset" && "Create New Password"}
+              {!validatingToken && step === "success" && successType === "email-sent" && "Email Sent"}
+              {!validatingToken && step === "success" && successType === "password-reset" && "Password Reset Complete"}
             </CardTitle>
             <CardDescription>
-              {step === "verify" && "Enter your details to verify your identity"}
-              {step === "reset" && "Enter a new password for your account"}
-              {step === "success" && "You can now sign in with your new password"}
+              {validatingToken && "Please wait while we verify your reset link..."}
+              {!validatingToken && step === "verify" && "Enter your details to verify your identity"}
+              {!validatingToken && step === "reset" && "Enter a new password for your account"}
+              {!validatingToken && step === "success" && successType === "email-sent" && "We've sent you a password reset link"}
+              {!validatingToken && step === "success" && successType === "password-reset" && "You can now sign in with your new password"}
             </CardDescription>
           </CardHeader>
 
           <CardContent>
-            {step === "verify" && (
+            {validatingToken && (
+              <div className="flex items-center justify-center py-8">
+                <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+              </div>
+            )}
+
+            {!validatingToken && step === "verify" && (
               <div className="space-y-4">
                 <Tabs value={role} onValueChange={(value) => setRole(value as "member" | "admin")}>
                   <TabsList className="mb-6 grid w-full grid-cols-2">
@@ -176,7 +247,7 @@ const ForgotPassword = () => {
               </div>
             )}
 
-            {step === "reset" && (
+            {!validatingToken && step === "reset" && (
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="new-password">New Password</Label>
@@ -230,22 +301,46 @@ const ForgotPassword = () => {
               </div>
             )}
 
-            {step === "success" && (
+            {!validatingToken && step === "success" && (
               <div className="space-y-4 text-center">
                 <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-success/10">
                   <CheckCircle2 className="h-8 w-8 text-success" />
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  Your password has been successfully reset. You can now sign in with your new password.
-                </p>
-                <Button
-                  variant="hero"
-                  className="w-full"
-                  size="lg"
-                  onClick={() => navigate("/login")}
-                >
-                  Back to Login
-                </Button>
+                {successType === "email-sent" ? (
+                  <>
+                    <div className="space-y-2">
+                      <h3 className="font-semibold text-foreground">Check Your Email</h3>
+                      <p className="text-sm text-muted-foreground">
+                        We've sent a password reset link to your email address. Click the link in the email to create a new password.
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        The link will expire in 60 minutes. If you don't see the email, check your spam folder.
+                      </p>
+                    </div>
+                    <Button
+                      variant="hero"
+                      className="w-full"
+                      size="lg"
+                      onClick={() => navigate("/login")}
+                    >
+                      Back to Login
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-sm text-muted-foreground">
+                      Your password has been successfully reset. You can now sign in with your new password.
+                    </p>
+                    <Button
+                      variant="hero"
+                      className="w-full"
+                      size="lg"
+                      onClick={() => navigate("/login")}
+                    >
+                      Back to Login
+                    </Button>
+                  </>
+                )}
               </div>
             )}
           </CardContent>

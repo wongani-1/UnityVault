@@ -7,9 +7,16 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, CreditCard, Smartphone, ShieldCheck, Loader2 } from "lucide-react";
+import { ArrowLeft, CreditCard, Smartphone, ShieldCheck, Loader2, Download, CheckCircle } from "lucide-react";
 import { apiRequest } from "@/lib/api";
 import { toast } from "@/components/ui/sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface Contribution {
   id: string;
@@ -61,6 +68,9 @@ const MemberContributionPayment = () => {
     loans: Loan[];
     penalties: Penalty[];
   }>({ contributions: [], loans: [], penalties: [] });
+  const [paymentSuccess, setPaymentSuccess] = useState(false);
+  const [paidItemId, setPaidItemId] = useState<string | null>(null);
+  const [downloadingReceipt, setDownloadingReceipt] = useState(false);
   
   const [form, setForm] = useState({
     mobileNumber: "",
@@ -135,6 +145,54 @@ const MemberContributionPayment = () => {
 
   const updateField = (field: keyof typeof form, value: string) =>
     setForm((prev) => ({ ...prev, [field]: value }));
+
+  const downloadReceipt = async () => {
+    if (!paidItemId) return;
+
+    setDownloadingReceipt(true);
+    try {
+      let url = "";
+      if (paymentType === "contribution") {
+        url = `/receipts/contribution/${paidItemId}`;
+      } else if (paymentType === "loan") {
+        url = `/receipts/loan/${paidItemId}`;
+      }
+
+      if (!url) {
+        toast.error("Could not generate receipt");
+        return;
+      }
+
+      // Download the PDF
+      const response = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:4000/api"}${url}`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to download receipt");
+      }
+
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = downloadUrl;
+      a.download = `receipt-${paidItemId}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(downloadUrl);
+      document.body.removeChild(a);
+
+      toast.success("Receipt downloaded successfully!");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to download receipt";
+      toast.error(message);
+    } finally {
+      setDownloadingReceipt(false);
+    }
+  };
 
   const paymentInfo = useMemo(() => {
     if (loading) {
@@ -248,32 +306,35 @@ const MemberContributionPayment = () => {
 
     try {
       // Process payment based on type
+      let paidId = null;
       if (paymentType === "contribution" && paymentInfo.itemId) {
         await apiRequest("/contributions/pay", {
           method: "POST",
           body: { contributionId: paymentInfo.itemId },
         });
+        paidId = paymentInfo.itemId;
         toast.success("Contribution payment recorded successfully!");
       } else if (paymentType === "loan" && paymentInfo.itemId && paymentInfo.installmentId) {
         await apiRequest(`/loans/${paymentInfo.itemId}/repay`, {
           method: "POST",
           body: { installmentId: paymentInfo.installmentId },
         });
+        paidId = paymentInfo.installmentId; // Use installment ID for receipt
         toast.success("Loan installment payment recorded successfully!");
       } else if (paymentType === "penalty" && paymentInfo.itemId) {
         await apiRequest(`/penalties/${paymentInfo.itemId}/pay`, {
           method: "POST",
         });
+        paidId = paymentInfo.itemId;
         toast.success("Penalty payment recorded successfully!");
       } else {
         toast.error("No unpaid items found");
         return;
       }
 
-      // Navigate back to dashboard after successful payment
-      setTimeout(() => {
-        navigate("/dashboard");
-      }, 1500);
+      // Show success modal with receipt download option
+      setPaidItemId(paidId);
+      setPaymentSuccess(true);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Payment failed";
       toast.error(message);
@@ -509,6 +570,50 @@ const MemberContributionPayment = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Payment Success Dialog */}
+        <Dialog open={paymentSuccess} onOpenChange={setPaymentSuccess}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
+                <CheckCircle className="h-6 w-6 text-green-600" />
+              </div>
+              <DialogTitle className="text-center">Payment Successful!</DialogTitle>
+              <DialogDescription className="text-center">
+                Your {paymentType} payment has been processed successfully.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex flex-col gap-3">
+              <Button
+                variant="outline"
+                onClick={downloadReceipt}
+                disabled={downloadingReceipt}
+                className="w-full"
+              >
+                {downloadingReceipt ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Downloading...
+                  </>
+                ) : (
+                  <>
+                    <Download className="mr-2 h-4 w-4" />
+                    Download Receipt
+                  </>
+                )}
+              </Button>
+              <Button
+                onClick={() => {
+                  setPaymentSuccess(false);
+                  navigate("/dashboard");
+                }}
+                className="w-full"
+              >
+                Back to Dashboard
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

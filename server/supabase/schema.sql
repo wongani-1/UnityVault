@@ -19,7 +19,12 @@ create table if not exists public.admins (
   username text not null,
   password_hash text not null,
   role text not null,
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  two_factor_enabled boolean not null default false,
+  two_factor_secret text,
+  two_factor_backup_codes text[],
+  password_reset_token text,
+  password_reset_expires_at timestamptz
 );
 
 create table if not exists public.members (
@@ -37,7 +42,12 @@ create table if not exists public.members (
   invite_token text,
   invite_otp_hash text,
   invite_expires_at timestamptz,
-  invite_sent_at timestamptz
+  invite_sent_at timestamptz,
+  two_factor_enabled boolean not null default false,
+  two_factor_secret text,
+  two_factor_backup_codes text[],
+  password_reset_token text,
+  password_reset_expires_at timestamptz
 );
 
 create table if not exists public.contributions (
@@ -102,6 +112,29 @@ create table if not exists public.notifications (
   read_at timestamptz
 );
 
+create table if not exists public.sessions (
+  id text primary key,
+  user_id text not null,
+  user_role text not null,
+  device_name text not null,
+  ip_address text not null,
+  user_agent text not null,
+  expires_at timestamptz not null,
+  created_at timestamptz not null default now(),
+  last_activity_at timestamptz not null,
+  is_active boolean not null default true
+);
+
+create table if not exists public.password_resets (
+  id text primary key,
+  user_id text not null,
+  user_role text not null,
+  token text not null unique,
+  expires_at timestamptz not null,
+  created_at timestamptz not null default now(),
+  used_at timestamptz
+);
+
 create table if not exists public.audit_logs (
   id text primary key,
   group_id text not null references public.groups(id) on delete cascade,
@@ -144,6 +177,10 @@ create index if not exists idx_penalties_group_id on public.penalties(group_id);
 create index if not exists idx_penalties_member_id on public.penalties(member_id);
 create index if not exists idx_notifications_group_id on public.notifications(group_id);
 create index if not exists idx_notifications_member_id on public.notifications(member_id);
+create index if not exists idx_sessions_user_id on public.sessions(user_id);
+create index if not exists idx_sessions_active on public.sessions(user_id, is_active);
+create index if not exists idx_password_resets_token on public.password_resets(token);
+create index if not exists idx_password_resets_user on public.password_resets(user_id);
 create index if not exists idx_audit_logs_group_id on public.audit_logs(group_id);
 create index if not exists idx_transactions_group_id on public.transactions(group_id);
 create index if not exists idx_transactions_member_id on public.transactions(member_id);
@@ -158,6 +195,8 @@ alter table public.penalties enable row level security;
 alter table public.notifications enable row level security;
 alter table public.audit_logs enable row level security;
 alter table public.transactions enable row level security;
+alter table public.sessions enable row level security;
+alter table public.password_resets enable row level security;
 
 revoke all on table public.groups from anon, authenticated;
 revoke all on table public.admins from anon, authenticated;
@@ -168,3 +207,5 @@ revoke all on table public.penalties from anon, authenticated;
 revoke all on table public.notifications from anon, authenticated;
 revoke all on table public.audit_logs from anon, authenticated;
 revoke all on table public.transactions from anon, authenticated;
+revoke all on table public.sessions from anon, authenticated;
+revoke all on table public.password_resets from anon, authenticated;

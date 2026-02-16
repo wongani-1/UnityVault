@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { apiRequest } from "../lib/api";
 import { toast } from "@/components/ui/sonner";
+import { Shield, Download, Key, Copy } from "lucide-react";
 
 const AdminProfile = () => {
   const [form, setForm] = useState({
@@ -19,13 +20,18 @@ const AdminProfile = () => {
     newPassword: "",
     confirmPassword: "",
   });
+  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
+  const [pin, setPin] = useState("");
+  const [confirmPin, setConfirmPin] = useState("");
+  const [backupCodes, setBackupCodes] = useState<string[]>([]);
+  const [show2FASetup, setShow2FASetup] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let active = true;
     const load = async () => {
       try {
-        const admin = await apiRequest<{ fullName?: string; email: string; phone?: string; username: string }>(
+        const admin = await apiRequest<{ fullName?: string; email: string; phone?: string; username: string; twoFactorEnabled?: boolean }>(
           "/admins/me"
         );
         if (!active) return;
@@ -35,6 +41,7 @@ const AdminProfile = () => {
           phone: admin.phone || "",
           username: admin.username || "",
         });
+        setTwoFactorEnabled(admin.twoFactorEnabled || false);
       } catch (error) {
         const message = error instanceof Error ? error.message : "Failed to load profile";
         toast.error(message);
@@ -115,6 +122,103 @@ const AdminProfile = () => {
       toast.success("Password updated");
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to update password";
+      toast.error(message);
+    }
+  };
+
+  const handleEnable2FA = async () => {
+    setShow2FASetup(true);
+  };
+
+  const handleSetupComplete = async () => {
+    if (!pin || !confirmPin) {
+      toast.error("Please enter a PIN");
+      return;
+    }
+    
+    if (pin !== confirmPin) {
+      toast.error("PINs do not match");
+      return;
+    }
+
+    if (pin.length < 4) {
+      toast.error("PIN must be at least 4 digits");
+      return;
+    }
+
+    try {
+      const response = await apiRequest<{ backupCodes: string[] }>("/2fa/enable", {
+        method: "POST",
+        body: { pin }
+      });
+      setBackupCodes(response.backupCodes);
+      setTwoFactorEnabled(true);
+      setPin("");
+      setConfirmPin("");
+      toast.success("Two-Factor Authentication enabled successfully!");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to enable 2FA";
+      toast.error(message);
+    }
+  };
+
+  const handleDisable2FA = async () => {
+    try {
+      await apiRequest("/2fa/disable", { method: "POST" });
+      setTwoFactorEnabled(false);
+      setBackupCodes([]);
+      setShow2FASetup(false);
+      toast.success("Two-Factor Authentication disabled");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to disable 2FA";
+      toast.error(message);
+    }
+  };
+
+  const handleViewBackupCodes = async () => {
+    try {
+      const response = await apiRequest<{ backupCodes: string[] }>("/2fa/backup-codes");
+      setBackupCodes(response.backupCodes);
+      toast.info("Backup codes retrieved");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to get backup codes";
+      toast.error(message);
+    }
+  };
+
+  const handleRegenerateBackupCodes = async () => {
+    try {
+      const response = await apiRequest<{ backupCodes: string[] }>(
+        "/2fa/regenerate-backup-codes",
+        { method: "POST" }
+      );
+      setBackupCodes(response.backupCodes);
+      toast.success("New backup codes generated");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to regenerate codes";
+      toast.error(message);
+    }
+  };
+
+  const copyBackupCodes = () => {
+    navigator.clipboard.writeText(backupCodes.join("\n"));
+    toast.success("Backup codes copied to clipboard");
+  };
+
+  const handleExportData = async () => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:4000/api"}/export/member-data`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("unityvault:token")}` },
+      });
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `admin-data-${new Date().toISOString().split("T")[0]}.pdf`;
+      a.click();
+      toast.success("Data exported successfully");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to export data";
       toast.error(message);
     }
   };
@@ -215,6 +319,123 @@ const AdminProfile = () => {
             </Button>
           </div>
         </CardContent>
+        </Card>
+
+        <Card className="border-0 shadow-card">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Shield className="h-5 w-5 text-primary" />
+                <CardTitle className="text-lg">Two-Factor Authentication</CardTitle>
+              </div>
+              {twoFactorEnabled && (
+                <span className="rounded-full bg-success/10 px-3 py-1 text-xs font-medium text-success">
+                  Enabled
+                </span>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Add an extra layer of security to your account by requiring a PIN code at login.
+            </p>
+
+            {!twoFactorEnabled && !show2FASetup && (
+              <Button variant="hero" onClick={handleEnable2FA}>
+                <Shield className="mr-2 h-4 w-4" />
+                Enable 2FA
+              </Button>
+            )}
+
+            {show2FASetup && !twoFactorEnabled && (
+              <div className="space-y-4 rounded-lg border p-4">
+                <div className="space-y-2">
+                  <Label htmlFor="pin">Create a 4-6 digit PIN</Label>
+                  <Input
+                    id="pin"
+                    type="password"
+                    placeholder="Enter PIN"
+                    value={pin}
+                    onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    maxLength={6}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="confirm-pin">Confirm PIN</Label>
+                  <Input
+                    id="confirm-pin"
+                    type="password"
+                    placeholder="Confirm PIN"
+                    value={confirmPin}
+                    onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    maxLength={6}
+                  />
+                </div>
+
+                <div className="flex gap-2">
+                  <Button variant="hero" onClick={handleSetupComplete}>
+                    Enable 2FA
+                  </Button>
+                  <Button variant="outline" onClick={() => { setShow2FASetup(false); setPin(""); setConfirmPin(""); }}>
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {twoFactorEnabled && (
+              <div className="space-y-4">
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={handleViewBackupCodes}>
+                    <Key className="mr-2 h-4 w-4" />
+                    View Backup Codes
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={handleRegenerateBackupCodes}>
+                    Regenerate Codes
+                  </Button>
+                  <Button variant="destructive" size="sm" onClick={handleDisable2FA}>
+                    Disable 2FA
+                  </Button>
+                </div>
+
+                {backupCodes.length > 0 && (
+                  <div className="space-y-2 rounded-lg border p-4">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-medium">Your Backup Codes:</p>
+                      <Button variant="ghost" size="sm" onClick={copyBackupCodes}>
+                        <Copy className="mr-2 h-4 w-4" />
+                        Copy
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground mb-2">
+                      Save these codes in a safe place. Each can be used once if you lose access to your PIN.
+                    </p>
+                    <div className="grid grid-cols-2 gap-2 rounded bg-muted p-3 font-mono text-xs">
+                      {backupCodes.map((code, i) => (
+                        <div key={i}>{code}</div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="border-0 shadow-card">
+          <CardHeader>
+            <CardTitle className="text-lg">Export Data</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="mb-4 text-sm text-muted-foreground">
+              Download all your account data including contributions, loans, and transactions.
+            </p>
+            <Button variant="outline" onClick={handleExportData}>
+              <Download className="mr-2 h-4 w-4" />
+              Export My Data (PDF)
+            </Button>
+          </CardContent>
         </Card>
       </div>
     </DashboardLayout>

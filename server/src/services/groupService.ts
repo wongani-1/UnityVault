@@ -45,6 +45,7 @@ export class GroupService {
       passwordHash: await hashPassword(params.admin.password),
       role: "group_admin",
       createdAt: new Date().toISOString(),
+      twoFactorEnabled: false,
     };
 
     await this.groupRepository.create(group);
