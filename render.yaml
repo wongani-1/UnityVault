@@ -1,0 +1,30 @@
+services:
+  - type: web
+    name: unityvault-backend
+    runtime: node
+    rootDir: server
+    buildCommand: npm run build
+    startCommand: npm start
+    envVars:
+      - key: PORT
+        value: 4000
+      - key: NODE_ENV
+        value: production
+      - key: DATA_STORE
+        value: supabase
+      - key: JWT_SECRET
+        generateValue: true
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: CORS_ORIGIN
+        value: https://unityvault.vercel.app
+      - key: APP_BASE_URL
+        value: https://unityvault.vercel.app
+      - key: GMAIL_USER
+        sync: false
+      - key: GMAIL_PASSWORD
+        sync: false
