@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { apiRequest } from "../lib/api";
 import { toast } from "@/components/ui/sonner";
-import { Shield, Download, Key, Copy } from "lucide-react";
+import { Shield, Download, Key, Copy, Eye, EyeOff } from "lucide-react";
 
 const MemberProfile = () => {
   const [form, setForm] = useState({
@@ -26,6 +26,11 @@ const MemberProfile = () => {
   const [backupCodes, setBackupCodes] = useState<string[]>([]);
   const [show2FASetup, setShow2FASetup] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [showPin, setShowPin] = useState(false);
+  const [showConfirmPin, setShowConfirmPin] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -284,33 +289,75 @@ const MemberProfile = () => {
         <CardContent className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
             <Label htmlFor="member-current-password">Current password</Label>
-            <Input
-              id="member-current-password"
-              type="password"
-              value={passwordForm.currentPassword}
-              onChange={(e) => updatePasswordField("currentPassword", e.target.value)}
-              placeholder="Enter current password"
-            />
+            <div className="relative">
+              <Input
+                id="member-current-password"
+                type={showCurrentPassword ? "text" : "password"}
+                className="pr-10"
+                value={passwordForm.currentPassword}
+                onChange={(e) => updatePasswordField("currentPassword", e.target.value)}
+                placeholder="Enter current password"
+              />
+              <button
+                type="button"
+                onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                {showCurrentPassword ? (
+                  <EyeOff className="h-4 w-4" />
+                ) : (
+                  <Eye className="h-4 w-4" />
+                )}
+              </button>
+            </div>
           </div>
           <div className="space-y-2">
             <Label htmlFor="member-new-password">New password</Label>
-            <Input
-              id="member-new-password"
-              type="password"
-              value={passwordForm.newPassword}
-              onChange={(e) => updatePasswordField("newPassword", e.target.value)}
-              placeholder="Create a new password"
-            />
+            <div className="relative">
+              <Input
+                id="member-new-password"
+                type={showNewPassword ? "text" : "password"}
+                className="pr-10"
+                value={passwordForm.newPassword}
+                onChange={(e) => updatePasswordField("newPassword", e.target.value)}
+                placeholder="Create a new password"
+              />
+              <button
+                type="button"
+                onClick={() => setShowNewPassword(!showNewPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                {showNewPassword ? (
+                  <EyeOff className="h-4 w-4" />
+                ) : (
+                  <Eye className="h-4 w-4" />
+                )}
+              </button>
+            </div>
           </div>
           <div className="space-y-2">
             <Label htmlFor="member-confirm-password">Confirm new password</Label>
-            <Input
-              id="member-confirm-password"
-              type="password"
-              value={passwordForm.confirmPassword}
-              onChange={(e) => updatePasswordField("confirmPassword", e.target.value)}
-              placeholder="Confirm new password"
-            />
+            <div className="relative">
+              <Input
+                id="member-confirm-password"
+                type={showConfirmPassword ? "text" : "password"}
+                className="pr-10"
+                value={passwordForm.confirmPassword}
+                onChange={(e) => updatePasswordField("confirmPassword", e.target.value)}
+                placeholder="Confirm new password"
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                {showConfirmPassword ? (
+                  <EyeOff className="h-4 w-4" />
+                ) : (
+                  <Eye className="h-4 w-4" />
+                )}
+              </button>
+            </div>
           </div>
           <div className="md:col-span-2">
             <Button variant="hero" onClick={handlePasswordChange}>
@@ -350,26 +397,54 @@ const MemberProfile = () => {
               <div className="space-y-4 rounded-lg border p-4">
                 <div className="space-y-2">
                   <Label htmlFor="pin">Create a 4-6 digit PIN</Label>
-                  <Input
-                    id="pin"
-                    type="password"
-                    placeholder="Enter PIN"
-                    value={pin}
-                    onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                    maxLength={6}
-                  />
+                  <div className="relative">
+                    <Input
+                      id="pin"
+                      type={showPin ? "text" : "password"}
+                      className="pr-10"
+                      placeholder="Enter PIN"
+                      value={pin}
+                      onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                      maxLength={6}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPin(!showPin)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      {showPin ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </button>
+                  </div>
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="confirm-pin">Confirm PIN</Label>
-                  <Input
-                    id="confirm-pin"
-                    type="password"
-                    placeholder="Confirm PIN"
-                    value={confirmPin}
-                    onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                    maxLength={6}
-                  />
+                  <div className="relative">
+                    <Input
+                      id="confirm-pin"
+                      type={showConfirmPin ? "text" : "password"}
+                      className="pr-10"
+                      placeholder="Confirm PIN"
+                      value={confirmPin}
+                      onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                      maxLength={6}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPin(!showConfirmPin)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      {showConfirmPin ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </button>
+                  </div>
                 </div>
 
                 <div className="flex gap-2">

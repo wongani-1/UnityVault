@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Phone, Mail, ArrowLeft, Shield, Lock, User } from "lucide-react";
+import { Phone, Mail, ArrowLeft, Shield, Lock, User, Eye, EyeOff } from "lucide-react";
 import { apiRequest } from "../lib/api";
 import { toast } from "@/components/ui/sonner";
 
@@ -16,6 +16,8 @@ const Login = () => {
   const [memberError, setMemberError] = useState<string | null>(null);
   const [adminError, setAdminError] = useState<string | null>(null);
   const [loading, setLoading] = useState<"member" | "admin" | null>(null);
+  const [showMemberPassword, setShowMemberPassword] = useState(false);
+  const [showAdminPassword, setShowAdminPassword] = useState(false);
 
   const handleMemberLogin = async () => {
     const hasEmpty = [memberLogin.identifier, memberLogin.password].some(
@@ -194,14 +196,25 @@ const Login = () => {
                     <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
                       id="member-password"
-                      type="password"
+                      type={showMemberPassword ? "text" : "password"}
                       placeholder="••••••••"
-                      className="pl-10"
+                      className="pl-10 pr-10"
                       value={memberLogin.password}
                       onChange={(e) =>
                         setMemberLogin({ ...memberLogin, password: e.target.value })
                       }
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowMemberPassword(!showMemberPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      {showMemberPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </button>
                   </div>
                 </div>
 
@@ -263,14 +276,25 @@ const Login = () => {
                     <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
                       id="admin-password"
-                      type="password"
+                      type={showAdminPassword ? "text" : "password"}
                       placeholder="••••••••"
-                      className="pl-10"
+                      className="pl-10 pr-10"
                       value={adminLogin.password}
                       onChange={(e) =>
                         setAdminLogin({ ...adminLogin, password: e.target.value })
                       }
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowAdminPassword(!showAdminPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      {showAdminPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </button>
                   </div>
                 </div>
 

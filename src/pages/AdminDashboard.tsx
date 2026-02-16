@@ -174,13 +174,28 @@ const AdminDashboard = () => {
         }
       });
 
-      // Set members with actual loan balances
+      // Load contributions for penalty amount lookup
+      const contributionData = await apiRequest<{ items: ContributionData[] }>("/contributions");
+      setContributions(contributionData.items);
+      const contributionMap = new Map(contributionData.items.map((c) => [c.id, c.amount]));
+
+      // Calculate current cycle (month) contributions per member
+      const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM format
+      const memberContributions = new Map<string, number>();
+      contributionData.items
+        .filter(c => c.month === currentMonth && c.status === "paid")
+        .forEach((c) => {
+          const currentTotal = memberContributions.get(c.memberId) || 0;
+          memberContributions.set(c.memberId, currentTotal + c.amount);
+        });
+
+      // Set members with actual contributions and loan balances
       setMembers(memberData.items.map((m) => ({
         id: m.id,
         name: m.fullName,
         phone: m.phone || "+—",
         status: m.status === "active" ? "Active" : "Pending",
-        contributions: `MWK ${m.balance.toLocaleString()}`,
+        contributions: `MWK ${(memberContributions.get(m.id) || 0).toLocaleString()}`,
         loans: `MWK ${(memberLoans.get(m.id) || 0).toLocaleString()}`,
         joined: m.createdAt.slice(0, 10),
       })));
@@ -201,11 +216,6 @@ const AdminDashboard = () => {
                   l.status === "rejected" ? "Rejected" : "Unknown",
         }));
       setLoanRequests(loansMapped);
-
-      // Load contributions for penalty amount lookup
-      const contributionData = await apiRequest<{ items: ContributionData[] }>("/contributions");
-      setContributions(contributionData.items);
-      const contributionMap = new Map(contributionData.items.map((c) => [c.id, c.amount]));
 
       // Load penalties
       const penaltyData = await apiRequest<{ items: PenaltyData[] }>("/penalties");
@@ -229,7 +239,10 @@ const AdminDashboard = () => {
 
       // Calculate summary stats
       const activeCount = memberData.items.filter((m) => m.status === "active").length;
-      const contribTotal = memberData.items.reduce((sum, m) => sum + m.balance, 0);
+      
+      // Calculate total contributions for current cycle (already filtered above)
+      const contribTotal = Array.from(memberContributions.values()).reduce((sum, amt) => sum + amt, 0);
+      
       // Only count active and approved loans
       const activeLoansList = loanData.items.filter((l) => l.status === "active" || l.status === "approved");
       const loansTotal = activeLoansList.reduce((sum: number, l) => sum + (l.balance || 0), 0);
