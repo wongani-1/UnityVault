@@ -5,6 +5,6 @@ import { ApiError } from "../utils/apiError";
 
 export const listAuditLogs = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) throw new ApiError("Unauthorized", 401);
-  const items = container.auditService.listByGroup(req.user.groupId);
+  const items = await container.auditService.listByGroup(req.user.groupId);
   res.json({ items });
 });

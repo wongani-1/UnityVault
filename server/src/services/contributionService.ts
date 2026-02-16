@@ -17,19 +17,19 @@ export class ContributionService {
    * Generate monthly contributions for all active members in a group
    * This should be called at the start of each month (automated job)
    */
-  generateMonthlyContributions(params: {
+  async generateMonthlyContributions(params: {
     groupId: string;
     month: string; // Format: "YYYY-MM"
     amount: number;
     dueDate: string; // ISO date string
   }) {
-    const members = this.memberRepository.listByGroup(params.groupId);
+    const members = await this.memberRepository.listByGroup(params.groupId);
     const activeMembers = members.filter(m => m.status === "active");
     const generated: Contribution[] = [];
 
     for (const member of activeMembers) {
       // Check if contribution already exists for this member/month
-      const existing = this.contributionRepository.listByMemberAndMonth(
+      const existing = await this.contributionRepository.listByMemberAndMonth(
         member.id,
         params.month
       );
@@ -46,7 +46,7 @@ export class ContributionService {
           createdAt: new Date().toISOString(),
         };
 
-        this.contributionRepository.create(contribution);
+        await this.contributionRepository.create(contribution);
         generated.push(contribution);
       }
     }
@@ -58,34 +58,34 @@ export class ContributionService {
    * Record a contribution payment
    * This marks the contribution as paid and updates member balance
    */
-  recordPayment(params: {
+  async recordPayment(params: {
     contributionId: string;
     memberId: string;
     groupId: string;
   }) {
-    const contribution = this.contributionRepository.getById(params.contributionId);
+    const contribution = await this.contributionRepository.getById(params.contributionId);
     if (!contribution) throw new ApiError("Contribution not found", 404);
     if (contribution.groupId !== params.groupId) throw new ApiError("Access denied", 403);
     if (contribution.memberId !== params.memberId) throw new ApiError("Access denied", 403);
     if (contribution.status === "paid") throw new ApiError("Contribution already paid", 400);
 
-    const member = this.memberRepository.getById(params.memberId);
+    const member = await this.memberRepository.getById(params.memberId);
     if (!member) throw new ApiError("Member not found", 404);
 
     // Mark contribution as paid
-    const updated = this.contributionRepository.update(contribution.id, {
+    const updated = await this.contributionRepository.update(contribution.id, {
       status: "paid",
       paidAt: new Date().toISOString(),
     });
 
     // Update member balance (savings)
-    const updatedMember = this.memberRepository.update(member.id, {
+    const updatedMember = await this.memberRepository.update(member.id, {
       balance: member.balance + contribution.amount,
     });
 
     // Send payment confirmation email if member has email
     if (member.email && updated && updatedMember) {
-      const group = this.groupRepository.getById(params.groupId);
+      const group = await this.groupRepository.getById(params.groupId);
       const groupName = group?.name || "Your Group";
       
       // Send email asynchronously, don't block the response
@@ -109,28 +109,28 @@ export class ContributionService {
    * Automatically check for overdue contributions and apply penalties
    * Called automatically when contributions are accessed
    */
-  markOverdueContributions(params: {
+  async markOverdueContributions(params: {
     groupId: string;
     autoGeneratePenalty?: boolean;
   }) {
     const now = new Date().toISOString();
-    const contributions = this.contributionRepository.listByGroup(params.groupId);
+    const contributions = await this.contributionRepository.listByGroup(params.groupId);
     const overdueCount = { marked: 0, penaltiesGenerated: 0 };
 
-    const group = this.groupRepository.getById(params.groupId);
+    const group = await this.groupRepository.getById(params.groupId);
     if (!group) throw new ApiError("Group not found", 404);
 
     for (const contribution of contributions) {
       if (contribution.status === "unpaid" && contribution.dueDate < now) {
         // Mark as overdue
-        this.contributionRepository.update(contribution.id, {
+        await this.contributionRepository.update(contribution.id, {
           status: "overdue",
         });
         overdueCount.marked++;
 
         // Generate penalty if enabled
         if (params.autoGeneratePenalty && group.settings.contributionPenaltyRate > 0) {
-          const existingPenalties = this.penaltyRepository.listByContribution(contribution.id);
+          const existingPenalties = await this.penaltyRepository.listByContribution(contribution.id);
           
           if (existingPenalties.length === 0) {
             const penaltyDueDate = new Date();
@@ -152,13 +152,13 @@ export class ContributionService {
               createdAt: new Date().toISOString(),
             };
 
-            this.penaltyRepository.create(penalty);
+            await this.penaltyRepository.create(penalty);
             overdueCount.penaltiesGenerated++;
 
             // Update member penalties total
-            const member = this.memberRepository.getById(contribution.memberId);
+            const member = await this.memberRepository.getById(contribution.memberId);
             if (member) {
-              this.memberRepository.update(member.id, {
+              await this.memberRepository.update(member.id, {
                 penaltiesTotal: member.penaltiesTotal + Number(penaltyAmount.toFixed(2)),
               });
             }
@@ -174,17 +174,17 @@ export class ContributionService {
    * Legacy method for admin to manually add contributions (deprecated)
    * Use generateMonthlyContributions instead
    */
-  addContribution(params: {
+  async addContribution(params: {
     groupId: string;
     memberId: string;
     amount: number;
     month: string;
   }) {
-    const member = this.memberRepository.getById(params.memberId);
+    const member = await this.memberRepository.getById(params.memberId);
     if (!member) throw new ApiError("Member not found", 404);
     if (member.groupId !== params.groupId) throw new ApiError("Access denied", 403);
 
-    const existing = this.contributionRepository.listByMemberAndMonth(
+    const existing = await this.contributionRepository.listByMemberAndMonth(
       params.memberId,
       params.month
     );
@@ -206,18 +206,18 @@ export class ContributionService {
       paidAt: new Date().toISOString(),
     };
 
-    this.memberRepository.update(member.id, {
+    await this.memberRepository.update(member.id, {
       balance: member.balance + params.amount,
     });
 
     return this.contributionRepository.create(contribution);
   }
 
-  listByGroup(groupId: string) {
+  async listByGroup(groupId: string) {
     // Automatically process overdue contributions before returning data
     // This ensures penalties are applied without requiring manual admin action
     try {
-      this.markOverdueContributions({
+      await this.markOverdueContributions({
         groupId,
         autoGeneratePenalty: true, // Always auto-generate penalties
       });
@@ -229,12 +229,12 @@ export class ContributionService {
     return this.contributionRepository.listByGroup(groupId);
   }
 
-  listByMember(memberId: string) {
+  async listByMember(memberId: string) {
     // Get member's group to run overdue check
-    const member = this.memberRepository.getById(memberId);
+    const member = await this.memberRepository.getById(memberId);
     if (member) {
       try {
-        this.markOverdueContributions({
+        await this.markOverdueContributions({
           groupId: member.groupId,
           autoGeneratePenalty: true,
         });
@@ -246,11 +246,11 @@ export class ContributionService {
     return this.contributionRepository.listByMember(memberId);
   }
 
-  listUnpaidByGroup(groupId: string) {
+  async listUnpaidByGroup(groupId: string) {
     return this.contributionRepository.listUnpaidByGroup(groupId);
   }
 
-  listOverdue(groupId: string) {
+  async listOverdue(groupId: string) {
     return this.contributionRepository.listOverdue(groupId);
   }
 }

@@ -32,12 +32,12 @@ export class LoanService {
    * Check loan eligibility for a member
    * Returns eligibility status and reasons for ineligibility
    */
-  checkEligibility(params: { groupId: string; memberId: string; requestedAmount: number }) {
-    const member = this.memberRepository.getById(params.memberId);
+  async checkEligibility(params: { groupId: string; memberId: string; requestedAmount: number }) {
+    const member = await this.memberRepository.getById(params.memberId);
     if (!member) throw new ApiError("Member not found", 404);
     if (member.groupId !== params.groupId) throw new ApiError("Access denied", 403);
 
-    const group = this.groupRepository.getById(params.groupId);
+    const group = await this.groupRepository.getById(params.groupId);
     if (!group) throw new ApiError("Group not found", 404);
 
     const reasons: string[] = [];
@@ -50,7 +50,7 @@ export class LoanService {
     }
 
     // 2. Check for overdue installments
-    const memberLoans = this.loanRepository.listByMember(params.memberId);
+    const memberLoans = await this.loanRepository.listByMember(params.memberId);
     const now = new Date();
     const hasOverdueInstallments = memberLoans.some((loan) =>
       loan.installments.some(
@@ -65,7 +65,7 @@ export class LoanService {
     }
 
     // 3. Check for unpaid penalties
-    const penalties = this.penaltyRepository.listByMember(params.memberId);
+    const penalties = await this.penaltyRepository.listByMember(params.memberId);
     const unpaidPenalties = penalties.filter((p) => !p.isPaid);
     if (unpaidPenalties.length > 0) {
       isEligible = false;
@@ -73,7 +73,7 @@ export class LoanService {
     }
 
     // 4. Check minimum contribution duration
-    const contributions = this.contributionRepository.listByMember(params.memberId);
+    const contributions = await this.contributionRepository.listByMember(params.memberId);
     const paidContributions = contributions.filter((c) => c.paidAt);
     const minMonths = group.settings.minimumContributionMonths || 3;
     if (paidContributions.length < minMonths) {
@@ -111,19 +111,19 @@ export class LoanService {
     };
   }
 
-  requestLoan(params: {
+  async requestLoan(params: {
     groupId: string;
     memberId: string;
     principal: number;
     installments: number;
     reason?: string;
   }) {
-    const member = this.memberRepository.getById(params.memberId);
+    const member = await this.memberRepository.getById(params.memberId);
     if (!member) throw new ApiError("Member not found", 404);
     if (member.groupId !== params.groupId) throw new ApiError("Access denied", 403);
 
     // Check eligibility
-    const eligibility = this.checkEligibility({
+    const eligibility = await this.checkEligibility({
       groupId: params.groupId,
       memberId: params.memberId,
       requestedAmount: params.principal,
@@ -151,10 +151,10 @@ export class LoanService {
       createdAt: new Date().toISOString(),
     };
 
-    const created = this.loanRepository.create(loan);
+    const created = await this.loanRepository.create(loan);
 
     // Send notification to admin
-    this.notificationRepository.create({
+    await this.notificationRepository.create({
       id: createId("notif"),
       groupId: params.groupId,
       adminId: undefined, // Will be sent to all group admins
@@ -165,7 +165,7 @@ export class LoanService {
     });
 
     // Create audit log
-    this.auditRepository.create({
+    await this.auditRepository.create({
       id: createId("audit"),
       groupId: params.groupId,
       actorId: params.memberId,
@@ -180,27 +180,27 @@ export class LoanService {
     return created;
   }
 
-  listByGroup(groupId: string) {
+  async listByGroup(groupId: string) {
     return this.loanRepository.listByGroup(groupId);
   }
 
-  approveLoan(params: {
+  async approveLoan(params: {
     groupId: string;
     loanId: string;
     installments: number;
     actorId: string;
   }) {
-    const loan = this.loanRepository.getById(params.loanId);
+    const loan = await this.loanRepository.getById(params.loanId);
     if (!loan) throw new ApiError("Loan not found", 404);
     if (loan.groupId !== params.groupId) throw new ApiError("Access denied", 403);
     if (loan.status !== "pending") {
       throw new ApiError("Only pending loans can be approved", 400);
     }
 
-    const group = this.groupRepository.getById(params.groupId);
+    const group = await this.groupRepository.getById(params.groupId);
     if (!group) throw new ApiError("Group not found", 404);
 
-    const member = this.memberRepository.getById(loan.memberId);
+    const member = await this.memberRepository.getById(loan.memberId);
     if (!member) throw new ApiError("Member not found", 404);
 
     // Calculate interest and total amounts
@@ -231,7 +231,7 @@ export class LoanService {
     const finalDueDate = installments[installments.length - 1].dueDate;
 
     // Update loan to approved/active status
-    const updated = this.loanRepository.update(params.loanId, {
+    const updated = await this.loanRepository.update(params.loanId, {
       interestRate,
       totalInterest: Number(totalInterest.toFixed(2)),
       totalDue: Number(totalDue.toFixed(2)),
@@ -245,7 +245,7 @@ export class LoanService {
     if (!updated) throw new ApiError("Failed to approve loan");
 
     // Send notification to member
-    this.notificationRepository.create({
+    await this.notificationRepository.create({
       id: createId("notif"),
       groupId: params.groupId,
       memberId: loan.memberId,
@@ -256,7 +256,7 @@ export class LoanService {
     });
 
     // Create audit log
-    this.auditRepository.create({
+    await this.auditRepository.create({
       id: createId("audit"),
       groupId: params.groupId,
       actorId: params.actorId,
@@ -277,25 +277,25 @@ export class LoanService {
     return updated;
   }
 
-  rejectLoan(params: { 
+  async rejectLoan(params: { 
     groupId: string; 
     loanId: string;
     actorId: string;
     reason?: string;
   }) {
-    const loan = this.loanRepository.getById(params.loanId);
+    const loan = await this.loanRepository.getById(params.loanId);
     if (!loan) throw new ApiError("Loan not found", 404);
     if (loan.groupId !== params.groupId) throw new ApiError("Access denied", 403);
     if (loan.status !== "pending") {
       throw new ApiError("Only pending loans can be rejected", 400);
     }
 
-    const member = this.memberRepository.getById(loan.memberId);
+    const member = await this.memberRepository.getById(loan.memberId);
     if (!member) throw new ApiError("Member not found", 404);
 
     const now = new Date().toISOString();
 
-    const updated = this.loanRepository.update(params.loanId, {
+    const updated = await this.loanRepository.update(params.loanId, {
       status: "rejected",
       rejectedAt: now,
       rejectionReason: params.reason,
@@ -304,7 +304,7 @@ export class LoanService {
     if (!updated) throw new ApiError("Failed to reject loan");
 
     // Send notification to member
-    this.notificationRepository.create({
+    await this.notificationRepository.create({
       id: createId("notif"),
       groupId: params.groupId,
       memberId: loan.memberId,
@@ -315,7 +315,7 @@ export class LoanService {
     });
 
     // Create audit log
-    this.auditRepository.create({
+    await this.auditRepository.create({
       id: createId("audit"),
       groupId: params.groupId,
       actorId: params.actorId,
@@ -343,12 +343,12 @@ export class LoanService {
    * Automatically process overdue installments and apply penalties
    * Called automatically when loans are accessed
    */
-  processOverdueInstallments(groupId: string) {
-    const loans = this.loanRepository.listByGroup(groupId);
+  async processOverdueInstallments(groupId: string) {
+    const loans = await this.loanRepository.listByGroup(groupId);
     const activeLoans = loans.filter((loan) => loan.status === "active");
     const now = new Date();
 
-    const group = this.groupRepository.getById(groupId);
+    const group = await this.groupRepository.getById(groupId);
     if (!group) throw new ApiError("Group not found", 404);
 
     const results = {
@@ -368,7 +368,7 @@ export class LoanService {
           // Apply penalty if automatic penalties are enabled
           if (group.settings.enableAutomaticPenalties) {
             // Check if penalty already exists for this installment
-            const existingPenalties = this.penaltyRepository.listByMember(loan.memberId);
+            const existingPenalties = await this.penaltyRepository.listByMember(loan.memberId);
             const hasPenaltyForInstallment = existingPenalties.some(
               (p) => p.installmentId === installment.id
             );
@@ -378,7 +378,7 @@ export class LoanService {
               const penaltyDueDate = new Date(now);
               penaltyDueDate.setDate(penaltyDueDate.getDate() + 7);
 
-              this.penaltyRepository.create({
+              await this.penaltyRepository.create({
                 id: createId("penalty"),
                 groupId: groupId,
                 memberId: loan.memberId,
@@ -393,9 +393,9 @@ export class LoanService {
               });
 
               // Update member penalties total
-              const member = this.memberRepository.getById(loan.memberId);
+              const member = await this.memberRepository.getById(loan.memberId);
               if (member) {
-                this.memberRepository.update(member.id, {
+                await this.memberRepository.update(member.id, {
                   penaltiesTotal: member.penaltiesTotal + Number(penaltyAmount.toFixed(2)),
                 });
               }
@@ -404,7 +404,7 @@ export class LoanService {
               results.penaltiesApplied++;
 
               // Notify member
-              this.notificationRepository.create({
+              await this.notificationRepository.create({
                 id: createId("notif"),
                 groupId: groupId,
                 memberId: loan.memberId,
@@ -419,7 +419,7 @@ export class LoanService {
       }
 
       if (loanUpdated) {
-        this.loanRepository.update(loan.id, {
+        await this.loanRepository.update(loan.id, {
           installments: loan.installments,
         });
         results.processed++;
@@ -429,18 +429,18 @@ export class LoanService {
     return results;
   }
 
-  repayInstallment(params: {
+  async repayInstallment(params: {
     groupId: string;
     loanId: string;
     installmentId: string;
     actorId: string;
     actorRole: "member" | "group_admin";
   }) {
-    const loan = this.loanRepository.getById(params.loanId);
+    const loan = await this.loanRepository.getById(params.loanId);
     if (!loan) throw new ApiError("Loan not found", 404);
     if (loan.groupId !== params.groupId) throw new ApiError("Access denied", 403);
 
-    const member = this.memberRepository.getById(loan.memberId);
+    const member = await this.memberRepository.getById(loan.memberId);
     if (!member) throw new ApiError("Member not found", 404);
 
     const installment = loan.installments.find(
@@ -467,7 +467,7 @@ export class LoanService {
     const status = allPaid ? "completed" : loan.status;
     const completedAt = allPaid ? now.toISOString() : loan.completedAt;
 
-    const updated = this.loanRepository.update(params.loanId, {
+    const updated = await this.loanRepository.update(params.loanId, {
       installments: loan.installments,
       balance: Number(newBalance.toFixed(2)),
       status,
@@ -477,7 +477,7 @@ export class LoanService {
     if (!updated) throw new ApiError("Failed to record repayment");
 
     // Create audit log
-    this.auditRepository.create({
+    await this.auditRepository.create({
       id: createId("audit"),
       groupId: params.groupId,
       actorId: params.actorId,
@@ -497,7 +497,7 @@ export class LoanService {
 
     // If loan completed, send notification
     if (allPaid) {
-      this.notificationRepository.create({
+      await this.notificationRepository.create({
         id: createId("notif"),
         groupId: params.groupId,
         memberId: loan.memberId,
@@ -508,7 +508,7 @@ export class LoanService {
       });
 
       // Create audit log for loan completion
-      this.auditRepository.create({
+      await this.auditRepository.create({
         id: createId("audit"),
         groupId: params.groupId,
         actorId: params.actorId,

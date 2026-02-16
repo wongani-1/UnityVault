@@ -34,7 +34,7 @@ export const checkEligibility = asyncHandler(async (req: Request, res: Response)
 
   // Automatically process overdue installments when checking eligibility
   try {
-    container.loanService.processOverdueInstallments(req.user.groupId);
+    await container.loanService.processOverdueInstallments(req.user.groupId);
   } catch (error) {
     console.error("Error processing overdue installments:", error);
   }
@@ -54,13 +54,13 @@ export const listLoans = asyncHandler(async (req: Request, res: Response) => {
   // Automatically process overdue installments before returning loans
   // This ensures penalties are applied without requiring manual admin action
   try {
-    container.loanService.processOverdueInstallments(req.user.groupId);
+    await container.loanService.processOverdueInstallments(req.user.groupId);
   } catch (error) {
     // Log error but don't fail the request
     console.error("Error processing overdue installments:", error);
   }
 
-  const loans = container.loanService.listByGroup(req.user.groupId);
+  const loans = await container.loanService.listByGroup(req.user.groupId);
   const items =
     req.user.role === "member"
       ? loans.filter((loan) => loan.memberId === req.user?.userId)
@@ -134,7 +134,7 @@ export const checkOverdueInstallments = asyncHandler(async (req: Request, res: R
     throw new ApiError("Only admins can check overdue installments", 403);
   }
 
-  const results = container.loanService.processOverdueInstallments(req.user.groupId);
+  const results = await container.loanService.processOverdueInstallments(req.user.groupId);
 
   res.json({
     message: `Processed ${results.processed} loans, applied ${results.penaltiesApplied} penalties`,

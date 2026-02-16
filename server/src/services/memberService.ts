@@ -8,11 +8,11 @@ import { ApiError } from "../utils/apiError";
 import { AuditService } from "./auditService";
 import { NotificationService } from "./notificationService";
 import { EmailService } from "./emailService";
-import { groupRepository } from "../repositories/memory";
 
 export class MemberService {
   constructor(
     private memberRepository: MemberRepository,
+    private groupRepository: GroupRepository,
     private auditService: AuditService,
     private notificationService: NotificationService,
     private emailService: EmailService
@@ -44,9 +44,9 @@ export class MemberService {
       penaltiesTotal: 0,
     };
 
-    this.memberRepository.create(member);
+    await this.memberRepository.create(member);
 
-    this.notificationService.create({
+    await this.notificationService.create({
       groupId: params.groupId,
       type: "member_registration",
       message: `${member.fullName} requested to join the group`,
@@ -95,11 +95,11 @@ export class MemberService {
       inviteSentAt: new Date().toISOString(),
     };
 
-    this.memberRepository.create(member);
+    await this.memberRepository.create(member);
 
     const link = `${env.appBaseUrl}/member/activate?token=${inviteToken}`;
 
-    this.notificationService.create({
+    await this.notificationService.create({
       groupId: params.groupId,
       type: "member_invite",
       message: `${member.fullName} was invited to join the group`,
@@ -109,7 +109,7 @@ export class MemberService {
 
     // Send invitation email if email is provided
     if (params.email) {
-      const group = groupRepository.getById(params.groupId);
+      const group = await this.groupRepository.getById(params.groupId);
       const groupName = group?.name || "Your Group";
       
       // Send email asynchronously, don't block the response
@@ -132,7 +132,7 @@ export class MemberService {
   }
 
   async verifyInvite(token: string, otp: string) {
-    const member = this.memberRepository.findByInviteToken(token);
+    const member = await this.memberRepository.findByInviteToken(token);
     if (!member) throw new ApiError("Invite not found", 404);
     if (!member.inviteExpiresAt) throw new ApiError("Invite expired", 400);
 
@@ -149,7 +149,7 @@ export class MemberService {
   }
 
   async completeInvite(params: { token: string; otp: string; newPassword: string }) {
-    const member = this.memberRepository.findByInviteToken(params.token);
+    const member = await this.memberRepository.findByInviteToken(params.token);
     if (!member) throw new ApiError("Invite not found", 404);
     if (!member.inviteExpiresAt) throw new ApiError("Invite expired", 400);
 
@@ -163,7 +163,7 @@ export class MemberService {
     if (!ok) throw new ApiError("Invalid one-time password", 400);
 
     const passwordHash = await hashPassword(params.newPassword);
-    const updated = this.memberRepository.update(member.id, {
+    const updated = await this.memberRepository.update(member.id, {
       passwordHash,
       status: "active",
       groupId: member.groupId,
@@ -174,7 +174,7 @@ export class MemberService {
 
     if (!updated) throw new ApiError("Failed to activate member", 500);
 
-    this.notificationService.create({
+    await this.notificationService.create({
       groupId: member.groupId,
       memberId: member.id,
       type: "member_activated",
@@ -184,15 +184,15 @@ export class MemberService {
     return { status: "ok" };
   }
 
-  approve(memberId: string, actor: { id: string; groupId: string }) {
-    const member = this.memberRepository.getById(memberId);
+  async approve(memberId: string, actor: { id: string; groupId: string }) {
+    const member = await this.memberRepository.getById(memberId);
     if (!member) throw new ApiError("Member not found", 404);
     if (member.groupId !== actor.groupId) throw new ApiError("Access denied", 403);
 
-    const updated = this.memberRepository.update(memberId, { status: "active" });
+    const updated = await this.memberRepository.update(memberId, { status: "active" });
     if (!updated) throw new ApiError("Failed to update member");
 
-    this.auditService.log({
+    await this.auditService.log({
       groupId: actor.groupId,
       actorId: actor.id,
       actorRole: "group_admin",
@@ -201,7 +201,7 @@ export class MemberService {
       entityId: memberId,
     });
 
-    this.notificationService.create({
+    await this.notificationService.create({
       groupId: actor.groupId,
       memberId: memberId,
       type: "member_approved",
@@ -210,7 +210,7 @@ export class MemberService {
 
     // Send approval email if email is provided
     if (member.email) {
-      const group = groupRepository.getById(actor.groupId);
+      const group = await this.groupRepository.getById(actor.groupId);
       const groupName = group?.name || "Your Group";
       const loginUrl = `${env.appBaseUrl}/login`;
       
@@ -228,15 +228,15 @@ export class MemberService {
     return { ...updated, passwordHash: "" };
   }
 
-  reject(memberId: string, actor: { id: string; groupId: string }) {
-    const member = this.memberRepository.getById(memberId);
+  async reject(memberId: string, actor: { id: string; groupId: string }) {
+    const member = await this.memberRepository.getById(memberId);
     if (!member) throw new ApiError("Member not found", 404);
     if (member.groupId !== actor.groupId) throw new ApiError("Access denied", 403);
 
-    const updated = this.memberRepository.update(memberId, { status: "rejected" });
+    const updated = await this.memberRepository.update(memberId, { status: "rejected" });
     if (!updated) throw new ApiError("Failed to update member");
 
-    this.auditService.log({
+    await this.auditService.log({
       groupId: actor.groupId,
       actorId: actor.id,
       actorRole: "group_admin",
@@ -248,11 +248,12 @@ export class MemberService {
     return { ...updated, passwordHash: "" };
   }
 
-  listByGroup(groupId: string) {
+  async listByGroup(groupId: string) {
     // Automatically clean up pending members older than 24 hours
-    this.cleanupOldPendingMembers(groupId);
+    await this.cleanupOldPendingMembers(groupId);
     
-    return this.memberRepository.listByGroup(groupId).map((member) => ({
+    const members = await this.memberRepository.listByGroup(groupId);
+    return members.map((member) => ({
       ...member,
       passwordHash: "",
     }));
@@ -262,8 +263,8 @@ export class MemberService {
    * Automatically delete pending members that have been waiting for more than 24 hours
    * This keeps the member list clean and removes stale pending registrations
    */
-  private cleanupOldPendingMembers(groupId: string) {
-    const members = this.memberRepository.listByGroup(groupId);
+  private async cleanupOldPendingMembers(groupId: string) {
+    const members = await this.memberRepository.listByGroup(groupId);
     const now = new Date();
     const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
@@ -272,10 +273,10 @@ export class MemberService {
         const createdAt = new Date(member.createdAt);
         if (createdAt < twentyFourHoursAgo) {
           // Delete the member
-          this.memberRepository.delete(member.id);
+          await this.memberRepository.delete(member.id);
           
           // Log the cleanup action
-          this.auditService.log({
+          await this.auditService.log({
             groupId,
             actorId: "system",
             actorRole: "group_admin",
@@ -292,27 +293,27 @@ export class MemberService {
     }
   }
 
-  getById(memberId: string) {
-    const member = this.memberRepository.getById(memberId);
+  async getById(memberId: string) {
+    const member = await this.memberRepository.getById(memberId);
     if (!member) throw new ApiError("Member not found", 404);
     return { ...member, passwordHash: "" };
   }
 
-  updateProfile(memberId: string, patch: { fullName?: string; email?: string; phone?: string; username?: string }) {
-    const updated = this.memberRepository.update(memberId, patch);
+  async updateProfile(memberId: string, patch: { fullName?: string; email?: string; phone?: string; username?: string }) {
+    const updated = await this.memberRepository.update(memberId, patch);
     if (!updated) throw new ApiError("Member not found", 404);
     return { ...updated, passwordHash: "" };
   }
 
   async changePassword(memberId: string, currentPassword: string, newPassword: string) {
-    const member = this.memberRepository.getById(memberId);
+    const member = await this.memberRepository.getById(memberId);
     if (!member) throw new ApiError("Member not found", 404);
 
     const ok = await verifyPassword(currentPassword, member.passwordHash);
     if (!ok) throw new ApiError("Current password is incorrect", 400);
 
     const passwordHash = await hashPassword(newPassword);
-    const updated = this.memberRepository.update(memberId, { passwordHash });
+    const updated = await this.memberRepository.update(memberId, { passwordHash });
     if (!updated) throw new ApiError("Failed to update password", 500);
     return { status: "ok" };
   }

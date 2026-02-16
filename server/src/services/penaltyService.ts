@@ -16,8 +16,8 @@ export class PenaltyService {
     private transactionRepository: TransactionRepository
   ) {}
 
-  create(params: Omit<Penalty, "id" | "createdAt" | "isPaid" | "status" | "dueDate">) {
-    const member = this.memberRepository.getById(params.memberId);
+  async create(params: Omit<Penalty, "id" | "createdAt" | "isPaid" | "status" | "dueDate">) {
+    const member = await this.memberRepository.getById(params.memberId);
     if (!member) throw new ApiError("Member not found", 404);
 
     // Set due date to 7 days from now by default
@@ -33,40 +33,40 @@ export class PenaltyService {
       isPaid: false,
     };
 
-    this.memberRepository.update(member.id, {
+    await this.memberRepository.update(member.id, {
       penaltiesTotal: member.penaltiesTotal + penalty.amount,
     });
 
     return this.penaltyRepository.create(penalty);
   }
 
-  listByGroup(groupId: string) {
+  async listByGroup(groupId: string) {
     return this.penaltyRepository.listByGroup(groupId);
   }
 
-  payPenalty(penaltyId: string, memberId: string, actorId: string) {
-    const penalty = this.penaltyRepository.getById(penaltyId);
+  async payPenalty(penaltyId: string, memberId: string, actorId: string) {
+    const penalty = await this.penaltyRepository.getById(penaltyId);
     if (!penalty) throw new ApiError("Penalty not found", 404);
     if (penalty.memberId !== memberId) throw new ApiError("Unauthorized to pay this penalty", 403);
     if (penalty.isPaid || penalty.status === "paid") throw new ApiError("Penalty already paid", 400);
 
-    const member = this.memberRepository.getById(memberId);
+    const member = await this.memberRepository.getById(memberId);
     if (!member) throw new ApiError("Member not found", 404);
 
-    const group = this.groupRepository.getById(penalty.groupId);
+    const group = await this.groupRepository.getById(penalty.groupId);
     if (!group) throw new ApiError("Group not found", 404);
 
     const paidAt = new Date().toISOString();
 
     // Update penalty status
-    const updatedPenalty = this.penaltyRepository.update(penaltyId, { 
+    const updatedPenalty = await this.penaltyRepository.update(penaltyId, { 
       isPaid: true,
       status: "paid",
       paidAt 
     });
 
     // Update member's penalties total
-    this.memberRepository.update(memberId, {
+    await this.memberRepository.update(memberId, {
       penaltiesTotal: member.penaltiesTotal - penalty.amount,
     });
 
@@ -90,10 +90,10 @@ export class PenaltyService {
       createdBy: actorId,
     };
 
-    this.transactionRepository.create(transaction);
+    await this.transactionRepository.create(transaction);
 
     // Update group financials
-    this.groupRepository.update(penalty.groupId, {
+    await this.groupRepository.update(penalty.groupId, {
       totalIncome: group.totalIncome + penalty.amount,
       cash: group.cash + penalty.amount,
     });
@@ -101,7 +101,7 @@ export class PenaltyService {
     return updatedPenalty;
   }
 
-  getById(id: string) {
+  async getById(id: string) {
     return this.penaltyRepository.getById(id);
   }
 }

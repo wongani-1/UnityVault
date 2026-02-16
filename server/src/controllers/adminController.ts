@@ -5,7 +5,7 @@ import { ApiError } from "../utils/apiError";
 
 export const getAdminMe = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) throw new ApiError("Unauthorized", 401);
-  const admin = container.adminService.getById(req.user.userId);
+  const admin = await container.adminService.getById(req.user.userId);
   res.json(admin);
 });
 
@@ -18,7 +18,7 @@ export const updateAdminMe = asyncHandler(async (req: Request, res: Response) =>
     username?: string;
   };
 
-  const admin = container.adminService.updateProfile(req.user.userId, {
+  const admin = await container.adminService.updateProfile(req.user.userId, {
     fullName,
     email,
     phone,

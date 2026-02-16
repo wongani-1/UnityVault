@@ -1,10 +1,10 @@
 import type { Admin } from "../../models/types";
 
 export type AdminRepository = {
-  create: (admin: Admin) => Admin;
-  getById: (id: string) => Admin | undefined;
-  findByGroupAndIdentifier: (groupId: string, identifier: string) => Admin | undefined;
-  findByIdentifier: (identifier: string) => Admin | undefined;
-  listByGroup: (groupId: string) => Admin[];
-  update: (id: string, patch: Partial<Admin>) => Admin | undefined;
+  create: (admin: Admin) => Promise<Admin>;
+  getById: (id: string) => Promise<Admin | undefined>;
+  findByGroupAndIdentifier: (groupId: string, identifier: string) => Promise<Admin | undefined>;
+  findByIdentifier: (identifier: string) => Promise<Admin | undefined>;
+  listByGroup: (groupId: string) => Promise<Admin[]>;
+  update: (id: string, patch: Partial<Admin>) => Promise<Admin | undefined>;
 };

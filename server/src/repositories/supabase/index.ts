@@ -1,0 +1,9 @@
+export { groupRepository } from "./groupRepository";
+export { adminRepository } from "./adminRepository";
+export { memberRepository } from "./memberRepository";
+export { contributionRepository } from "./contributionRepository";
+export { loanRepository } from "./loanRepository";
+export { penaltyRepository } from "./penaltyRepository";
+export { notificationRepository } from "./notificationRepository";
+export { auditRepository } from "./auditRepository";
+export { transactionRepository } from "./transactionRepository";

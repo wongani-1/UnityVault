@@ -1,7 +1,7 @@
 import type { Notification } from "../../models/types";
 
 export type NotificationRepository = {
-  create: (notification: Notification) => Notification;
-  listByGroup: (groupId: string) => Notification[];
-  listByMember: (memberId: string) => Notification[];
+  create: (notification: Notification) => Promise<Notification>;
+  listByGroup: (groupId: string) => Promise<Notification[]>;
+  listByMember: (memberId: string) => Promise<Notification[]>;
 };

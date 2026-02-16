@@ -3,17 +3,17 @@ import type { Group } from "../../models/types";
 import { store } from "./store";
 
 export const groupRepository: GroupRepository = {
-  create(group: Group) {
+  async create(group: Group) {
     store.groups.set(group.id, group);
     return group;
   },
-  getById(id: string) {
+  async getById(id: string) {
     return store.groups.get(id);
   },
-  list() {
+  async list() {
     return Array.from(store.groups.values());
   },
-  update(id: string, patch: Partial<Group>) {
+  async update(id: string, patch: Partial<Group>) {
     const current = store.groups.get(id);
     if (!current) return undefined;
     const updated = { ...current, ...patch };

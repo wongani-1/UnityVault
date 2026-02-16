@@ -5,13 +5,13 @@ import { ApiError } from "../utils/apiError";
 
 export const listPenalties = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) throw new ApiError("Unauthorized", 401);
-  const items = container.penaltyService.listByGroup(req.user.groupId);
+  const items = await container.penaltyService.listByGroup(req.user.groupId);
   res.json({ items });
 });
 
 export const payPenalty = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) throw new ApiError("Unauthorized", 401);
   const { id } = req.params;
-  const penalty = container.penaltyService.payPenalty(id, req.user.userId, req.user.userId);
+  const penalty = await container.penaltyService.payPenalty(id, req.user.userId, req.user.userId);
   res.json({ penalty });
 });

@@ -5,7 +5,7 @@ import { createId } from "../utils/id";
 export class AuditService {
   constructor(private auditRepository: AuditRepository) {}
 
-  log(params: {
+  async log(params: {
     groupId: string;
     actorId: string;
     actorRole: Role;
@@ -29,7 +29,7 @@ export class AuditService {
     return this.auditRepository.create(log);
   }
 
-  listByGroup(groupId: string) {
+  async listByGroup(groupId: string) {
     return this.auditRepository.listByGroup(groupId);
   }
 }

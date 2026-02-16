@@ -15,7 +15,7 @@ export const createNotification = asyncHandler(async (req: Request, res: Respons
     throw new ApiError("Missing required fields: type, message", 400);
   }
 
-  const notification = container.notificationService.create({
+  const notification = await container.notificationService.create({
     groupId: req.user.groupId,
     memberId,
     type,
@@ -29,11 +29,11 @@ export const listNotifications = asyncHandler(async (req: Request, res: Response
   if (!req.user) throw new ApiError("Unauthorized", 401);
 
   if (req.user.role === "member") {
-    const items = container.notificationService.listByMember(req.user.userId);
+    const items = await container.notificationService.listByMember(req.user.userId);
     res.json({ items });
     return;
   }
 
-  const items = container.notificationService.listByGroup(req.user.groupId);
+  const items = await container.notificationService.listByGroup(req.user.groupId);
   res.json({ items });
 });

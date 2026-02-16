@@ -10,7 +10,7 @@ export class AuthService {
   ) {}
 
   async adminLogin(params: { identifier: string; password: string }) {
-    const admin = this.adminRepository.findByIdentifier(params.identifier);
+    const admin = await this.adminRepository.findByIdentifier(params.identifier);
     if (!admin) throw new ApiError("Invalid credentials", 401);
 
     const ok = await verifyPassword(params.password, admin.passwordHash);
@@ -24,7 +24,7 @@ export class AuthService {
   }
 
   async memberLogin(params: { identifier: string; password: string }) {
-    const member = this.memberRepository.findByIdentifier(params.identifier);
+    const member = await this.memberRepository.findByIdentifier(params.identifier);
     if (!member) throw new ApiError("Invalid credentials", 401);
     if (member.status !== "active") throw new ApiError("Member not active", 403);
 

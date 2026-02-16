@@ -47,10 +47,10 @@ export class GroupService {
       createdAt: new Date().toISOString(),
     };
 
-    this.groupRepository.create(group);
-    this.adminRepository.create(admin);
+    await this.groupRepository.create(group);
+    await this.adminRepository.create(admin);
 
-    this.auditService.log({
+    await this.auditService.log({
       groupId: group.id,
       actorId: admin.id,
       actorRole: "group_admin",
@@ -65,13 +65,13 @@ export class GroupService {
     };
   }
 
-  getGroup(groupId: string) {
-    const group = this.groupRepository.getById(groupId);
+  async getGroup(groupId: string) {
+    const group = await this.groupRepository.getById(groupId);
     if (!group) throw new ApiError("Group not found", 404);
     return group;
   }
 
-  updateSettings(groupId: string, settings: GroupSettings) {
+  async updateSettings(groupId: string, settings: GroupSettings) {
     if (
       settings.contributionAmount < 0 ||
       settings.loanInterestRate < 0 ||
@@ -82,7 +82,7 @@ export class GroupService {
       throw new ApiError("Settings values must be non-negative", 400);
     }
 
-    const updated = this.groupRepository.update(groupId, { settings });
+    const updated = await this.groupRepository.update(groupId, { settings });
     if (!updated) throw new ApiError("Group not found", 404);
     return updated;
   }

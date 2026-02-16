@@ -3,24 +3,24 @@ import type { Transaction } from "../../models/types";
 import { store } from "./store";
 
 export const transactionRepository: TransactionRepository = {
-  create(transaction: Transaction) {
+  async create(transaction: Transaction) {
     store.transactions.set(transaction.id, transaction);
     return transaction;
   },
-  getById(id: string) {
+  async getById(id: string) {
     return store.transactions.get(id);
   },
-  listByGroup(groupId: string) {
+  async listByGroup(groupId: string) {
     return Array.from(store.transactions.values()).filter(
       (t) => t.groupId === groupId
     );
   },
-  listByMember(memberId: string) {
+  async listByMember(memberId: string) {
     return Array.from(store.transactions.values()).filter(
       (t) => t.memberId === memberId
     );
   },
-  listByType(groupId: string, type: string) {
+  async listByType(groupId: string, type: string) {
     return Array.from(store.transactions.values()).filter(
       (t) => t.groupId === groupId && t.type === type
     );

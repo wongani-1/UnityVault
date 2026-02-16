@@ -25,7 +25,7 @@ export const generateMonthlyContributions = asyncHandler(async (req: Request, re
     throw new ApiError("Amount must be greater than zero", 400);
   }
 
-  const contributions = container.contributionService.generateMonthlyContributions({
+  const contributions = await container.contributionService.generateMonthlyContributions({
     groupId: req.user.groupId,
     month,
     amount,
@@ -50,7 +50,7 @@ export const recordPayment = asyncHandler(async (req: Request, res: Response) =>
     throw new ApiError("contributionId is required", 400);
   }
 
-  const contribution = container.contributionService.recordPayment({
+  const contribution = await container.contributionService.recordPayment({
     contributionId,
     memberId: req.user.userId,
     groupId: req.user.groupId,
@@ -71,7 +71,7 @@ export const checkOverdueContributions = asyncHandler(async (req: Request, res: 
     autoGeneratePenalty?: boolean;
   };
 
-  const result = container.contributionService.markOverdueContributions({
+  const result = await container.contributionService.markOverdueContributions({
     groupId: req.user.groupId,
     autoGeneratePenalty,
   });
@@ -96,7 +96,7 @@ export const addContribution = asyncHandler(async (req: Request, res: Response) 
   if (!memberId || !month) throw new ApiError("Missing required fields", 400);
   if (!amount || amount <= 0) throw new ApiError("Amount must be greater than zero", 400);
 
-  const contribution = container.contributionService.addContribution({
+  const contribution = await container.contributionService.addContribution({
     groupId: req.user.groupId,
     memberId,
     amount,
@@ -111,8 +111,8 @@ export const listContributions = asyncHandler(async (req: Request, res: Response
 
   const items =
     req.user.role === "member"
-      ? container.contributionService.listByMember(req.user.userId)
-      : container.contributionService.listByGroup(req.user.groupId);
+      ? await container.contributionService.listByMember(req.user.userId)
+      : await container.contributionService.listByGroup(req.user.groupId);
 
   res.json({ items });
 });
@@ -120,7 +120,7 @@ export const listContributions = asyncHandler(async (req: Request, res: Response
 export const listUnpaidContributions = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) throw new ApiError("Unauthorized", 401);
 
-  const items = container.contributionService.listUnpaidByGroup(req.user.groupId);
+  const items = await container.contributionService.listUnpaidByGroup(req.user.groupId);
 
   res.json({ items });
 });

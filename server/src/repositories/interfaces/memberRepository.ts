@@ -1,11 +1,11 @@
 import type { Member } from "../../models/types";
 
 export type MemberRepository = {
-  create: (member: Member) => Member;
-  getById: (id: string) => Member | undefined;
-  listByGroup: (groupId: string) => Member[];
-  findByIdentifier: (identifier: string) => Member | undefined;
-  findByInviteToken: (token: string) => Member | undefined;
-  update: (id: string, patch: Partial<Member>) => Member | undefined;
-  delete: (id: string) => boolean;
+  create: (member: Member) => Promise<Member>;
+  getById: (id: string) => Promise<Member | undefined>;
+  listByGroup: (groupId: string) => Promise<Member[]>;
+  findByIdentifier: (identifier: string) => Promise<Member | undefined>;
+  findByInviteToken: (token: string) => Promise<Member | undefined>;
+  update: (id: string, patch: Partial<Member>) => Promise<Member | undefined>;
+  delete: (id: string) => Promise<boolean>;
 };

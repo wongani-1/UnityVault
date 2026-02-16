@@ -26,19 +26,19 @@ export const createGroup = asyncHandler(async (req: Request, res: Response) => {
 export const getGroup = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) throw new ApiError("Unauthorized", 401);
   if (req.user.groupId !== req.params.groupId) throw new ApiError("Forbidden", 403);
-  const group = container.groupService.getGroup(req.params.groupId);
+  const group = await container.groupService.getGroup(req.params.groupId);
   res.json(group);
 });
 
 export const getMyGroup = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) throw new ApiError("Unauthorized", 401);
-  const group = container.groupService.getGroup(req.user.groupId);
+  const group = await container.groupService.getGroup(req.user.groupId);
   res.json(group);
 });
 
 export const getGroupSettings = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) throw new ApiError("Unauthorized", 401);
-  const group = container.groupService.getGroup(req.user.groupId);
+  const group = await container.groupService.getGroup(req.user.groupId);
   res.json(group.settings);
 });
 
@@ -55,6 +55,6 @@ export const updateGroupSettings = asyncHandler(async (req: Request, res: Respon
     enableAutomaticPenalties: boolean;
   };
 
-  const updated = container.groupService.updateSettings(req.user.groupId, settings);
+  const updated = await container.groupService.updateSettings(req.user.groupId, settings);
   res.json(updated.settings);
 });

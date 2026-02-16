@@ -5,7 +5,7 @@ import { createId } from "../utils/id";
 export class NotificationService {
   constructor(private notificationRepository: NotificationRepository) {}
 
-  create(notification: Omit<Notification, "id" | "createdAt" | "status">) {
+  async create(notification: Omit<Notification, "id" | "createdAt" | "status">) {
     const record: Notification = {
       ...notification,
       id: createId("note"),
@@ -16,11 +16,11 @@ export class NotificationService {
     return this.notificationRepository.create(record);
   }
 
-  listByGroup(groupId: string) {
+  async listByGroup(groupId: string) {
     return this.notificationRepository.listByGroup(groupId);
   }
 
-  listByMember(memberId: string) {
+  async listByMember(memberId: string) {
     return this.notificationRepository.listByMember(memberId);
   }
 }

@@ -3,24 +3,24 @@ import type { Loan } from "../../models/types";
 import { store } from "./store";
 
 export const loanRepository: LoanRepository = {
-  create(loan: Loan) {
+  async create(loan: Loan) {
     store.loans.set(loan.id, loan);
     return loan;
   },
-  getById(id: string) {
+  async getById(id: string) {
     return store.loans.get(id);
   },
-  listByGroup(groupId: string) {
+  async listByGroup(groupId: string) {
     return Array.from(store.loans.values()).filter(
       (loan) => loan.groupId === groupId
     );
   },
-  listByMember(memberId: string) {
+  async listByMember(memberId: string) {
     return Array.from(store.loans.values()).filter(
       (loan) => loan.memberId === memberId
     );
   },
-  update(id: string, patch: Partial<Loan>) {
+  async update(id: string, patch: Partial<Loan>) {
     const current = store.loans.get(id);
     if (!current) return undefined;
     const updated = { ...current, ...patch };

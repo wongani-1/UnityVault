@@ -1,14 +1,6 @@
-import {
-  adminRepository,
-  auditRepository,
-  contributionRepository,
-  groupRepository,
-  loanRepository,
-  memberRepository,
-  notificationRepository,
-  penaltyRepository,
-  transactionRepository,
-} from "./repositories/memory";
+import { env } from "./config/env";
+import * as memoryRepositories from "./repositories/memory";
+import * as supabaseRepositories from "./repositories/supabase";
 import { AuditService } from "./services/auditService";
 import { AdminService } from "./services/adminService";
 import { NotificationService } from "./services/notificationService";
@@ -20,43 +12,51 @@ import { LoanService } from "./services/loanService";
 import { AuthService } from "./services/authService";
 import { EmailService } from "./services/emailService";
 
+const repositories =
+  env.dataStore === "supabase" ? supabaseRepositories : memoryRepositories;
+
 const emailService = new EmailService();
-const auditService = new AuditService(auditRepository);
-const adminService = new AdminService(adminRepository);
-const notificationService = new NotificationService(notificationRepository);
+const auditService = new AuditService(repositories.auditRepository);
+const adminService = new AdminService(repositories.adminRepository);
+const notificationService = new NotificationService(repositories.notificationRepository);
 const penaltyService = new PenaltyService(
-  penaltyRepository,
-  memberRepository,
-  groupRepository,
-  transactionRepository
+  repositories.penaltyRepository,
+  repositories.memberRepository,
+  repositories.groupRepository,
+  repositories.transactionRepository
 );
-const groupService = new GroupService(groupRepository, adminRepository, auditService);
+const groupService = new GroupService(
+  repositories.groupRepository,
+  repositories.adminRepository,
+  auditService
+);
 const memberService = new MemberService(
-  memberRepository,
+  repositories.memberRepository,
+  repositories.groupRepository,
   auditService,
   notificationService,
   emailService
 );
 const contributionService = new ContributionService(
-  contributionRepository,
-  memberRepository,
-  penaltyRepository,
-  groupRepository,
+  repositories.contributionRepository,
+  repositories.memberRepository,
+  repositories.penaltyRepository,
+  repositories.groupRepository,
   emailService
 );
 const loanService = new LoanService(
-  loanRepository,
-  memberRepository,
-  penaltyRepository,
-  groupRepository,
-  notificationRepository,
-  contributionRepository,
-  auditRepository
+  repositories.loanRepository,
+  repositories.memberRepository,
+  repositories.penaltyRepository,
+  repositories.groupRepository,
+  repositories.notificationRepository,
+  repositories.contributionRepository,
+  repositories.auditRepository
 );
 const authService = new AuthService(
-  groupRepository,
-  adminRepository,
-  memberRepository
+  repositories.groupRepository,
+  repositories.adminRepository,
+  repositories.memberRepository
 );
 
 export const container = {
