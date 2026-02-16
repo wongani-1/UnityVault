@@ -165,6 +165,34 @@ create table if not exists public.transactions (
   created_by text not null
 );
 
+create table if not exists public.distributions (
+  id text primary key,
+  group_id text not null references public.groups(id) on delete cascade,
+  year integer not null,
+  total_contributions double precision not null,
+  total_profit_pool double precision not null,
+  total_loan_interest double precision not null,
+  total_penalties double precision not null,
+  number_of_members integer not null,
+  profit_per_member double precision not null,
+  status text not null,
+  distributed_at timestamptz,
+  created_at timestamptz not null default now(),
+  unique(group_id, year)
+);
+
+create table if not exists public.member_distributions (
+  id text primary key,
+  distribution_id text not null references public.distributions(id) on delete cascade,
+  member_id text not null references public.members(id) on delete cascade,
+  member_name text not null,
+  total_contributions double precision not null,
+  profit_share double precision not null,
+  total_payout double precision not null,
+  paid_at timestamptz,
+  created_at timestamptz not null default now()
+);
+
 create index if not exists idx_admins_group_id on public.admins(group_id);
 create index if not exists idx_members_group_id on public.members(group_id);
 create index if not exists idx_members_identifier on public.members(username, email, phone);
@@ -184,6 +212,10 @@ create index if not exists idx_password_resets_user on public.password_resets(us
 create index if not exists idx_audit_logs_group_id on public.audit_logs(group_id);
 create index if not exists idx_transactions_group_id on public.transactions(group_id);
 create index if not exists idx_transactions_member_id on public.transactions(member_id);
+create index if not exists idx_distributions_group_id on public.distributions(group_id);
+create index if not exists idx_distributions_year on public.distributions(group_id, year);
+create index if not exists idx_member_distributions_distribution_id on public.member_distributions(distribution_id);
+create index if not exists idx_member_distributions_member_id on public.member_distributions(member_id);
 
 -- Enable RLS and restrict access for anon/authenticated roles.
 alter table public.groups enable row level security;
@@ -197,6 +229,8 @@ alter table public.audit_logs enable row level security;
 alter table public.transactions enable row level security;
 alter table public.sessions enable row level security;
 alter table public.password_resets enable row level security;
+alter table public.distributions enable row level security;
+alter table public.member_distributions enable row level security;
 
 revoke all on table public.groups from anon, authenticated;
 revoke all on table public.admins from anon, authenticated;
@@ -209,3 +243,5 @@ revoke all on table public.audit_logs from anon, authenticated;
 revoke all on table public.transactions from anon, authenticated;
 revoke all on table public.sessions from anon, authenticated;
 revoke all on table public.password_resets from anon, authenticated;
+revoke all on table public.distributions from anon, authenticated;
+revoke all on table public.member_distributions from anon, authenticated;

@@ -15,6 +15,7 @@ import { sessionsRouter } from "./sessions";
 import { dataExportRouter } from "./dataExport";
 import { receiptRoutes } from "./receipts";
 import { pushRoutes } from "./push";
+import { distributionRoutes } from "./distributions";
 
 export const apiRouter = Router();
 
@@ -34,3 +35,4 @@ apiRouter.use("/sessions", sessionsRouter);
 apiRouter.use("/export", dataExportRouter);
 apiRouter.use("/receipts", receiptRoutes);
 apiRouter.use("/push", pushRoutes);
+apiRouter.use("/distributions", distributionRoutes);

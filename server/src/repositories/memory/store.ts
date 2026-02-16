@@ -9,6 +9,7 @@ import type {
   AuditLog,
   Transaction,
 } from "../../models/types";
+import type { Distribution, MemberDistribution } from "../../models/distribution";
 
 export const store = {
   groups: new Map<string, Group>(),
@@ -20,4 +21,6 @@ export const store = {
   notifications: new Map<string, Notification>(),
   auditLogs: new Map<string, AuditLog>(),
   transactions: new Map<string, Transaction>(),
+  distributions: new Map<string, Distribution>(),
+  memberDistributions: new Map<string, MemberDistribution>(),
 };

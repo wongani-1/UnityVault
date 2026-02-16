@@ -1,11 +1,11 @@
 import { Router } from "express";
-import { authenticate } from "../middleware/auth";
+import { requireAuth } from "../middleware/auth";
 import * as receiptController from "../controllers/receiptController";
 
 export const receiptRoutes = Router();
 
 // All receipt routes require authentication
-receiptRoutes.use(authenticate);
+receiptRoutes.use(requireAuth);
 
 // Generate contribution receipt
 receiptRoutes.get(

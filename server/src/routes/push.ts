@@ -1,11 +1,11 @@
 import { Router } from "express";
-import { authenticate } from "../middleware/auth";
+import { requireAuth } from "../middleware/auth";
 import * as pushController from "../controllers/pushNotificationController";
 
 export const pushRoutes = Router();
 
 // All push notification routes require authentication
-pushRoutes.use(authenticate);
+pushRoutes.use(requireAuth);
 
 // Subscribe to push notifications
 pushRoutes.post("/subscribe", pushController.subscribe);

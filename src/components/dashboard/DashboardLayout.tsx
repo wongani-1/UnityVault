@@ -21,6 +21,7 @@ import {
   LinkIcon,
   ShieldCheck,
   AlertTriangle,
+  TrendingUp,
 } from "lucide-react";
 
 interface DashboardLayoutProps {
@@ -37,6 +38,7 @@ const memberNav = [
   { label: "Overview", icon: LayoutDashboard, href: "/dashboard" },
   { label: "Contributions", icon: Wallet, href: "/dashboard/contributions" },
   { label: "Loans", icon: CreditCard, href: "/dashboard/loans" },
+  { label: "Distributions", icon: TrendingUp, href: "/dashboard/distributions" },
   { label: "Notifications", icon: Bell, href: "/dashboard/notifications" },
 ];
 
@@ -45,6 +47,7 @@ const adminNav = [
   { label: "Members", icon: Users, href: "/admin/members" },
   { label: "Loans", icon: CreditCard, href: "/admin/loans" },
   { label: "Penalties", icon: AlertTriangle, href: "/admin/penalties" },
+  { label: "Distributions", icon: TrendingUp, href: "/admin/distributions" },
   { label: "Reports", icon: FileText, href: "/admin/reports" },
   { label: "Audit Logs", icon: ShieldCheck, href: "/admin/audit" },
   { label: "Settings", icon: Settings, href: "/admin/settings" },

@@ -27,6 +27,8 @@ import AdminAudit from "./pages/AdminAudit";
 import AdminPenalties from "./pages/AdminPenalties";
 import AdminNotifications from "./pages/AdminNotifications";
 import AdminProfile from "./pages/AdminProfile";
+import AdminDistributions from "./pages/AdminDistributions";
+import MemberDistributions from "./pages/MemberDistributions";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
 import CookiePolicy from "./pages/CookiePolicy";
@@ -44,7 +46,7 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
+      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/login" element={<Login />} />
@@ -100,6 +102,14 @@ const App = () => (
             element={
               <RequireAuth role="member">
                 <MemberProfile />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/dashboard/distributions"
+            element={
+              <RequireAuth role="member">
+                <MemberDistributions />
               </RequireAuth>
             }
           />
@@ -172,6 +182,14 @@ const App = () => (
             element={
               <RequireAuth role="group_admin">
                 <AdminSettings />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/admin/distributions"
+            element={
+              <RequireAuth role="group_admin">
+                <AdminDistributions />
               </RequireAuth>
             }
           />
