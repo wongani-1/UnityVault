@@ -193,7 +193,7 @@ const MemberRegistrationDetails = () => {
                   <p className="text-sm text-destructive">{passwordError}</p>
                 )}
                 <p className="text-xs text-muted-foreground">
-                  Must contain uppercase, lowercase, number, and special character (min. 8 chars)
+                  Must contain uppercase, lowercase, number, and special character (minimum 8 characters)
                 </p>
               </div>
 
