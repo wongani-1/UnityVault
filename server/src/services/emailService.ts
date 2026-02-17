@@ -1,6 +1,7 @@
 import nodemailer from "nodemailer";
 import type { Transporter } from "nodemailer";
 import { env } from "../config/env";
+import path from "path";
 
 export type EmailOptions = {
   to: string;
@@ -45,12 +46,22 @@ export class EmailService {
     }
 
     try {
+      // Path to logo file (relative to project root)
+      const logoPath = path.join(__dirname, "..", "..", "..", "public", "Unity Vault.png");
+      
       const info = await this.transporter.sendMail({
         from: `"UnityVault" <${env.email.user}>`,
         to: options.to,
         subject: options.subject,
         html: options.html,
         text: options.text || options.html.replace(/<[^>]*>/g, ""),
+        attachments: [
+          {
+            filename: "logo.png",
+            path: logoPath,
+            cid: "logo", // Same cid value as in the html img src
+          },
+        ],
       });
 
       console.log("Email sent successfully:", info.messageId);
@@ -79,6 +90,7 @@ export class EmailService {
             body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
             .container { max-width: 600px; margin: 0 auto; padding: 20px; }
             .header { background-color: #4F46E5; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+            .logo { max-width: 150px; height: auto; margin-bottom: 10px; }
             .content { background-color: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }
             .otp-box { background-color: white; border: 2px solid #4F46E5; padding: 15px; text-align: center; margin: 20px 0; border-radius: 8px; }
             .otp { font-size: 32px; font-weight: bold; color: #4F46E5; letter-spacing: 8px; }
@@ -90,6 +102,7 @@ export class EmailService {
         <body>
           <div class="container">
             <div class="header">
+              <img src="cid:logo" alt="UnityVault Logo" class="logo" />
               <h1>Welcome to ${params.groupName}!</h1>
             </div>
             <div class="content">
@@ -154,6 +167,7 @@ export class EmailService {
             body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
             .container { max-width: 600px; margin: 0 auto; padding: 20px; }
             .header { background-color: #10b981; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+            .logo { max-width: 150px; height: auto; margin-bottom: 10px; }
             .content { background-color: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }
             .success-icon { font-size: 48px; text-align: center; margin: 20px 0; }
             .button { display: inline-block; background-color: #10b981; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; margin: 20px 0; }
@@ -163,6 +177,7 @@ export class EmailService {
         <body>
           <div class="container">
             <div class="header">
+              <img src="cid:logo" alt="UnityVault Logo" class="logo" />
               <h1>Account Approved!</h1>
             </div>
             <div class="content">
@@ -225,6 +240,7 @@ export class EmailService {
             body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
             .container { max-width: 600px; margin: 0 auto; padding: 20px; }
             .header { background-color: #4F46E5; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+            .logo { max-width: 150px; height: auto; margin-bottom: 10px; }
             .content { background-color: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }
             .amount-box { background-color: white; border-left: 4px solid #10b981; padding: 15px; margin: 20px 0; }
             .details { background-color: white; padding: 20px; border-radius: 8px; margin: 20px 0; }
@@ -237,6 +253,7 @@ export class EmailService {
         <body>
           <div class="container">
             <div class="header">
+              <img src="cid:logo" alt="UnityVault Logo" class="logo" />
               <h1>Payment Received</h1>
             </div>
             <div class="content">
@@ -307,6 +324,7 @@ export class EmailService {
             body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
             .container { max-width: 600px; margin: 0 auto; padding: 20px; }
             .header { background-color: #4F46E5; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+            .logo { max-width: 150px; height: auto; margin-bottom: 10px; }
             .content { background-color: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }
             .otp-box { background-color: white; border: 2px solid #4F46E5; padding: 20px; text-align: center; margin: 20px 0; border-radius: 8px; }
             .otp { font-size: 36px; font-weight: bold; color: #4F46E5; letter-spacing: 10px; }
@@ -317,6 +335,7 @@ export class EmailService {
         <body>
           <div class="container">
             <div class="header">
+              <img src="cid:logo" alt="UnityVault Logo" class="logo" />
               <h1>Verification Code</h1>
             </div>
             <div class="content">
