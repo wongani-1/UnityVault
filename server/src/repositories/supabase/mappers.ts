@@ -37,6 +37,9 @@ export type AdminRow = {
   two_factor_backup_codes?: string[] | null;
   password_reset_token?: string | null;
   password_reset_expires_at?: string | null;
+  subscription_paid?: boolean;
+  subscription_paid_at?: string | null;
+  subscription_expires_at?: string | null;
 };
 
 export type MemberRow = {
@@ -60,6 +63,8 @@ export type MemberRow = {
   two_factor_backup_codes?: string[] | null;
   password_reset_token?: string | null;
   password_reset_expires_at?: string | null;
+  registration_fee_paid?: boolean;
+  registration_fee_paid_at?: string | null;
 };
 
 export type ContributionRow = {
@@ -221,6 +226,9 @@ export const fromAdminRow = (row: AdminRow): Admin => ({
   twoFactorBackupCodes: row.two_factor_backup_codes || undefined,
   passwordResetToken: row.password_reset_token || undefined,
   passwordResetExpiresAt: row.password_reset_expires_at || undefined,
+  subscriptionPaid: row.subscription_paid || false,
+  subscriptionPaidAt: row.subscription_paid_at || undefined,
+  subscriptionExpiresAt: row.subscription_expires_at || undefined,
 });
 
 export const toMemberRow = (member: Member): MemberRow => ({
@@ -279,6 +287,8 @@ export const fromMemberRow = (row: MemberRow): Member => ({
   passwordResetToken: row.password_reset_token || undefined,
   passwordResetExpiresAt: row.password_reset_expires_at || undefined,
   inviteSentAt: row.invite_sent_at || undefined,
+  registrationFeePaid: row.registration_fee_paid || false,
+  registrationFeePaidAt: row.registration_fee_paid_at || undefined,
 });
 
 export const toContributionRow = (contribution: Contribution): ContributionRow => ({

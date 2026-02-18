@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useState, useMemo } from "react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -9,10 +9,13 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { ArrowLeft, CreditCard, Smartphone, ShieldCheck } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
+import { apiRequest } from "@/lib/api";
 
 const MemberRegistrationPayment = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [method, setMethod] = useState<"mobile" | "card">("mobile");
+  const [mobileProvider, setMobileProvider] = useState<"airtel" | "tnm" | null>(null);
   const [saveForFuture, setSaveForFuture] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -26,20 +29,55 @@ const MemberRegistrationPayment = () => {
     email: "",
   });
 
+  // Determine if this is admin subscription or member registration based on path
+  const isAdminSubscription = useMemo(() => {
+    return location.pathname.includes("admin");
+  }, [location.pathname]);
+
+  const paymentAmount = isAdminSubscription ? 10000 : 5000;
+  const paymentTitle = isAdminSubscription ? "Monthly Subscription" : "Registration Fee";
+  const paymentDescription = isAdminSubscription 
+    ? "Complete payment to start adding members to your group for the next 30 days."
+    : "Complete payment to access your member dashboard.";
+  const paymentNote = isAdminSubscription
+    ? "Monthly subscription fee (renews every 30 days)"
+    : "Member registration fee (one-time, non-refundable)";
+
   const updateField = (field: keyof typeof form, value: string) =>
     setForm((prev) => ({ ...prev, [field]: value }));
 
   const handlePay = async () => {
-    const requiredFields =
-      method === "mobile"
-        ? [form.mobileNumber, form.payerName]
-        : [form.cardName, form.cardNumber, form.cardExpiry, form.cardCvv];
-
-    const hasEmpty = requiredFields.some((value) => value.trim().length === 0);
-    
-    if (hasEmpty) {
-      setFormError("All fields are required.");
-      return;
+    // Validate form fields
+    if (method === "mobile") {
+      if (!form.payerName.trim() || !form.mobileNumber.trim()) {
+        setFormError("Please fill in payer name and mobile number.");
+        return;
+      }
+      if (!mobileProvider) {
+        setFormError("Please select a mobile money provider (Airtel or TNM Mpamba).");
+        return;
+      }
+      // Validate phone number format based on provider
+      if (mobileProvider === "airtel") {
+        if (!/^09\d{8}$/.test(form.mobileNumber)) {
+          setFormError("Airtel Money number must be in format 09XXXXXXXX (10 digits starting with 09).");
+          return;
+        }
+      } else if (mobileProvider === "tnm") {
+        if (!/^08\d{8}$/.test(form.mobileNumber)) {
+          setFormError("TNM Mpamba number must be in format 08XXXXXXXX (10 digits starting with 08).");
+          return;
+        }
+      }
+    } else {
+      // Card payment validation
+      const hasEmpty = [form.cardName, form.cardNumber, form.cardExpiry, form.cardCvv].some(
+        (value) => value.trim().length === 0
+      );
+      if (hasEmpty) {
+        setFormError("All card fields are required.");
+        return;
+      }
     }
     
     setFormError(null);
@@ -49,17 +87,40 @@ const MemberRegistrationPayment = () => {
       // Simulate payment processing
       await new Promise((resolve) => setTimeout(resolve, 2000));
 
-      // Get group ID from localStorage or URL
-      const urlParams = new URLSearchParams(window.location.search);
-      const groupId = urlParams.get("groupId") || localStorage.getItem("unityvault:pendingGroupId");
+      if (isAdminSubscription) {
+        // Admin subscription payment
+        await apiRequest("/admins/me/subscription-payment", {
+          method: "POST",
+        });
 
-      toast.success("Payment successful!");
-      
-      // Redirect to registration details page
-      if (groupId) {
-        navigate(`/member/registration-details?groupId=${groupId}`);
+        toast.success("Subscription fee payment successful!");
+        navigate("/admin/members");
       } else {
-        navigate("/member/registration-details");
+        // Member registration payment
+        const token = localStorage.getItem("unityvault:token");
+        const role = localStorage.getItem("unityvault:role");
+
+        if (token && role === "member") {
+          // For logged-in member, record registration fee payment
+          await apiRequest("/members/me/registration-payment", {
+            method: "POST",
+          });
+
+          toast.success("Registration fee payment successful!");
+          navigate("/dashboard");
+        } else {
+          // For new member activation flow, continue to registration details
+          const urlParams = new URLSearchParams(window.location.search);
+          const groupId = urlParams.get("groupId") || localStorage.getItem("unityvault:pendingGroupId");
+
+          toast.success("Payment successful!");
+          
+          if (groupId) {
+            navigate(`/member/registration-details?groupId=${groupId}`);
+          } else {
+            navigate("/member/registration-details");
+          }
+        }
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : "Payment failed";
@@ -85,15 +146,15 @@ const MemberRegistrationPayment = () => {
 
         <Card className="border-0 shadow-elevated">
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl">Registration Fee</CardTitle>
-            <CardDescription>Complete payment to access your member dashboard.</CardDescription>
+            <CardTitle className="text-2xl">{paymentTitle}</CardTitle>
+            <CardDescription>{paymentDescription}</CardDescription>
           </CardHeader>
 
           <CardContent className="space-y-6">
             {/* Amount Display */}
             <div className="text-center">
-              <div className="text-4xl font-bold text-foreground">MWK 2,500</div>
-              <p className="mt-1 text-sm text-muted-foreground">Member registration fee</p>
+              <div className="text-4xl font-bold text-foreground">MWK {paymentAmount.toLocaleString()}</div>
+              <p className="mt-1 text-sm text-muted-foreground">{paymentNote}</p>
             </div>
             <Separator />
 
@@ -113,6 +174,46 @@ const MemberRegistrationPayment = () => {
                 </TabsList>
 
                 <TabsContent value="mobile" className="mt-4 space-y-4">
+                  {/* Mobile Money Provider Logos */}
+                  <div className="rounded-lg border bg-muted/30 p-4">
+                    <p className="mb-3 text-center text-xs font-medium text-muted-foreground">
+                      Select Mobile Money Service
+                    </p>
+                    <div className="flex items-center justify-center gap-4">
+                      <button
+                        type="button"
+                        onClick={() => setMobileProvider("airtel")}
+                        className={`flex h-20 w-32 items-center justify-center rounded-md border bg-white p-2 transition-all hover:shadow-md ${
+                          mobileProvider === "airtel" ? "ring-2 ring-primary ring-offset-2" : ""
+                        }`}
+                      >
+                        <img 
+                          src="/Airtel logo.png" 
+                          alt="Airtel Money" 
+                          className="h-full w-full object-contain"
+                        />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setMobileProvider("tnm")}
+                        className={`flex h-20 w-32 items-center justify-center rounded-md border bg-white p-2 transition-all hover:shadow-md ${
+                          mobileProvider === "tnm" ? "ring-2 ring-primary ring-offset-2" : ""
+                        }`}
+                      >
+                        <img 
+                          src="/mpamba.png" 
+                          alt="Mpamba by TNM" 
+                          className="h-full w-full object-contain"
+                        />
+                      </button>
+                    </div>
+                    {mobileProvider && (
+                      <p className="mt-3 text-center text-xs font-medium text-primary">
+                        {mobileProvider === "airtel" ? "Airtel Money selected" : "TNM Mpamba selected"}
+                      </p>
+                    )}
+                  </div>
+
                   <div className="space-y-2">
                     <Label htmlFor="payer-name">Payer name</Label>
                     <Input
@@ -126,11 +227,23 @@ const MemberRegistrationPayment = () => {
                     <Label htmlFor="mobile-number">Mobile number</Label>
                     <Input
                       id="mobile-number"
-                      placeholder="e.g. 0991 000 000"
+                      placeholder={
+                        mobileProvider === "airtel"
+                          ? "09XXXXXXXX"
+                          : mobileProvider === "tnm"
+                          ? "08XXXXXXXX"
+                          : "e.g. 0991 000 000"
+                      }
                       value={form.mobileNumber}
                       onChange={(e) => updateField("mobileNumber", e.target.value)}
                     />
-                    <p className="text-xs text-muted-foreground">Use the number registered for mobile payments.</p>
+                    <p className="text-xs text-muted-foreground">
+                      {mobileProvider === "airtel"
+                        ? "Airtel Money format: 09XXXXXXXX"
+                        : mobileProvider === "tnm"
+                        ? "TNM Mpamba format: 08XXXXXXXX"
+                        : "Use the number registered for mobile payments."}
+                    </p>
                   </div>
                 </TabsContent>
 
@@ -215,7 +328,7 @@ const MemberRegistrationPayment = () => {
                 onClick={handlePay}
                 disabled={isProcessing}
               >
-                {isProcessing ? "Processing Payment..." : "Pay MWK 2,500"}
+                {isProcessing ? "Processing Payment..." : `Pay MWK ${paymentAmount.toLocaleString()}`}
               </Button>
               <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
                 <ShieldCheck className="h-3.5 w-3.5" />

@@ -43,6 +43,8 @@ export class MemberService {
       balance: 0,
       penaltiesTotal: 0,
       twoFactorEnabled: false,
+      registrationFeePaid: false,
+      registrationFeePaidAt: undefined,
     };
 
     await this.memberRepository.create(member);
@@ -90,6 +92,8 @@ export class MemberService {
       createdAt: new Date().toISOString(),
       balance: 0,
       penaltiesTotal: 0,
+      registrationFeePaid: false,
+      registrationFeePaidAt: undefined,
       inviteToken,
       inviteOtpHash,
       inviteExpiresAt,
@@ -254,5 +258,18 @@ export class MemberService {
     const updated = await this.memberRepository.update(memberId, { passwordHash });
     if (!updated) throw new ApiError("Failed to update password", 500);
     return { status: "ok" };
+  }
+
+  async recordRegistrationFeePayment(memberId: string) {
+    const member = await this.memberRepository.getById(memberId);
+    if (!member) throw new ApiError("Member not found", 404);
+
+    const updated = await this.memberRepository.update(memberId, {
+      registrationFeePaid: true,
+      registrationFeePaidAt: new Date().toISOString(),
+    });
+    
+    if (!updated) throw new ApiError("Failed to record payment", 500);
+    return { ...updated, passwordHash: "" };
   }
 }

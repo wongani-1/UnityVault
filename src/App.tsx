@@ -61,6 +61,7 @@ const App = () => (
           <Route path="/help" element={<HelpCenter />} />
           <Route path="/help/:articleId" element={<HelpArticle />} />
           <Route path="/admin/group-rules" element={<AdminGroupSetup />} />
+          <Route path="/admin/subscription-fee" element={<MemberRegistrationPayment />} />
           <Route path="/member/registration-fee" element={<MemberRegistrationPayment />} />
           <Route path="/member/registration-details" element={<MemberRegistrationDetails />} />
           <Route path="/member/pay-contribution" element={<MemberContributionPayment />} />

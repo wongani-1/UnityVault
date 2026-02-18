@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import {
   Table,
   TableBody,
@@ -65,9 +66,14 @@ type InviteInfo = {
 };
 
 const AdminMembers = () => {
+  const navigate = useNavigate();
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [subscriptionDialogOpen, setSubscriptionDialogOpen] = useState(false);
+  const [subscriptionPaid, setSubscriptionPaid] = useState(false);
+  const [subscriptionActive, setSubscriptionActive] = useState(false);
+  const [subscriptionExpiresAt, setSubscriptionExpiresAt] = useState<string | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [detailsLoading, setDetailsLoading] = useState(false);
@@ -111,7 +117,34 @@ const AdminMembers = () => {
 
   useEffect(() => {
     loadMembers();
+    checkSubscription();
   }, []);
+
+  const checkSubscription = async () => {
+    try {
+      const data = await apiRequest<{ 
+        subscriptionPaid: boolean;
+        isActive: boolean;
+        subscriptionExpiresAt?: string;
+      }>("/admins/me/subscription-status");
+      setSubscriptionPaid(data.subscriptionPaid);
+      setSubscriptionActive(data.isActive);
+      setSubscriptionExpiresAt(data.subscriptionExpiresAt || null);
+      return data.isActive;
+    } catch (error) {
+      console.error("Failed to check subscription status:", error);
+      return false;
+    }
+  };
+
+  const handleAddMemberClick = async () => {
+    const isActive = await checkSubscription();
+    if (!isActive) {
+      setSubscriptionDialogOpen(true);
+    } else {
+      setDialogOpen(true);
+    }
+  };
 
   const updateField = (field: keyof typeof form, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -188,92 +221,10 @@ const AdminMembers = () => {
       <Card className="border-0 shadow-card">
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-lg">Member Directory</CardTitle>
-          <Dialog open={dialogOpen} onOpenChange={handleDialogChange}>
-            <DialogTrigger asChild>
-              <Button variant="hero" size="sm">
-                <UserPlus className="mr-2 h-4 w-4" />
-                Add Member
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Add Member</DialogTitle>
-              </DialogHeader>
-              <div className="grid gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="member-fullName">Full name</Label>
-                  <Input
-                    id="member-fullName"
-                    value={form.fullName}
-                    onChange={(e) => updateField("fullName", e.target.value)}
-                    placeholder="Member name"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="member-username">Username</Label>
-                  <Input
-                    id="member-username"
-                    value={form.username}
-                    onChange={(e) => updateField("username", e.target.value)}
-                    placeholder="Username"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="member-email">Email</Label>
-                  <Input
-                    id="member-email"
-                    type="email"
-                    value={form.email}
-                    onChange={(e) => updateField("email", e.target.value)}
-                    placeholder="member@example.com"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="member-phone">Phone</Label>
-                  <Input
-                    id="member-phone"
-                    value={form.phone}
-                    onChange={(e) => updateField("phone", e.target.value)}
-                    placeholder="+265 XXX XXX XXX"
-                  />
-                </div>
-                
-                {inviteInfo && (
-                  <div className="rounded-lg border bg-secondary/30 p-3 text-sm">
-                    <p className="font-semibold text-foreground">Delivery pending</p>
-                    <p className="text-muted-foreground">Share this link and OTP with the member.</p>
-                    <div className="mt-2 space-y-1">
-                      <p>
-                        <span className="font-medium">Link:</span>{" "}
-                        <a
-                          href={inviteLink || inviteInfo.link}
-                          className="text-primary underline"
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          {inviteLink || inviteInfo.link}
-                        </a>
-                      </p>
-                      <p>
-                        <span className="font-medium">OTP:</span> {inviteInfo.otp}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        Expires: {new Date(inviteInfo.expiresAt).toLocaleString()}
-                      </p>
-                    </div>
-                  </div>
-                )}
-                <div className="flex justify-end gap-2">
-                  <Button variant="ghost" onClick={() => setDialogOpen(false)}>
-                    Cancel
-                  </Button>
-                  <Button variant="hero" onClick={handleAddMember} disabled={submitting}>
-                    {submitting ? "Adding..." : "Add Member"}
-                  </Button>
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
+          <Button variant="hero" size="sm" onClick={handleAddMemberClick}>
+            <UserPlus className="mr-2 h-4 w-4" />
+            Add Member
+          </Button>
         </CardHeader>
         <CardContent>
           {loading && (
@@ -332,6 +283,132 @@ const AdminMembers = () => {
           </Table>
         </CardContent>
       </Card>
+
+      {/* Add Member Dialog */}
+      <Dialog open={dialogOpen} onOpenChange={handleDialogChange}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Member</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="member-fullName">Full name</Label>
+              <Input
+                id="member-fullName"
+                value={form.fullName}
+                onChange={(e) => updateField("fullName", e.target.value)}
+                placeholder="Member name"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="member-username">Username</Label>
+              <Input
+                id="member-username"
+                value={form.username}
+                onChange={(e) => updateField("username", e.target.value)}
+                placeholder="Username"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="member-email">Email</Label>
+              <Input
+                id="member-email"
+                type="email"
+                value={form.email}
+                onChange={(e) => updateField("email", e.target.value)}
+                placeholder="member@example.com"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="member-phone">Phone</Label>
+              <Input
+                id="member-phone"
+                value={form.phone}
+                onChange={(e) => updateField("phone", e.target.value)}
+                placeholder="+265 XXX XXX XXX"
+              />
+            </div>
+            
+            {inviteInfo && (
+              <div className="rounded-lg border bg-secondary/30 p-3 text-sm">
+                <p className="font-semibold text-foreground">Delivery pending</p>
+                <p className="text-muted-foreground">Share this link and OTP with the member.</p>
+                <div className="mt-2 space-y-1">
+                  <p>
+                    <span className="font-medium">Link:</span>{" "}
+                    <a
+                      href={inviteLink || inviteInfo.link}
+                      className="text-primary underline"
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      {inviteLink || inviteInfo.link}
+                    </a>
+                  </p>
+                  <p>
+                    <span className="font-medium">OTP:</span> {inviteInfo.otp}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Expires: {new Date(inviteInfo.expiresAt).toLocaleString()}
+                  </p>
+                </div>
+              </div>
+            )}
+            <div className="flex justify-end gap-2">
+              <Button variant="ghost" onClick={() => setDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button variant="hero" onClick={handleAddMember} disabled={submitting}>
+                {submitting ? "Adding..." : "Add Member"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Subscription Payment Dialog */}
+      <Dialog open={subscriptionDialogOpen} onOpenChange={setSubscriptionDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {subscriptionPaid ? "Subscription Expired" : "Subscription Required"}
+            </DialogTitle>
+            <DialogDescription>
+              {subscriptionPaid 
+                ? "Your monthly subscription has expired. Renew to continue adding members to your group."
+                : "To add members to your group, you need to pay the monthly subscription fee."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
+              <p className="text-2xl font-bold text-primary">MWK 10,000/month</p>
+              <p className="text-sm text-muted-foreground">Monthly subscription fee</p>
+              {subscriptionExpiresAt && (
+                <p className="text-xs text-muted-foreground mt-2">
+                  {subscriptionPaid ? "Expired" : "Valid"}: {new Date(subscriptionExpiresAt).toLocaleDateString()}
+                </p>
+              )}
+            </div>
+            <p className="text-sm text-muted-foreground">
+              This monthly subscription allows you to manage your group and add unlimited members.
+            </p>
+            <div className="flex justify-end gap-2">
+              <Button variant="ghost" onClick={() => setSubscriptionDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button 
+                variant="hero" 
+                onClick={() => {
+                  setSubscriptionDialogOpen(false);
+                  window.location.href = "/admin/subscription-payment";
+                }}
+              >
+                {subscriptionPaid ? "Renew Subscription" : "Proceed to Payment"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
         <DialogContent className="max-w-3xl">
@@ -439,6 +516,31 @@ const AdminMembers = () => {
               )}
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Subscription Payment Dialog */}
+      <Dialog open={subscriptionDialogOpen} onOpenChange={setSubscriptionDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Subscription Required</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Before you can add members to your group, you need to pay the one-time subscription fee of <strong>MWK 10,000</strong>.
+            </p>
+            <p className="text-sm text-muted-foreground">
+              This subscription fee enables you to manage your group, add unlimited members, and access all admin features.
+            </p>
+            <div className="flex justify-end gap-2 pt-4">
+              <Button variant="ghost" onClick={() => setSubscriptionDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={() => navigate("/admin/subscription-fee")}>
+                Pay Subscription Fee
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </DashboardLayout>

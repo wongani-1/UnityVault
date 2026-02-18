@@ -130,3 +130,20 @@ export const completeMemberInvite = asyncHandler(async (req: Request, res: Respo
   });
   res.json(result);
 });
+
+export const recordRegistrationFeePayment = asyncHandler(async (req: Request, res: Response) => {
+  if (!req.user) throw new ApiError("Unauthorized", 401);
+  
+  const member = await container.memberService.recordRegistrationFeePayment(req.user.userId);
+  res.json(member);
+});
+
+export const checkRegistrationFeeStatus = asyncHandler(async (req: Request, res: Response) => {
+  if (!req.user) throw new ApiError("Unauthorized", 401);
+  
+  const member = await container.memberService.getById(req.user.userId);
+  res.json({ 
+    registrationFeePaid: member.registrationFeePaid,
+    registrationFeePaidAt: member.registrationFeePaidAt 
+  });
+});

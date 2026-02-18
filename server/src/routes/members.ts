@@ -8,6 +8,8 @@ import {
   changeMemberPassword,
   verifyMemberInvite,
   completeMemberInvite,
+  recordRegistrationFeePayment,
+  checkRegistrationFeeStatus,
 } from "../controllers/memberController";
 import { requireRole } from "../middleware/auth";
 
@@ -20,4 +22,6 @@ membersRouter.post("/activate/complete", completeMemberInvite);
 membersRouter.get("/me", requireRole(["member"]), getMe);
 membersRouter.put("/me", requireRole(["member"]), updateMe);
 membersRouter.put("/me/password", requireRole(["member"]), changeMemberPassword);
+membersRouter.post("/me/registration-payment", requireRole(["member"]), recordRegistrationFeePayment);
+membersRouter.get("/me/registration-status", requireRole(["member"]), checkRegistrationFeeStatus);
 membersRouter.get("/", requireRole(["group_admin"]), listMembers);

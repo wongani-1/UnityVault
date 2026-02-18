@@ -24,7 +24,10 @@ create table if not exists public.admins (
   two_factor_secret text,
   two_factor_backup_codes text[],
   password_reset_token text,
-  password_reset_expires_at timestamptz
+  password_reset_expires_at timestamptz,
+  subscription_paid boolean not null default false,
+  subscription_paid_at timestamptz,
+  subscription_expires_at timestamptz
 );
 
 create table if not exists public.members (
@@ -47,7 +50,9 @@ create table if not exists public.members (
   two_factor_secret text,
   two_factor_backup_codes text[],
   password_reset_token text,
-  password_reset_expires_at timestamptz
+  password_reset_expires_at timestamptz,
+  registration_fee_paid boolean not null default false,
+  registration_fee_paid_at timestamptz
 );
 
 create table if not exists public.contributions (

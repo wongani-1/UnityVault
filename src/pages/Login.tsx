@@ -58,7 +58,20 @@ const Login = () => {
         })
       );
 
-      navigate("/dashboard");
+      // Check registration fee payment status
+      const feeStatus = await apiRequest<{ registrationFeePaid: boolean }>(
+        "/members/me/registration-status"
+      );
+
+      if (!feeStatus.registrationFeePaid) {
+        // Show notification and redirect after 10 seconds
+        toast.warning("Registration fee payment required. Redirecting to payment page in 10 seconds...");
+        setTimeout(() => {
+          navigate("/member/registration-fee");
+        }, 10000);
+      } else {
+        navigate("/dashboard");
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : "Login failed";
       setMemberError(message);

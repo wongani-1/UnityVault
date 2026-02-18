@@ -46,3 +46,24 @@ export const changeAdminPassword = asyncHandler(async (req: Request, res: Respon
   );
   res.json(result);
 });
+
+export const recordSubscriptionPayment = asyncHandler(async (req: Request, res: Response) => {
+  if (!req.user) throw new ApiError("Unauthorized", 401);
+  
+  const admin = await container.adminService.recordSubscriptionPayment(req.user.userId);
+  res.json(admin);
+});
+
+export const checkSubscriptionStatus = asyncHandler(async (req: Request, res: Response) => {
+  if (!req.user) throw new ApiError("Unauthorized", 401);
+  
+  const admin = await container.adminService.getById(req.user.userId);
+  const isActive = await container.adminService.isSubscriptionActive(req.user.userId);
+  
+  res.json({ 
+    subscriptionPaid: admin.subscriptionPaid,
+    subscriptionPaidAt: admin.subscriptionPaidAt,
+    subscriptionExpiresAt: admin.subscriptionExpiresAt,
+    isActive
+  });
+});

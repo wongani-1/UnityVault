@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { apiRequest } from "../lib/api";
 import { toast } from "@/components/ui/sonner";
-import { Shield, Download, Key, Copy, Eye, EyeOff } from "lucide-react";
+import { Shield, Download, Key, Copy, Eye, EyeOff, Calendar, AlertCircle, CheckCircle } from "lucide-react";
 
 const AdminProfile = () => {
   const [form, setForm] = useState({
@@ -31,14 +31,24 @@ const AdminProfile = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [showPin, setShowPin] = useState(false);
   const [showConfirmPin, setShowConfirmPin] = useState(false);
+  const [subscriptionActive, setSubscriptionActive] = useState(false);
+  const [subscriptionExpiresAt, setSubscriptionExpiresAt] = useState<string | null>(null);
+  const [subscriptionPaid, setSubscriptionPaid] = useState(false);
 
   useEffect(() => {
     let active = true;
     const load = async () => {
       try {
-        const admin = await apiRequest<{ fullName?: string; email: string; phone?: string; username: string; twoFactorEnabled?: boolean }>(
-          "/admins/me"
-        );
+        const [admin, subscription] = await Promise.all([
+          apiRequest<{ fullName?: string; email: string; phone?: string; username: string; twoFactorEnabled?: boolean }>(
+            "/admins/me"
+          ),
+          apiRequest<{ 
+            subscriptionPaid: boolean; 
+            isActive: boolean; 
+            subscriptionExpiresAt?: string;
+          }>("/admins/me/subscription-status")
+        ]);
         if (!active) return;
         setForm({
           fullName: admin.fullName || "",
@@ -47,6 +57,9 @@ const AdminProfile = () => {
           username: admin.username || "",
         });
         setTwoFactorEnabled(admin.twoFactorEnabled || false);
+        setSubscriptionPaid(subscription.subscriptionPaid);
+        setSubscriptionActive(subscription.isActive);
+        setSubscriptionExpiresAt(subscription.subscriptionExpiresAt || null);
       } catch (error) {
         const message = error instanceof Error ? error.message : "Failed to load profile";
         toast.error(message);
@@ -231,6 +244,66 @@ const AdminProfile = () => {
   return (
     <DashboardLayout title="Profile" subtitle="Manage your personal details" isAdmin>
       <div className="space-y-6">
+        {/* Subscription Status Card */}
+        <Card className="border-0 shadow-card">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Calendar className="h-5 w-5" />
+              Subscription Status
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    {subscriptionActive ? (
+                      <>
+                        <CheckCircle className="h-5 w-5 text-green-500" />
+                        <span className="font-medium text-green-700">Active Subscription</span>
+                      </>
+                    ) : (
+                      <>
+                        <AlertCircle className="h-5 w-5 text-amber-500" />
+                        <span className="font-medium text-amber-700">
+                          {subscriptionPaid ? "Subscription Expired" : "No Active Subscription"}
+                        </span>
+                      </>
+                    )}
+                  </div>
+                  {subscriptionExpiresAt && (
+                    <p className="text-sm text-muted-foreground">
+                      {subscriptionActive ? "Expires" : "Expired"} on {new Date(subscriptionExpiresAt).toLocaleDateString('en-US', { 
+                        year: 'numeric', 
+                        month: 'long', 
+                        day: 'numeric' 
+                      })}
+                    </p>
+                  )}
+                  {subscriptionActive && subscriptionExpiresAt && (
+                    <p className="text-xs text-muted-foreground">
+                      {Math.ceil((new Date(subscriptionExpiresAt).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))} days remaining
+                    </p>
+                  )}
+                </div>
+                <div className="text-right">
+                  <div className="text-2xl font-bold text-primary">MWK 10,000</div>
+                  <p className="text-xs text-muted-foreground">per month</p>
+                </div>
+              </div>
+              {!subscriptionActive && (
+                <Button 
+                  variant={subscriptionPaid ? "default" : "hero"}
+                  onClick={() => window.location.href = "/admin/subscription-fee"}
+                  className="w-full"
+                >
+                  {subscriptionPaid ? "Renew Subscription" : "Subscribe Now"}
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
         <Card className="border-0 shadow-card">
         <CardHeader>
           <CardTitle className="text-lg">Admin Profile</CardTitle>

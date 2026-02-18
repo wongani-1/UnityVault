@@ -45,6 +45,10 @@ export type Admin = {
   // Password reset fields
   passwordResetToken?: string;
   passwordResetExpiresAt?: string;
+  // Subscription payment tracking
+  subscriptionPaid: boolean;
+  subscriptionPaidAt?: string;
+  subscriptionExpiresAt?: string;
 };
 
 export type Member = {
@@ -70,6 +74,9 @@ export type Member = {
   // Password reset fields
   passwordResetToken?: string;
   passwordResetExpiresAt?: string;
+  // Registration fee payment tracking
+  registrationFeePaid: boolean;
+  registrationFeePaidAt?: string;
 };
 
 export type Contribution = {
