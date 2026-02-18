@@ -10,6 +10,8 @@ import type {
 import type { Loan, LoanInstallment } from "../models/types";
 import { createId } from "../utils/id";
 import { ApiError } from "../utils/apiError";
+import type { EmailService } from "./emailService";
+import { env } from "../config/env";
 
 const addMonths = (date: Date, months: number) => {
   const next = new Date(date);
@@ -25,7 +27,8 @@ export class LoanService {
     private groupRepository: GroupRepository,
     private notificationRepository: NotificationRepository,
     private contributionRepository: ContributionRepository,
-    private auditRepository: AuditRepository
+    private auditRepository: AuditRepository,
+    private emailService: EmailService
   ) {}
 
   /**
@@ -275,6 +278,25 @@ export class LoanService {
         memberName: member.fullName,
       },
     });
+
+    // Send loan approval email if email is provided
+    if (member.email) {
+      const loginUrl = `${env.appBaseUrl}/login`;
+      
+      // Send email asynchronously, don't block the response
+      this.emailService.sendLoanApproval({
+        to: member.email,
+        memberName: member.fullName,
+        groupName: group.name,
+        loanAmount: loan.principal,
+        totalDue,
+        installments: params.installments,
+        interestRate,
+        loginUrl,
+      }).catch(error => {
+        console.error("Failed to send loan approval email:", error);
+      });
+    }
 
     return updated;
   }

@@ -54,24 +54,6 @@ export const inviteMember = asyncHandler(async (req: Request, res: Response) => 
   res.status(201).json(result);
 });
 
-export const approveMember = asyncHandler(async (req: Request, res: Response) => {
-  if (!req.user) throw new ApiError("Unauthorized", 401);
-  const member = await container.memberService.approve(req.params.memberId, {
-    id: req.user.userId,
-    groupId: req.user.groupId,
-  });
-  res.json(member);
-});
-
-export const rejectMember = asyncHandler(async (req: Request, res: Response) => {
-  if (!req.user) throw new ApiError("Unauthorized", 401);
-  const member = await container.memberService.reject(req.params.memberId, {
-    id: req.user.userId,
-    groupId: req.user.groupId,
-  });
-  res.json(member);
-});
-
 export const listMembers = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) throw new ApiError("Unauthorized", 401);
   const members = await container.memberService.listByGroup(req.user.groupId);

@@ -12,7 +12,7 @@ const steps = [
     icon: UserPlus,
     step: "02",
     title: "Add Members",
-    description: "Invite members by phone or email. Approve and manage membership easily.",
+    description: "Invite members by phone or email and manage membership easily.",
   },
   {
     icon: TrendingUp,

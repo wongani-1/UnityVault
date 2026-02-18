@@ -16,14 +16,15 @@ The UnityVault backend now includes a comprehensive email notification service u
   - Step-by-step instructions
 - **Template**: Professional HTML with branded styling
 
-### 2. Member Approval Emails
-- **Trigger**: When an admin approves a pending member
+### 2. Loan Approval Emails
+- **Trigger**: When an admin approves a loan application
 - **Content**:
-  - Approval confirmation
-  - List of available features
-  - Login link
-  - Welcome message
-- **Template**: Success-themed HTML design
+  - Loan amount and total repayment
+  - Interest rate and number of installments
+  - Monthly payment amount
+  - Repayment schedule information
+  - Login link to view details
+- **Template**: Success-themed HTML design with financial details
 
 ### 3. Contribution Payment Confirmations
 - **Trigger**: When a member makes a contribution payment
@@ -99,10 +100,13 @@ The `EmailService` class follows the project's existing patterns:
 if (params.email) {
   this.emailService.sendMemberInvite({...}).catch(console.error);
 }
+```
 
-// In approve()
+#### LoanService
+```typescript
+// In approveLoan()
 if (member.email) {
-  this.emailService.sendMemberApproval({...}).catch(console.error);
+  this.emailService.sendLoanApproval({...}).catch(console.error);
 }
 ```
 
@@ -237,7 +241,8 @@ No breaking changes to existing endpoints. Email functionality is transparent:
 ## Future Enhancements
 
 Potential additions:
-- [ ] Loan approval/rejection emails
+- [x] Loan approval emails (implemented)
+- [ ] Loan rejection emails
 - [ ] Penalty notification emails
 - [ ] Monthly contribution reminders
 - [ ] Admin activity summaries

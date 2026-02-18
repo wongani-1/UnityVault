@@ -14,7 +14,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { UserPlus, CheckCircle, XCircle } from "lucide-react";
+import { UserPlus } from "lucide-react";
 import { apiRequest } from "@/lib/api";
 import { toast } from "@/components/ui/sonner";
 
@@ -150,28 +150,6 @@ const AdminMembers = () => {
     }
   };
 
-  const handleApprove = async (memberId: string) => {
-    try {
-      await apiRequest(`/members/${memberId}/approve`, { method: "POST" });
-      toast.success("Member approved");
-      await loadMembers();
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to approve member";
-      toast.error(message);
-    }
-  };
-
-  const handleReject = async (memberId: string) => {
-    try {
-      await apiRequest(`/members/${memberId}/reject`, { method: "POST" });
-      toast.success("Member rejected");
-      await loadMembers();
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to reject member";
-      toast.error(message);
-    }
-  };
-
   const formatCurrency = (value: number) => `MWK ${value.toLocaleString()}`;
 
   const handleDialogChange = (open: boolean) => {
@@ -206,7 +184,7 @@ const AdminMembers = () => {
     : "";
 
   return (
-    <DashboardLayout title="Members" subtitle="Approve and manage group members" isAdmin>
+    <DashboardLayout title="Members" subtitle="Manage group members" isAdmin>
       <Card className="border-0 shadow-card">
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-lg">Member Directory</CardTitle>
@@ -339,35 +317,14 @@ const AdminMembers = () => {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
-                    {member.status === "pending" ? (
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-success"
-                          onClick={() => handleApprove(member.id)}
-                        >
-                          <CheckCircle className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-destructive"
-                          onClick={() => handleReject(member.id)}
-                        >
-                          <XCircle className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    ) : (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-muted-foreground"
-                        onClick={() => handleViewDetails(member)}
-                      >
-                        View
-                      </Button>
-                    )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-muted-foreground"
+                      onClick={() => handleViewDetails(member)}
+                    >
+                      View
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))}

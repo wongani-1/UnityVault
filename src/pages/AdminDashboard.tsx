@@ -24,8 +24,6 @@ import {
   CreditCard,
   TrendingUp,
   UserPlus,
-  CheckCircle,
-  XCircle,
   Download,
   FileText,
   AlertTriangle,
@@ -399,7 +397,7 @@ const AdminDashboard = () => {
         <SummaryCard
           title="Total Members"
           value={totalMembers}
-          subtitle={`${members.filter((m) => m.status === "Pending").length} pending approval`}
+          subtitle={`${members.filter((m) => m.status === "Active").length} active members`}
           icon={Users}
           variant="primary"
         />
@@ -485,36 +483,15 @@ const AdminDashboard = () => {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
-                        {m.status === "Pending" ? (
-                          <div className="flex justify-end gap-2">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-success"
-                              onClick={() => navigate("/admin/members")}
-                            >
-                              <CheckCircle className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-destructive"
-                              onClick={() => navigate("/admin/members")}
-                            >
-                              <XCircle className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        ) : (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-muted-foreground"
-                            onClick={() => navigate("/admin/members")}
-                          >
-                            <Eye className="mr-1.5 h-3.5 w-3.5" />
-                            View
-                          </Button>
-                        )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-muted-foreground"
+                          onClick={() => navigate("/admin/members")}
+                        >
+                          <Eye className="mr-1.5 h-3.5 w-3.5" />
+                          View
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}

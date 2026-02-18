@@ -1,7 +1,6 @@
 import nodemailer from "nodemailer";
 import type { Transporter } from "nodemailer";
 import { env } from "../config/env";
-import path from "path";
 
 export type EmailOptions = {
   to: string;
@@ -46,22 +45,12 @@ export class EmailService {
     }
 
     try {
-      // Path to logo file (relative to project root)
-      const logoPath = path.join(__dirname, "..", "..", "..", "public", "Unity Vault.png");
-      
       const info = await this.transporter.sendMail({
         from: `"UnityVault" <${env.email.user}>`,
         to: options.to,
         subject: options.subject,
         html: options.html,
         text: options.text || options.html.replace(/<[^>]*>/g, ""),
-        attachments: [
-          {
-            filename: "logo.png",
-            path: logoPath,
-            cid: "logo", // Same cid value as in the html img src
-          },
-        ],
       });
 
       console.log("Email sent successfully:", info.messageId);
@@ -90,7 +79,7 @@ export class EmailService {
             body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
             .container { max-width: 600px; margin: 0 auto; padding: 20px; }
             .header { background-color: #4F46E5; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
-            .logo { max-width: 150px; height: auto; margin-bottom: 10px; }
+            .logo { font-size: 28px; font-weight: bold; margin-bottom: 10px; background: linear-gradient(to right, #3b82f6, #10b981); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
             .content { background-color: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }
             .otp-box { background-color: white; border: 2px solid #4F46E5; padding: 15px; text-align: center; margin: 20px 0; border-radius: 8px; }
             .otp { font-size: 32px; font-weight: bold; color: #4F46E5; letter-spacing: 8px; }
@@ -102,7 +91,7 @@ export class EmailService {
         <body>
           <div class="container">
             <div class="header">
-              <img src="cid:logo" alt="UnityVault Logo" class="logo" />
+              <div class="logo">UnityVault</div>
               <h1>Welcome to ${params.groupName}!</h1>
             </div>
             <div class="content">
@@ -153,12 +142,22 @@ export class EmailService {
     });
   }
 
-  async sendMemberApproval(params: {
+  async sendLoanApproval(params: {
     to: string;
     memberName: string;
     groupName: string;
+    loanAmount: number;
+    totalDue: number;
+    installments: number;
+    interestRate: number;
     loginUrl: string;
   }): Promise<boolean> {
+    const formattedLoanAmount = `MWK ${params.loanAmount.toLocaleString()}`;
+    const formattedTotalDue = `MWK ${params.totalDue.toLocaleString()}`;
+    const installmentAmount = params.totalDue / params.installments;
+    const formattedInstallment = `MWK ${installmentAmount.toLocaleString()}`;
+    const interestPercent = (params.interestRate * 100).toFixed(1);
+
     const html = `
       <!DOCTYPE html>
       <html>
@@ -167,36 +166,73 @@ export class EmailService {
             body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
             .container { max-width: 600px; margin: 0 auto; padding: 20px; }
             .header { background-color: #10b981; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
-            .logo { max-width: 150px; height: auto; margin-bottom: 10px; }
+            .logo { font-size: 28px; font-weight: bold; margin-bottom: 10px; background: linear-gradient(to right, #3b82f6, #10b981); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
             .content { background-color: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }
             .success-icon { font-size: 48px; text-align: center; margin: 20px 0; }
+            .amount-box { background-color: white; border-left: 4px solid #10b981; padding: 15px; margin: 20px 0; }
+            .details { background-color: white; padding: 20px; border-radius: 8px; margin: 20px 0; }
+            .detail-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #e5e7eb; }
+            .detail-label { color: #6b7280; }
+            .detail-value { font-weight: bold; }
             .button { display: inline-block; background-color: #10b981; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; margin: 20px 0; }
             .footer { text-align: center; color: #6b7280; font-size: 12px; margin-top: 20px; }
+            .info-box { background-color: #dbeafe; border-left: 4px solid #3b82f6; padding: 12px; margin: 15px 0; }
           </style>
         </head>
         <body>
           <div class="container">
             <div class="header">
-              <img src="cid:logo" alt="UnityVault Logo" class="logo" />
-              <h1>Account Approved!</h1>
+              <div class="logo">UnityVault</div>
+              <h1>Loan Approved! 🎉</h1>
             </div>
             <div class="content">
               <div class="success-icon">✅</div>
               
               <p>Hello <strong>${params.memberName}</strong>,</p>
               
-              <p>Great news! Your membership to <strong>${params.groupName}</strong> has been approved.</p>
+              <p>Great news! Your loan application has been approved by the <strong>${params.groupName}</strong> administrators.</p>
               
-              <p>You can now access all member features including:</p>
-              <ul>
-                <li>View your contribution history</li>
-                <li>Make monthly contributions</li>
-                <li>Apply for loans</li>
-                <li>Track your savings and penalties</li>
-              </ul>
+              <div class="amount-box">
+                <h2 style="margin: 0; color: #10b981;">${formattedLoanAmount}</h2>
+                <p style="margin: 5px 0 0 0; color: #6b7280;">Loan Amount Approved</p>
+              </div>
+              
+              <div class="details">
+                <div class="detail-row">
+                  <span class="detail-label">Loan Amount:</span>
+                  <span class="detail-value">${formattedLoanAmount}</span>
+                </div>
+                <div class="detail-row">
+                  <span class="detail-label">Interest Rate:</span>
+                  <span class="detail-value">${interestPercent}%</span>
+                </div>
+                <div class="detail-row">
+                  <span class="detail-label">Total to Repay:</span>
+                  <span class="detail-value">${formattedTotalDue}</span>
+                </div>
+                <div class="detail-row">
+                  <span class="detail-label">Number of Installments:</span>
+                  <span class="detail-value">${params.installments} months</span>
+                </div>
+                <div class="detail-row">
+                  <span class="detail-label">Monthly Payment:</span>
+                  <span class="detail-value">${formattedInstallment}</span>
+                </div>
+              </div>
+              
+              <div class="info-box">
+                <strong>📅 Repayment Schedule:</strong> Your first installment is due in one month. You can view your complete repayment schedule and make payments through your dashboard.
+              </div>
+              
+              <p><strong>Next Steps:</strong></p>
+              <ol>
+                <li>Log in to your account to view your full repayment schedule</li>
+                <li>Make sure to pay each installment on time to avoid penalties</li>
+                <li>You can make early payments at any time</li>
+              </ol>
               
               <div style="text-align: center;">
-                <a href="${params.loginUrl}" class="button">Login to Your Account</a>
+                <a href="${params.loginUrl}" class="button">View Loan Details</a>
               </div>
               
               <p>If the button doesn't work, copy and paste this link into your browser:</p>
@@ -204,7 +240,7 @@ export class EmailService {
               
               <div class="footer">
                 <p>This is an automated message from UnityVault. Please do not reply to this email.</p>
-                <p>If you have any questions, please contact your group admin.</p>
+                <p>If you have any questions about your loan, please contact your group admin.</p>
               </div>
             </div>
           </div>
@@ -214,7 +250,7 @@ export class EmailService {
 
     return this.sendEmail({
       to: params.to,
-      subject: `${params.groupName} Membership Approved - Welcome!`,
+      subject: `${params.groupName} - Loan Approved!`,
       html,
     });
   }
@@ -240,7 +276,7 @@ export class EmailService {
             body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
             .container { max-width: 600px; margin: 0 auto; padding: 20px; }
             .header { background-color: #4F46E5; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
-            .logo { max-width: 150px; height: auto; margin-bottom: 10px; }
+            .logo { font-size: 28px; font-weight: bold; margin-bottom: 10px; background: linear-gradient(to right, #3b82f6, #10b981); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
             .content { background-color: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }
             .amount-box { background-color: white; border-left: 4px solid #10b981; padding: 15px; margin: 20px 0; }
             .details { background-color: white; padding: 20px; border-radius: 8px; margin: 20px 0; }
@@ -253,7 +289,7 @@ export class EmailService {
         <body>
           <div class="container">
             <div class="header">
-              <img src="cid:logo" alt="UnityVault Logo" class="logo" />
+              <div class="logo">UnityVault</div>
               <h1>Payment Received</h1>
             </div>
             <div class="content">
@@ -324,7 +360,7 @@ export class EmailService {
             body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
             .container { max-width: 600px; margin: 0 auto; padding: 20px; }
             .header { background-color: #4F46E5; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
-            .logo { max-width: 150px; height: auto; margin-bottom: 10px; }
+            .logo { font-size: 28px; font-weight: bold; margin-bottom: 10px; background: linear-gradient(to right, #3b82f6, #10b981); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
             .content { background-color: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }
             .otp-box { background-color: white; border: 2px solid #4F46E5; padding: 20px; text-align: center; margin: 20px 0; border-radius: 8px; }
             .otp { font-size: 36px; font-weight: bold; color: #4F46E5; letter-spacing: 10px; }
@@ -335,7 +371,7 @@ export class EmailService {
         <body>
           <div class="container">
             <div class="header">
-              <img src="cid:logo" alt="UnityVault Logo" class="logo" />
+              <div class="logo">UnityVault</div>
               <h1>Verification Code</h1>
             </div>
             <div class="content">

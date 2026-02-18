@@ -55,7 +55,8 @@ const loanService = new LoanService(
   repositories.groupRepository,
   repositories.notificationRepository,
   repositories.contributionRepository,
-  repositories.auditRepository
+  repositories.auditRepository,
+  emailService
 );
 const authService = new AuthService(
   repositories.groupRepository,
