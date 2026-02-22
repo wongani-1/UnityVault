@@ -54,6 +54,9 @@ const Register = () => {
       const rules = rawRules
         ? (JSON.parse(rawRules) as {
             monthlyContribution?: string;
+            shareFee?: string;
+            seedAmount?: string;
+            initialLoanAmount?: string;
             loanInterestPercent?: string;
             penaltyLoanMiss?: string;
             penaltyMonthlyMiss?: string;
@@ -62,10 +65,13 @@ const Register = () => {
 
       const settings = {
         contributionAmount: Number(rules.monthlyContribution || 50000),
+        shareFee: Number(rules.shareFee || 0),
+        initialLoanAmount: Number(rules.initialLoanAmount || 0),
+        seedAmount: Number(rules.seedAmount || 0),
         loanInterestRate: Number(rules.loanInterestPercent || 5) / 100,
         penaltyRate: Number(rules.penaltyLoanMiss || 10) / 100,
         contributionPenaltyRate: Number(rules.penaltyMonthlyMiss || 10) / 100,
-        compulsoryInterestRate: 0.01,
+        compulsoryInterestRate: 0.2,
         minimumContributionMonths: 3,
         loanToSavingsRatio: 2.0,
         enableAutomaticPenalties: true,

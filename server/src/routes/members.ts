@@ -3,12 +3,15 @@ import {
   registerMember,
   inviteMember,
   listMembers,
+  listDuplicateMemberCredentials,
   getMe,
   updateMe,
   changeMemberPassword,
   verifyMemberInvite,
   completeMemberInvite,
   recordRegistrationFeePayment,
+  recordSeedDeposit,
+  purchaseShares,
   checkRegistrationFeeStatus,
 } from "../controllers/memberController";
 import { requireRole } from "../middleware/auth";
@@ -24,4 +27,7 @@ membersRouter.put("/me", requireRole(["member"]), updateMe);
 membersRouter.put("/me/password", requireRole(["member"]), changeMemberPassword);
 membersRouter.post("/me/registration-payment", requireRole(["member"]), recordRegistrationFeePayment);
 membersRouter.get("/me/registration-status", requireRole(["member"]), checkRegistrationFeeStatus);
+membersRouter.post("/me/seed-payment", requireRole(["member"]), recordSeedDeposit);
+membersRouter.post("/me/share-purchase", requireRole(["member"]), purchaseShares);
 membersRouter.get("/", requireRole(["group_admin"]), listMembers);
+membersRouter.get("/duplicates", requireRole(["group_admin"]), listDuplicateMemberCredentials);

@@ -160,8 +160,8 @@
 
   .reveal {
     opacity: 0;
-    transform: translateX(var(--reveal-x, 0));
-    transition: opacity 600ms ease, transform 600ms ease;
+    transform: translate3d(var(--reveal-x, 0), var(--reveal-y, 0), 0);
+    transition: opacity 900ms ease, transform 900ms ease;
     will-change: opacity, transform;
   }
 
@@ -173,9 +173,13 @@
     --reveal-x: 48px;
   }
 
+  .reveal-up {
+    --reveal-y: 48px;
+  }
+
   .reveal.in-view {
     opacity: 1;
-    transform: translateX(0);
+    transform: translate3d(0, 0, 0);
   }
 
   @media (prefers-reduced-motion: reduce) {

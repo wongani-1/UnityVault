@@ -1,6 +1,7 @@
 import type { MemberRepository, GroupRepository } from "../repositories/interfaces";
 import type { DistributionRepository } from "../repositories/interfaces/distributionRepository";
-import type { Member } from "../models/types";
+import type { Member, Transaction } from "../models/types";
+import type { TransactionRepository } from "../repositories/interfaces";
 import { createId } from "../utils/id";
 import { hashPassword, verifyPassword } from "../utils/password";
 import { generateOtp } from "../utils/otp";
@@ -17,7 +18,8 @@ export class MemberService {
     private auditService: AuditService,
     private notificationService: NotificationService,
     private emailService: EmailService,
-    private distributionRepository: DistributionRepository
+    private distributionRepository: DistributionRepository,
+    private transactionRepository: TransactionRepository
   ) {}
 
   private async ensureCycleOpen(groupId: string, at = new Date()) {
@@ -31,6 +33,71 @@ export class MemberService {
     }
   }
 
+  private normalizeOptional(value?: string) {
+    const normalized = value?.trim();
+    return normalized ? normalized : undefined;
+  }
+
+  private normalizeUsername(value: string) {
+    return value.trim().toLowerCase();
+  }
+
+  private normalizeEmail(value?: string) {
+    const normalized = this.normalizeOptional(value);
+    return normalized ? normalized.toLowerCase() : undefined;
+  }
+
+  private normalizePhone(value?: string) {
+    const normalized = this.normalizeOptional(value);
+    return normalized ? normalized.replace(/\s+/g, "") : undefined;
+  }
+
+  private async assertUniqueCredentialsInGroup(params: {
+    groupId: string;
+    username?: string;
+    email?: string;
+    phone?: string;
+    excludeMemberId?: string;
+  }) {
+    const members = await this.memberRepository.listByGroup(params.groupId);
+
+    const username = params.username ? this.normalizeUsername(params.username) : undefined;
+    const email = this.normalizeEmail(params.email);
+    const phone = this.normalizePhone(params.phone);
+
+    const duplicate = members.find((member) => {
+      if (params.excludeMemberId && member.id === params.excludeMemberId) {
+        return false;
+      }
+
+      const memberUsername = this.normalizeUsername(member.username);
+      const memberEmail = this.normalizeEmail(member.email);
+      const memberPhone = this.normalizePhone(member.phone);
+
+      return (
+        (username && memberUsername === username) ||
+        (email && memberEmail === email) ||
+        (phone && memberPhone === phone)
+      );
+    });
+
+    if (!duplicate) return;
+
+    const duplicateUsername = username && this.normalizeUsername(duplicate.username) === username;
+    const duplicateEmail = email && this.normalizeEmail(duplicate.email) === email;
+    const duplicatePhone = phone && this.normalizePhone(duplicate.phone) === phone;
+
+    if (duplicateEmail) {
+      throw new ApiError("A member with this email already exists in this group", 409);
+    }
+    if (duplicateUsername) {
+      throw new ApiError("A member with this username already exists in this group", 409);
+    }
+    if (duplicatePhone) {
+      throw new ApiError("A member with this phone number already exists in this group", 409);
+    }
+  }
+
   async register(params: {
     groupId: string;
     first_name: string;
@@ -40,18 +107,29 @@ export class MemberService {
     email?: string;
     phone?: string;
   }) {
-    if (!params.groupId || !params.first_name || !params.last_name || !params.username || !params.password) {
+    const normalizedUsername = params.username?.trim();
+    const normalizedEmail = this.normalizeOptional(params.email);
+    const normalizedPhone = this.normalizeOptional(params.phone);
+
+    if (!params.groupId || !params.first_name || !params.last_name || !normalizedUsername || !params.password) {
       throw new ApiError("Missing required fields");
     }
+
+    await this.assertUniqueCredentialsInGroup({
+      groupId: params.groupId,
+      username: normalizedUsername,
+      email: normalizedEmail,
+      phone: normalizedPhone,
+    });
 
     const member: Member = {
       id: createId("member"),
       groupId: params.groupId,
       first_name: params.first_name,
       last_name: params.last_name,
-      username: params.username,
-      email: params.email,
-      phone: params.phone,
+      username: normalizedUsername,
+      email: normalizedEmail,
+      phone: normalizedPhone,
       passwordHash: await hashPassword(params.password),
       status: "pending",
       createdAt: new Date().toISOString(),
@@ -60,6 +138,9 @@ export class MemberService {
       twoFactorEnabled: false,
       registrationFeePaid: false,
       registrationFeePaidAt: undefined,
+      seedPaid: false,
+      seedPaidAt: undefined,
+      sharesOwned: 0,
     };
 
     await this.memberRepository.create(member);
@@ -85,13 +166,24 @@ export class MemberService {
   }) {
     await this.ensureCycleOpen(params.groupId);
 
-    if (!params.groupId || !params.first_name || !params.last_name || !params.username) {
+    const normalizedUsername = params.username?.trim();
+    const normalizedEmail = this.normalizeOptional(params.email);
+    const normalizedPhone = this.normalizeOptional(params.phone);
+
+    if (!params.groupId || !params.first_name || !params.last_name || !normalizedUsername) {
       throw new ApiError("Missing required fields");
     }
 
-    if (!params.email && !params.phone) {
+    if (!normalizedEmail && !normalizedPhone) {
       throw new ApiError("Email or phone is required for invite", 400);
     }
+
+    await this.assertUniqueCredentialsInGroup({
+      groupId: params.groupId,
+      username: normalizedUsername,
+      email: normalizedEmail,
+      phone: normalizedPhone,
+    });
 
     const otp = generateOtp(6);
     const inviteToken = createId("invite");
@@ -103,9 +195,9 @@ export class MemberService {
       groupId: params.groupId,
       first_name: params.first_name,
       last_name: params.last_name,
-      username: params.username,
-      email: params.email,
-      phone: params.phone,
+      username: normalizedUsername,
+      email: normalizedEmail,
+      phone: normalizedPhone,
       passwordHash: inviteOtpHash,
       status: "pending",
       createdAt: new Date().toISOString(),
@@ -113,6 +205,9 @@ export class MemberService {
       penaltiesTotal: 0,
       registrationFeePaid: false,
       registrationFeePaidAt: undefined,
+      seedPaid: false,
+      seedPaidAt: undefined,
+      sharesOwned: 0,
       inviteToken,
       inviteOtpHash,
       inviteExpiresAt,
@@ -133,13 +228,13 @@ export class MemberService {
     });
 
     // Send invitation email if email is provided
-    if (params.email) {
+    if (normalizedEmail) {
       const group = await this.groupRepository.getById(params.groupId);
       const groupName = group?.name || "Your Group";
       
       // Send email asynchronously, don't block the response
       this.emailService.sendMemberInvite({
-        to: params.email,
+        to: normalizedEmail,
         memberName: `${params.first_name} ${params.last_name}`,
         groupName,
         otp,
@@ -220,6 +315,61 @@ export class MemberService {
     }));
   }
 
+  async listDuplicateCredentials(groupId: string) {
+    const members = await this.memberRepository.listByGroup(groupId);
+
+    const usernameMap = new Map<string, Member[]>();
+    const emailMap = new Map<string, Member[]>();
+    const phoneMap = new Map<string, Member[]>();
+
+    const addToMap = (map: Map<string, Member[]>, key: string | undefined, member: Member) => {
+      if (!key) return;
+      const current = map.get(key) || [];
+      current.push(member);
+      map.set(key, current);
+    };
+
+    members.forEach((member) => {
+      addToMap(usernameMap, this.normalizeUsername(member.username), member);
+      addToMap(emailMap, this.normalizeEmail(member.email), member);
+      addToMap(phoneMap, this.normalizePhone(member.phone), member);
+    });
+
+    const toDuplicateList = (map: Map<string, Member[]>) => {
+      return Array.from(map.entries())
+        .filter(([, items]) => items.length > 1)
+        .map(([value, items]) => ({
+          value,
+          count: items.length,
+          members: items.map((member) => ({
+            id: member.id,
+            first_name: member.first_name,
+            last_name: member.last_name,
+            username: member.username,
+            email: member.email,
+            phone: member.phone,
+            status: member.status,
+            createdAt: member.createdAt,
+          })),
+        }))
+        .sort((a, b) => b.count - a.count || a.value.localeCompare(b.value));
+    };
+
+    const usernameDuplicates = toDuplicateList(usernameMap);
+    const emailDuplicates = toDuplicateList(emailMap);
+    const phoneDuplicates = toDuplicateList(phoneMap);
+
+    return {
+      hasDuplicates:
+        usernameDuplicates.length > 0 ||
+        emailDuplicates.length > 0 ||
+        phoneDuplicates.length > 0,
+      usernameDuplicates,
+      emailDuplicates,
+      phoneDuplicates,
+    };
+  }
+
   /**
    * Automatically delete pending members that have been waiting for more than 24 hours
    * This keeps the member list clean and removes stale pending registrations
@@ -261,7 +411,25 @@ export class MemberService {
   }
 
   async updateProfile(memberId: string, patch: { first_name?: string; last_name?: string; email?: string; phone?: string; username?: string }) {
-    const updated = await this.memberRepository.update(memberId, patch);
+    const current = await this.memberRepository.getById(memberId);
+    if (!current) throw new ApiError("Member not found", 404);
+
+    const normalizedPatch: Partial<Member> = {
+      ...patch,
+      username: patch.username !== undefined ? (patch.username.trim() || current.username) : undefined,
+      email: patch.email !== undefined ? this.normalizeOptional(patch.email) : undefined,
+      phone: patch.phone !== undefined ? this.normalizeOptional(patch.phone) : undefined,
+    };
+
+    await this.assertUniqueCredentialsInGroup({
+      groupId: current.groupId,
+      username: normalizedPatch.username ?? current.username,
+      email: normalizedPatch.email ?? current.email,
+      phone: normalizedPatch.phone ?? current.phone,
+      excludeMemberId: current.id,
+    });
+
+    const updated = await this.memberRepository.update(memberId, normalizedPatch);
     if (!updated) throw new ApiError("Member not found", 404);
     return { ...updated, passwordHash: "" };
   }
@@ -289,6 +457,92 @@ export class MemberService {
     });
     
     if (!updated) throw new ApiError("Failed to record payment", 500);
+    return { ...updated, passwordHash: "" };
+  }
+
+  async recordSeedDeposit(memberId: string) {
+    const member = await this.memberRepository.getById(memberId);
+    if (!member) throw new ApiError("Member not found", 404);
+
+    if (member.seedPaid) {
+      throw new ApiError("Seed deposit already paid", 400);
+    }
+
+    const group = await this.groupRepository.getById(member.groupId);
+    if (!group) throw new ApiError("Group not found", 404);
+
+    const seedAmount = group.settings.seedAmount || 0;
+    if (seedAmount <= 0) {
+      throw new ApiError("Seed deposit amount is not configured", 400);
+    }
+
+    const updated = await this.memberRepository.update(member.id, {
+      seedPaid: true,
+      seedPaidAt: new Date().toISOString(),
+      balance: member.balance + seedAmount,
+    });
+
+    if (!updated) throw new ApiError("Failed to record seed deposit", 500);
+
+    const ledgerEntry: Transaction = {
+      id: createId("transaction"),
+      groupId: member.groupId,
+      memberId: member.id,
+      type: "seed_deposit",
+      amount: seedAmount,
+      description: "Seed / initial deposit",
+      memberSavingsChange: seedAmount,
+      groupIncomeChange: 0,
+      groupCashChange: seedAmount,
+      createdAt: new Date().toISOString(),
+      createdBy: member.id,
+    };
+
+    await this.transactionRepository.create(ledgerEntry);
+
+    return { ...updated, passwordHash: "" };
+  }
+
+  async purchaseShares(params: { memberId: string; shares: number }) {
+    const member = await this.memberRepository.getById(params.memberId);
+    if (!member) throw new ApiError("Member not found", 404);
+
+    if (!Number.isFinite(params.shares) || params.shares <= 0) {
+      throw new ApiError("Shares must be greater than zero", 400);
+    }
+
+    const group = await this.groupRepository.getById(member.groupId);
+    if (!group) throw new ApiError("Group not found", 404);
+
+    const shareFee = group.settings.shareFee || 0;
+    if (shareFee <= 0) {
+      throw new ApiError("Share fee is not configured", 400);
+    }
+
+    const amount = Number((shareFee * params.shares).toFixed(2));
+    const updated = await this.memberRepository.update(member.id, {
+      sharesOwned: member.sharesOwned + params.shares,
+      balance: member.balance + amount,
+    });
+
+    if (!updated) throw new ApiError("Failed to record share purchase", 500);
+
+    const ledgerEntry: Transaction = {
+      id: createId("transaction"),
+      groupId: member.groupId,
+      memberId: member.id,
+      type: "share_purchase",
+      amount,
+      description: `Share purchase (${params.shares} share${params.shares === 1 ? "" : "s"})`,
+      memberSavingsChange: amount,
+      groupIncomeChange: 0,
+      groupCashChange: amount,
+      createdAt: new Date().toISOString(),
+      createdBy: member.id,
+    };
+
+    await this.transactionRepository.create(ledgerEntry);
+
     return { ...updated, passwordHash: "" };
   }
 }

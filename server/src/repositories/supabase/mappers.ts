@@ -67,6 +67,9 @@ export type MemberRow = {
   password_reset_expires_at?: string | null;
   registration_fee_paid?: boolean;
   registration_fee_paid_at?: string | null;
+  seed_paid?: boolean;
+  seed_paid_at?: string | null;
+  shares_owned?: number;
 };
 
 export type ContributionRow = {
@@ -184,7 +187,20 @@ export const fromGroupRow = (row: GroupRow): Group => ({
   id: row.id,
   name: row.name,
   createdAt: row.created_at,
-  settings: row.settings,
+  settings: {
+    contributionAmount: row.settings.contributionAmount ?? 0,
+    loanInterestRate: row.settings.loanInterestRate ?? 0,
+    penaltyRate: row.settings.penaltyRate ?? 0,
+    contributionPenaltyRate: row.settings.contributionPenaltyRate ?? 0,
+    minimumContributionMonths: row.settings.minimumContributionMonths ?? 0,
+    loanToSavingsRatio: row.settings.loanToSavingsRatio ?? 0,
+    enableAutomaticPenalties: row.settings.enableAutomaticPenalties ?? false,
+    // New fields with defaults
+    shareFee: row.settings.shareFee ?? 1000,
+    initialLoanAmount: row.settings.initialLoanAmount ?? 50000,
+    seedAmount: row.settings.seedAmount ?? 50000,
+    compulsoryInterestRate: row.settings.compulsoryInterestRate ?? 0.20,
+  },
   totalSavings: row.total_savings,
   totalIncome: row.total_income,
   cash: row.cash,
@@ -271,6 +287,9 @@ export const toMemberRow = (member: Member): Record<string, unknown> => ({
   invite_sent_at: member.inviteSentAt || null,
   registration_fee_paid: member.registrationFeePaid,
   registration_fee_paid_at: member.registrationFeePaidAt || null,
+  seed_paid: member.seedPaid,
+  seed_paid_at: member.seedPaidAt || null,
+  shares_owned: member.sharesOwned,
 });
 
 export const toMemberPatch = (patch: Partial<Member>): Record<string, unknown> => {
@@ -294,6 +313,9 @@ export const toMemberPatch = (patch: Partial<Member>): Record<string, unknown> =
   if (patch.inviteSentAt !== undefined) result.invite_sent_at = patch.inviteSentAt || null;
   if (patch.registrationFeePaid !== undefined) result.registration_fee_paid = patch.registrationFeePaid;
   if (patch.registrationFeePaidAt !== undefined) result.registration_fee_paid_at = patch.registrationFeePaidAt || null;
+  if (patch.seedPaid !== undefined) result.seed_paid = patch.seedPaid;
+  if (patch.seedPaidAt !== undefined) result.seed_paid_at = patch.seedPaidAt || null;
+  if (patch.sharesOwned !== undefined) result.shares_owned = patch.sharesOwned;
   
   return result;
 };
@@ -326,6 +348,9 @@ export const fromMemberRow = (row: MemberRow): Member => {
     inviteSentAt: row.invite_sent_at || undefined,
     registrationFeePaid: row.registration_fee_paid || false,
     registrationFeePaidAt: row.registration_fee_paid_at || undefined,
+    seedPaid: row.seed_paid || false,
+    seedPaidAt: row.seed_paid_at || undefined,
+    sharesOwned: row.shares_owned || 0,
   };
 };
 

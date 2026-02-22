@@ -4,12 +4,37 @@ import type {
   PenaltyRepository,
   GroupRepository,
   TransactionRepository,
+  LoanRepository,
 } from "../repositories/interfaces";
 import type { DistributionRepository } from "../repositories/interfaces/distributionRepository";
 import type { Contribution, Penalty, Transaction } from "../models/types";
 import { createId } from "../utils/id";
 import { ApiError } from "../utils/apiError";
 import { EmailService } from "./emailService";
+
+const MONTH_PATTERN = /^\d{4}-(0[1-9]|1[0-2])$/;
+
+const parseMonthToDate = (month: string) => {
+  if (!MONTH_PATTERN.test(month)) return undefined;
+  const [yearText, monthText] = month.split("-");
+  const year = Number(yearText);
+  const monthIndex = Number(monthText) - 1;
+  return new Date(year, monthIndex, 1);
+};
+
+const formatMonth = (date: Date) => {
+  const year = date.getFullYear();
+  const month = `${date.getMonth() + 1}`.padStart(2, "0");
+  return `${year}-${month}`;
+};
+
+const nextMonth = (month: string) => {
+  const monthDate = parseMonthToDate(month);
+  if (!monthDate) return undefined;
+  const next = new Date(monthDate);
+  next.setMonth(next.getMonth() + 1);
+  return formatMonth(next);
+};
 
 export class ContributionService {
   constructor(
@@ -18,6 +43,7 @@ export class ContributionService {
     private penaltyRepository: PenaltyRepository,
     private groupRepository: GroupRepository,
     private transactionRepository: TransactionRepository,
+    private loanRepository: LoanRepository,
     private emailService: EmailService,
     private distributionRepository: DistributionRepository
   ) {}
@@ -63,8 +89,70 @@ export class ContributionService {
   }) {
     await this.ensureCycleOpen(params.groupId);
 
+    const requestedMonth = params.month?.trim();
+    if (!requestedMonth || !MONTH_PATTERN.test(requestedMonth)) {
+      throw new ApiError("Invalid month format. Use YYYY-MM", 400);
+    }
+
+    const dueDate = new Date(params.dueDate);
+    if (Number.isNaN(dueDate.getTime())) {
+      throw new ApiError("Invalid due date", 400);
+    }
+
+    const today = new Date();
+    const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const dueDateOnly = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
+    if (dueDateOnly < startOfToday) {
+      throw new ApiError("Due date cannot be before today", 400);
+    }
+
+    const existingContributions = await this.contributionRepository.listByGroup(params.groupId);
+    const generatedMonths = Array.from(
+      new Set(
+        existingContributions
+          .map((contribution) => contribution.month)
+          .filter((month) => MONTH_PATTERN.test(month))
+      )
+    );
+
+    if (generatedMonths.length > 0) {
+      const latestGeneratedMonth = generatedMonths.sort((a, b) => a.localeCompare(b)).at(-1)!;
+      const expectedNextMonth = nextMonth(latestGeneratedMonth);
+
+      if (!expectedNextMonth) {
+        throw new ApiError("Failed to calculate next contribution month", 500);
+      }
+
+      if (requestedMonth !== expectedNextMonth) {
+        throw new ApiError(
+          `Contributions must be generated sequentially. Latest generated month is ${latestGeneratedMonth}, so the next month must be ${expectedNextMonth}`,
+          400
+        );
+      }
+    }
+
+    const group = await this.groupRepository.getById(params.groupId);
+    if (!group) throw new ApiError("Group not found", 404);
+
     const members = await this.memberRepository.listByGroup(params.groupId);
     const activeMembers = members.filter(m => m.status === "active");
+
+    const missingSeed = activeMembers.filter((member) => !member.seedPaid);
+    if (missingSeed.length > 0) {
+      const preview = missingSeed.slice(0, 5).map((m) => `${m.first_name} ${m.last_name}`);
+      const suffix = missingSeed.length > 5 ? ` +${missingSeed.length - 5} more` : "";
+      throw new ApiError(
+        `Seed deposit is required before generating contributions. Pending seed payments for: ${preview.join(", ")}${suffix}`,
+        400
+      );
+    }
+
+    await this.applyMonthlyCompulsoryInterest({
+      groupId: params.groupId,
+      month: requestedMonth,
+      groupShareFee: group.settings.shareFee,
+      compulsoryInterestRate: group.settings.compulsoryInterestRate,
+    });
     const generated: Contribution[] = [];
 
     for (const member of activeMembers) {
@@ -80,9 +168,9 @@ export class ContributionService {
           groupId: params.groupId,
           memberId: member.id,
           amount: params.amount,
-          month: params.month,
+          month: requestedMonth,
           status: "unpaid",
-          dueDate: params.dueDate,
+          dueDate: dueDate.toISOString(),
           createdAt: new Date().toISOString(),
         };
 
@@ -117,6 +205,10 @@ export class ContributionService {
 
     const member = await this.memberRepository.getById(contribution.memberId);
     if (!member) throw new ApiError("Member not found", 404);
+
+    if (!member.seedPaid) {
+      throw new ApiError("Seed deposit is required before paying contributions", 400);
+    }
 
     // Mark contribution as paid
     const updated = await this.contributionRepository.update(contribution.id, {
@@ -388,5 +480,84 @@ export class ContributionService {
 
   async listOverdue(groupId: string) {
     return this.contributionRepository.listOverdue(groupId);
+  }
+
+  private async applyMonthlyCompulsoryInterest(params: {
+    groupId: string;
+    month: string;
+    groupShareFee: number;
+    compulsoryInterestRate: number;
+  }) {
+    if (params.groupShareFee <= 0 || params.compulsoryInterestRate <= 0) return;
+
+    const [members, loans] = await Promise.all([
+      this.memberRepository.listByGroup(params.groupId),
+      this.loanRepository.listByGroup(params.groupId),
+    ]);
+
+    const activeMembers = members.filter((member) => member.status === "active");
+    const loansByMember = new Map<string, boolean>();
+    loans.forEach((loan) => {
+      if (["pending", "approved", "active"].includes(loan.status)) {
+        loansByMember.set(loan.memberId, true);
+      }
+    });
+
+    const [yearText, monthText] = params.month.split("-");
+    const monthIndex = Number(monthText) - 1;
+    const year = Number(yearText);
+    const endOfMonth = new Date(year, monthIndex + 1, 0);
+
+    for (const member of activeMembers) {
+      if (loansByMember.get(member.id)) continue;
+      if (!member.sharesOwned || member.sharesOwned <= 0) continue;
+
+      const shareValue = member.sharesOwned * params.groupShareFee;
+      const interestAmount = Number((shareValue * params.compulsoryInterestRate).toFixed(2));
+      if (interestAmount <= 0) continue;
+
+      const existingPenalties = await this.penaltyRepository.listByMember(member.id);
+      const alreadyCharged = existingPenalties.some((penalty) => {
+        if (!penalty.reason?.toLowerCase().includes("compulsory interest")) return false;
+        if (!penalty.createdAt) return false;
+        return penalty.createdAt.startsWith(params.month);
+      });
+
+      if (alreadyCharged) continue;
+
+      const penaltyId = createId("penalty");
+      await this.penaltyRepository.create({
+        id: penaltyId,
+        groupId: params.groupId,
+        memberId: member.id,
+        amount: interestAmount,
+        reason: `Compulsory interest on share value for ${params.month}`,
+        status: "unpaid",
+        dueDate: endOfMonth.toISOString(),
+        createdAt: new Date().toISOString(),
+        isPaid: false,
+      });
+
+      const penaltyLedgerEntry: Transaction = {
+        id: createId("transaction"),
+        groupId: params.groupId,
+        memberId: member.id,
+        type: "compulsory_interest",
+        amount: interestAmount,
+        description: `Compulsory interest charge for ${params.month}`,
+        memberSavingsChange: 0,
+        groupIncomeChange: 0,
+        groupCashChange: 0,
+        penaltyId,
+        createdAt: new Date().toISOString(),
+        createdBy: "system",
+      };
+
+      await this.transactionRepository.create(penaltyLedgerEntry);
+
+      await this.memberRepository.update(member.id, {
+        penaltiesTotal: member.penaltiesTotal + interestAmount,
+      });
+    }
   }
 }

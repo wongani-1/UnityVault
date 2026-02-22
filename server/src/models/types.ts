@@ -12,14 +12,20 @@ export type TransactionType =
   | "penalty_charged"
   | "penalty_payment"
   | "cycle_distribution"
-  | "initial_deposit";
+  | "initial_deposit"
+  | "seed_deposit"
+  | "share_purchase"
+  | "compulsory_interest";
 
 export type GroupSettings = {
   contributionAmount: number;
+  shareFee: number; // Cost per share
+  initialLoanAmount: number; // Loan limit per share
+  seedAmount: number; // One-time seed/initial deposit per member
   loanInterestRate: number;
   penaltyRate: number; // Penalty rate for missed loan payments (as decimal, e.g., 0.15 = 15%)
   contributionPenaltyRate: number; // Penalty rate for missed contributions (as decimal, e.g., 0.10 = 10%)
-  compulsoryInterestRate: number;
+  compulsoryInterestRate: number; // Charged on share value for non-borrowers
   minimumContributionMonths: number; // Minimum months of contributions before loan eligibility
   loanToSavingsRatio: number; // Maximum loan amount as ratio of total contributions (e.g., 2.0 = 200%)
   enableAutomaticPenalties: boolean; // Auto-apply penalties for overdue installments
@@ -86,6 +92,10 @@ export type Member = {
   // Registration fee payment tracking
   registrationFeePaid: boolean;
   registrationFeePaidAt?: string;
+  // Seed deposit and share tracking
+  seedPaid: boolean;
+  seedPaidAt?: string;
+  sharesOwned: number;
 };
 
 export type Contribution = {

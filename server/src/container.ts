@@ -44,7 +44,8 @@ const memberService = new MemberService(
   auditService,
   notificationService,
   emailService,
-  repositories.distributionRepository
+  repositories.distributionRepository,
+  repositories.transactionRepository
 );
 const contributionService = new ContributionService(
   repositories.contributionRepository,
@@ -52,6 +53,7 @@ const contributionService = new ContributionService(
   repositories.penaltyRepository,
   repositories.groupRepository,
   repositories.transactionRepository,
+  repositories.loanRepository,
   emailService,
   repositories.distributionRepository
 );

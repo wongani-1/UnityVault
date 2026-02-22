@@ -10,10 +10,13 @@ export async function seedData() {
     createdAt: new Date("2025-01-01").toISOString(),
     settings: {
       contributionAmount: 50000,
+      shareFee: 1000,
+      initialLoanAmount: 50000,
+      seedAmount: 50000,
       loanInterestRate: 0.05, // 5%
       penaltyRate: 0.10, // 10% penalty for missed loan payments
       contributionPenaltyRate: 0.10, // 10% penalty for missed contributions
-      compulsoryInterestRate: 0.02, // 2%
+      compulsoryInterestRate: 0.20, // 20%
       minimumContributionMonths: 3, // Minimum 3 months of contributions
       loanToSavingsRatio: 2.0, // Can borrow up to 200% of savings
       enableAutomaticPenalties: true, // Auto-apply penalties for overdue
@@ -38,6 +41,7 @@ export async function seedData() {
     phone: "+265999001122",
     createdAt: new Date("2025-01-01").toISOString(),
     twoFactorEnabled: false,
+    subscriptionPaid: false,
   };
   store.admins.set(testAdmin.id, testAdmin);
 
@@ -58,6 +62,10 @@ export async function seedData() {
       penaltiesTotal: 0,
       createdAt: new Date("2025-01-15").toISOString(),
       twoFactorEnabled: false,
+      registrationFeePaid: false,
+      seedPaid: true,
+      seedPaidAt: new Date("2025-01-15").toISOString(),
+      sharesOwned: 1,
     },
     {
       id: "member_002",
@@ -73,6 +81,10 @@ export async function seedData() {
       penaltiesTotal: 0,
       createdAt: new Date("2025-01-20").toISOString(),
       twoFactorEnabled: false,
+      registrationFeePaid: false,
+      seedPaid: true,
+      seedPaidAt: new Date("2025-01-20").toISOString(),
+      sharesOwned: 2,
     },
     {
       id: "member_003",
@@ -88,6 +100,9 @@ export async function seedData() {
       penaltiesTotal: 0,
       createdAt: new Date("2026-02-01").toISOString(),
       twoFactorEnabled: false,
+      registrationFeePaid: false,
+      seedPaid: false,
+      sharesOwned: 0,
     },
   ];
 

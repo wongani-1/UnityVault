@@ -64,6 +64,13 @@ export const listMembers = asyncHandler(async (req: Request, res: Response) => {
   res.json({ items: members });
 });
 
+export const listDuplicateMemberCredentials = asyncHandler(async (req: Request, res: Response) => {
+  if (!req.user) throw new ApiError("Unauthorized", 401);
+
+  const duplicates = await container.memberService.listDuplicateCredentials(req.user.groupId);
+  res.json(duplicates);
+});
+
 export const getMe = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) throw new ApiError("Unauthorized", 401);
   const member = await container.memberService.getById(req.user.userId);
@@ -141,6 +148,26 @@ export const recordRegistrationFeePayment = asyncHandler(async (req: Request, re
   if (!req.user) throw new ApiError("Unauthorized", 401);
   
   const member = await container.memberService.recordRegistrationFeePayment(req.user.userId);
+  res.json(member);
+});
+
+export const recordSeedDeposit = asyncHandler(async (req: Request, res: Response) => {
+  if (!req.user) throw new ApiError("Unauthorized", 401);
+
+  const member = await container.memberService.recordSeedDeposit(req.user.userId);
+  res.json(member);
+});
+
+export const purchaseShares = asyncHandler(async (req: Request, res: Response) => {
+  if (!req.user) throw new ApiError("Unauthorized", 401);
+
+  const { shares } = req.body as { shares?: number };
+  if (shares === undefined) throw new ApiError("Shares count is required", 400);
+
+  const member = await container.memberService.purchaseShares({
+    memberId: req.user.userId,
+    shares: Number(shares),
+  });
   res.json(member);
 });
 

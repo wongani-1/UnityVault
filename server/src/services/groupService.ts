@@ -60,6 +60,7 @@ export class GroupService {
       role: "group_admin",
       createdAt: new Date().toISOString(),
       twoFactorEnabled: false,
+      subscriptionPaid: false,
     };
 
     await this.groupRepository.create(group);
@@ -91,6 +92,9 @@ export class GroupService {
 
     if (
       settings.contributionAmount < 0 ||
+      settings.shareFee < 0 ||
+      settings.initialLoanAmount < 0 ||
+      settings.seedAmount < 0 ||
       settings.loanInterestRate < 0 ||
       settings.penaltyRate < 0 ||
       settings.contributionPenaltyRate < 0 ||

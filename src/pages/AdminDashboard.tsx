@@ -128,6 +128,18 @@ interface DistributionStatusItem {
   distributedAt?: string;
 }
 
+const MONTH_PATTERN = /^\d{4}-(0[1-9]|1[0-2])$/;
+
+const addOneMonth = (month: string) => {
+  if (!MONTH_PATTERN.test(month)) return undefined;
+  const [yearText, monthText] = month.split("-");
+  const year = Number(yearText);
+  const monthIndex = Number(monthText) - 1;
+  const date = new Date(year, monthIndex, 1);
+  date.setMonth(date.getMonth() + 1);
+  return `${date.getFullYear()}-${`${date.getMonth() + 1}`.padStart(2, "0")}`;
+};
+
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const isAdmin = useAdminRole();
@@ -157,6 +169,41 @@ const AdminDashboard = () => {
     month: new Date().toISOString().slice(0, 7), // YYYY-MM format
     dueDate: "",
   });
+
+  const expectedNextContributionMonth = useMemo(() => {
+    const generatedMonths = Array.from(
+      new Set(
+        contributions
+          .map((contribution) => contribution.month)
+          .filter((month) => MONTH_PATTERN.test(month))
+      )
+    ).sort((a, b) => a.localeCompare(b));
+
+    if (generatedMonths.length === 0) return null;
+    return addOneMonth(generatedMonths[generatedMonths.length - 1]) || null;
+  }, [contributions]);
+
+  const isContributionMonthValid =
+    !expectedNextContributionMonth || contributionForm.month === expectedNextContributionMonth;
+
+  const isContributionDueDateValid = useMemo(() => {
+    if (!contributionForm.dueDate) return false;
+    const selected = new Date(contributionForm.dueDate);
+    if (Number.isNaN(selected.getTime())) return false;
+    const today = new Date();
+    const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const selectedDate = new Date(selected.getFullYear(), selected.getMonth(), selected.getDate());
+    return selectedDate >= startOfToday;
+  }, [contributionForm.dueDate]);
+
+  useEffect(() => {
+    if (!generateDialogOpen || !expectedNextContributionMonth) return;
+
+    setContributionForm((prev) => ({
+      ...prev,
+      month: expectedNextContributionMonth,
+    }));
+  }, [generateDialogOpen, expectedNextContributionMonth]);
 
   const loadDashboardData = async () => {
     try {
@@ -385,8 +432,23 @@ const AdminDashboard = () => {
       return;
     }
 
+    if (!MONTH_PATTERN.test(contributionForm.month)) {
+      toast.error("Please select a valid month (YYYY-MM)");
+      return;
+    }
+
+    if (expectedNextContributionMonth && contributionForm.month !== expectedNextContributionMonth) {
+      toast.error(`Contributions must be generated in order. Next allowed month is ${expectedNextContributionMonth}.`);
+      return;
+    }
+
     if (!contributionForm.dueDate) {
       toast.error("Please select a due date");
+      return;
+    }
+
+    if (!isContributionDueDateValid) {
+      toast.error("Due date cannot be before today");
       return;
     }
 
@@ -624,6 +686,16 @@ const AdminDashboard = () => {
                                 value={contributionForm.month}
                                 onChange={(e) => setContributionForm({ ...contributionForm, month: e.target.value })}
                               />
+                              {expectedNextContributionMonth && (
+                                <p className="text-xs text-muted-foreground">
+                                  Next allowed month: {expectedNextContributionMonth}
+                                </p>
+                              )}
+                              {!isContributionMonthValid && (
+                                <p className="text-xs text-destructive">
+                                  Month must be {expectedNextContributionMonth}
+                                </p>
+                              )}
                             </div>
                             <div className="space-y-2">
                               <Label htmlFor="amount">Amount (MWK)</Label>
@@ -646,6 +718,11 @@ const AdminDashboard = () => {
                                 value={contributionForm.dueDate}
                                 onChange={(e) => setContributionForm({ ...contributionForm, dueDate: e.target.value })}
                               />
+                              {contributionForm.dueDate && !isContributionDueDateValid && (
+                                <p className="text-xs text-destructive">
+                                  Due date cannot be before today
+                                </p>
+                              )}
                             </div>
                           </div>
                           <DialogFooter>
@@ -655,7 +732,11 @@ const AdminDashboard = () => {
                             <Button 
                               variant="hero" 
                               onClick={handleGenerateContributions}
-                              disabled={generatingContributions}
+                              disabled={
+                                generatingContributions ||
+                                !isContributionMonthValid ||
+                                !isContributionDueDateValid
+                              }
                             >
                               {generatingContributions ? "Generating..." : "Generate"}
                             </Button>

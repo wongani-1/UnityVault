@@ -43,6 +43,9 @@ const AdminSettings = () => {
         const [settingsData, distributionsData] = await Promise.all([
           apiRequest<{
           contributionAmount: number;
+          shareFee: number;
+          initialLoanAmount: number;
+          seedAmount: number;
           loanInterestRate: number;
           penaltyRate: number;
           contributionPenaltyRate: number;
@@ -62,13 +65,13 @@ const AdminSettings = () => {
         setCycleYear(completed ? completed.year : null);
 
         setForm({
-          shareFee: "",
+          shareFee: String(settingsData.shareFee ?? ""),
           monthlyContribution: String(settingsData.contributionAmount ?? ""),
-          initialLoanAmount: "",
+          initialLoanAmount: String(settingsData.initialLoanAmount ?? ""),
           loanInterestPercent: String((settingsData.loanInterestRate || 0) * 100),
           penaltyMonthlyMiss: String((settingsData.contributionPenaltyRate || 0) * 100),
           penaltyLoanMiss: String((settingsData.penaltyRate || 0) * 100),
-          seedAmount: "",
+          seedAmount: String(settingsData.seedAmount ?? ""),
         });
       } catch (error) {
         const message = error instanceof Error ? error.message : "Failed to load settings";
@@ -108,10 +111,13 @@ const AdminSettings = () => {
         method: "PUT",
         body: {
           contributionAmount: Number(form.monthlyContribution || 0),
+          shareFee: Number(form.shareFee || 0),
+          initialLoanAmount: Number(form.initialLoanAmount || 0),
+          seedAmount: Number(form.seedAmount || 0),
           loanInterestRate: Number(form.loanInterestPercent || 0) / 100,
           penaltyRate: Number(form.penaltyLoanMiss || 0) / 100,
           contributionPenaltyRate: Number(form.penaltyMonthlyMiss || 0) / 100,
-          compulsoryInterestRate: 0.01,
+          compulsoryInterestRate: 0.2,
         },
       });
       localStorage.setItem("unityvault:groupRules", JSON.stringify(form));

@@ -11,6 +11,8 @@ import ForgotPassword from "./pages/ForgotPassword";
 import AdminGroupSetup from "./pages/AdminGroupSetup";
 import MemberRegistrationPayment from "./pages/MemberRegistrationPayment";
 import MemberRegistrationDetails from "./pages/MemberRegistrationDetails";
+import MemberSeedPayment from "./pages/MemberSeedPayment";
+import MemberSharePurchase from "./pages/MemberSharePurchase";
 import MemberContributionPayment from "./pages/MemberContributionPayment";
 import MemberActivate from "./pages/MemberActivate";
 import MemberDashboard from "./pages/MemberDashboard";
@@ -64,6 +66,8 @@ const App = () => (
           <Route path="/admin/subscription-fee" element={<MemberRegistrationPayment />} />
           <Route path="/member/registration-fee" element={<MemberRegistrationPayment />} />
           <Route path="/member/registration-details" element={<MemberRegistrationDetails />} />
+          <Route path="/member/seed-payment" element={<MemberSeedPayment />} />
+          <Route path="/member/share-purchase" element={<MemberSharePurchase />} />
           <Route path="/member/pay-contribution" element={<MemberContributionPayment />} />
           <Route path="/member/activate" element={<MemberActivate />} />
           <Route

@@ -4,6 +4,8 @@ import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import SummaryCard from "@/components/dashboard/SummaryCard";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Table,
   TableBody,
@@ -27,6 +29,9 @@ import {
   TrendingUp,
   DollarSign,
   Banknote,
+  Sprout,
+  Share2,
+  AlertCircle,
 } from "lucide-react";
 import { apiRequest } from "../lib/api";
 import { toast } from "@/components/ui/sonner";
@@ -64,6 +69,21 @@ interface Notification {
   createdAt: string;
 }
 
+interface MemberProfile {
+  id: string;
+  first_name: string;
+  last_name?: string;
+  groupId: string;
+  seedPaid?: boolean;
+  sharesOwned?: number;
+}
+
+interface GroupSettings {
+  seedAmount?: number;
+  shareFee?: number;
+  initialLoanAmount?: number;
+}
+
 const MemberDashboard = () => {
   const navigate = useNavigate();
   const storedProfile = useMemo(() => {
@@ -80,12 +100,16 @@ const MemberDashboard = () => {
   const [profile, setProfile] = useState(storedProfile);
   const [isCheckingRegistration, setIsCheckingRegistration] = useState(true);
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+  const [sharePurchaseDialogOpen, setSharePurchaseDialogOpen] = useState(false);
+  const [sharesToPurchase, setSharesToPurchase] = useState(1);
   
   // Data state
   const [contributions, setContributions] = useState<Contribution[]>([]);
   const [loans, setLoans] = useState<Loan[]>([]);
   const [penalties, setPenalties] = useState<Penalty[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [memberProfile, setMemberProfile] = useState<MemberProfile | null>(null);
+  const [groupSettings, setGroupSettings] = useState<GroupSettings | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Calculated values
@@ -135,6 +159,29 @@ const MemberDashboard = () => {
 
   const isOnTrack = !hasContributionPenalties;
 
+  // Calculate loan limit based on shares
+  const loanLimit = useMemo(() => {
+    if (!memberProfile?.sharesOwned || !groupSettings?.initialLoanAmount) return 0;
+    return memberProfile.sharesOwned * groupSettings.initialLoanAmount;
+  }, [memberProfile, groupSettings]);
+
+  const shareFee = groupSettings?.shareFee || 0;
+  const seedPaid = memberProfile?.seedPaid || false;
+  const sharesOwned = memberProfile?.sharesOwned || 0;
+
+  // Handle share purchase - redirect to payment page
+  const handlePurchaseShares = () => {
+    if (sharesToPurchase < 1) {
+      toast.error("Please select at least 1 share to purchase");
+      return;
+    }
+
+    // Store shares in localStorage and navigate to payment page
+    localStorage.setItem("unityvault:pendingShares", sharesToPurchase.toString());
+    setSharePurchaseDialogOpen(false);
+    navigate(`/member/share-purchase?shares=${sharesToPurchase}`);
+  };
+
   // Check if member is fully registered, if not redirect to payment after 5 seconds
   useEffect(() => {
     const checkRegistration = () => {
@@ -165,21 +212,23 @@ const MemberDashboard = () => {
     checkRegistration();
   }, [navigate, profile]);
 
+  // Load member profile and group settings (always fetch fresh data)
   useEffect(() => {
-    if (profile?.fullName && profile?.groupId) return;
-
     let active = true;
     const load = async () => {
       try {
-        const member = await apiRequest<{ fullName: string; groupId: string }>("/members/me");
-        const group = await apiRequest<{ name: string }>("/groups/me");
+        const member = await apiRequest<MemberProfile>("/members/me");
+        const group = await apiRequest<{ name: string; settings: GroupSettings }>("/groups/me");
+        const fullName = `${member.first_name} ${member.last_name || ""}`.trim();
         const next = {
-          fullName: member.fullName,
+          fullName,
           groupId: member.groupId,
           groupName: group.name,
         };
         if (!active) return;
         setProfile(next);
+        setMemberProfile(member);
+        setGroupSettings(group.settings || {});
         localStorage.setItem("unityvault:memberProfile", JSON.stringify(next));
       } catch (error) {
         const message = error instanceof Error ? error.message : "Failed to load profile";
@@ -191,7 +240,7 @@ const MemberDashboard = () => {
     return () => {
       active = false;
     };
-  }, [profile]);
+  }, []); // Empty dependency array means this runs once on mount
 
   // Fetch dashboard data
   useEffect(() => {
@@ -297,6 +346,33 @@ const MemberDashboard = () => {
       groupId={groupId}
       groupName={groupName}
     >
+      {/* Seed Deposit Alert */}
+      {!seedPaid && (
+        <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-900 dark:bg-amber-950">
+          <div className="flex gap-3">
+            <AlertCircle className="h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" />
+            <div className="flex-1 space-y-2">
+              <p className="text-sm font-medium text-amber-900 dark:text-amber-100">
+                Seed Deposit Required
+              </p>
+              <p className="text-sm text-amber-700 dark:text-amber-300">
+                You need to pay a one-time seed deposit of MWK {groupSettings?.seedAmount?.toLocaleString() || "0"} 
+                before you can make contributions or apply for loans.
+              </p>
+              <Button
+                variant="default"
+                size="sm"
+                className="mt-2 bg-amber-600 hover:bg-amber-700"
+                onClick={() => navigate("/member/seed-payment")}
+              >
+                <Sprout className="mr-2 h-4 w-4" />
+                Pay Seed Deposit
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Summary Cards */}
       <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <SummaryCard
@@ -315,17 +391,18 @@ const MemberDashboard = () => {
           variant="info"
         />
         <SummaryCard
+          title="Shares Owned"
+          value={`${sharesOwned}`}
+          subtitle={`Loan limit: MWK ${loanLimit.toLocaleString()}`}
+          icon={Share2}
+          variant="success"
+        />
+        <SummaryCard
           title="Penalties Due"
           value={`MWK ${pendingPenalties.toLocaleString()}`}
           subtitle={`${pendingPenaltiesCount} pending ${pendingPenaltiesCount !== 1 ? 'penalties' : 'penalty'}`}
           icon={AlertTriangle}
           variant="warning"
-        />
-        <SummaryCard
-          title="Total Balance"
-          value={`MWK ${totalBalance.toLocaleString()}`}
-          subtitle="Net after loans & penalties"
-          icon={PiggyBank}
         />
       </div>
 
@@ -333,7 +410,7 @@ const MemberDashboard = () => {
       <div className="mb-8 flex flex-wrap gap-3">
         <Dialog open={paymentDialogOpen} onOpenChange={setPaymentDialogOpen}>
           <DialogTrigger asChild>
-            <Button variant="hero" size="lg">
+            <Button variant="hero" size="lg" disabled={!seedPaid}>
               <Plus className="mr-2 h-4 w-4" />
               Make Payments
             </Button>
@@ -399,12 +476,89 @@ const MemberDashboard = () => {
             </div>
           </DialogContent>
         </Dialog>
+        
         <Link to="/dashboard/loans">
-          <Button variant="hero-outline" size="lg">
+          <Button variant="hero-outline" size="lg" disabled={!seedPaid || sharesOwned === 0}>
             <HandCoins className="mr-2 h-4 w-4" />
             Apply for Loan
           </Button>
         </Link>
+
+        <Dialog open={sharePurchaseDialogOpen} onOpenChange={setSharePurchaseDialogOpen}>
+          <DialogTrigger asChild>
+            <Button variant="outline" size="lg" disabled={!seedPaid}>
+              <Share2 className="mr-2 h-4 w-4" />
+              Purchase Shares
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Purchase Shares</DialogTitle>
+              <DialogDescription>
+                Increase your loan eligibility by purchasing more shares
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 pt-4">
+              <div className="rounded-lg border bg-muted/30 p-4 space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Current shares owned:</span>
+                  <span className="font-semibold">{sharesOwned}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Current loan limit:</span>
+                  <span className="font-semibold">MWK {loanLimit.toLocaleString()}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Price per share:</span>
+                  <span className="font-semibold">MWK {shareFee.toLocaleString()}</span>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="shares-amount">Number of shares to purchase</Label>
+                <Input
+                  id="shares-amount"
+                  type="number"
+                  min="1"
+                  value={sharesToPurchase}
+                  onChange={(e) => setSharesToPurchase(Math.max(1, parseInt(e.target.value) || 1))}
+                />
+              </div>
+
+              <div className="rounded-lg border-2 border-primary/20 bg-primary/5 p-4 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Total cost:</span>
+                  <span className="text-lg font-bold text-primary">
+                    MWK {(shareFee * sharesToPurchase).toLocaleString()}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">New total shares:</span>
+                  <span className="font-semibold">{sharesOwned + sharesToPurchase}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">New loan limit:</span>
+                  <span className="font-semibold text-success">
+                    MWK {((sharesOwned + sharesToPurchase) * (groupSettings?.initialLoanAmount || 0)).toLocaleString()}
+                  </span>
+                </div>
+              </div>
+
+              <Button
+                variant="hero"
+                size="lg"
+                className="w-full"
+                onClick={handlePurchaseShares}
+              >
+                Proceed to Payment
+              </Button>
+
+              <p className="text-xs text-center text-muted-foreground">
+                Payment will be processed securely through your chosen payment method
+              </p>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
 
       {/* Loan Repayment Progress */}

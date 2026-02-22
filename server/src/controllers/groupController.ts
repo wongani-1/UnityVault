@@ -8,6 +8,9 @@ export const createGroup = asyncHandler(async (req: Request, res: Response) => {
     name: string;
     settings: {
       contributionAmount: number;
+      shareFee: number;
+      initialLoanAmount: number;
+      seedAmount: number;
       loanInterestRate: number;
       penaltyRate: number;
       contributionPenaltyRate: number;
@@ -52,6 +55,9 @@ export const updateGroupSettings = asyncHandler(async (req: Request, res: Respon
   if (!req.user) throw new ApiError("Unauthorized", 401);
   const settings = req.body as {
     contributionAmount: number;
+    shareFee: number;
+    initialLoanAmount: number;
+    seedAmount: number;
     loanInterestRate: number;
     penaltyRate: number;
     contributionPenaltyRate: number;

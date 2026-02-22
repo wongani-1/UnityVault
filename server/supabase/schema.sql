@@ -54,7 +54,10 @@ create table if not exists public.members (
   password_reset_token text,
   password_reset_expires_at timestamptz,
   registration_fee_paid boolean not null default false,
-  registration_fee_paid_at timestamptz
+  registration_fee_paid_at timestamptz,
+  seed_paid boolean not null default false,
+  seed_paid_at timestamptz,
+  shares_owned integer not null default 0
 );
 
 create table if not exists public.contributions (
@@ -225,6 +228,9 @@ create table if not exists public.payment_transactions (
 create index if not exists idx_admins_group_id on public.admins(group_id);
 create index if not exists idx_members_group_id on public.members(group_id);
 create index if not exists idx_members_identifier on public.members(username, email, phone);
+create unique index if not exists uq_members_group_username_ci on public.members(group_id, lower(btrim(username)));
+create unique index if not exists uq_members_group_email_ci on public.members(group_id, lower(btrim(email))) where email is not null and btrim(email) <> '';
+create unique index if not exists uq_members_group_phone_norm on public.members(group_id, regexp_replace(btrim(phone), '\s+', '', 'g')) where phone is not null and btrim(phone) <> '';
 create index if not exists idx_contributions_group_id on public.contributions(group_id);
 create index if not exists idx_contributions_member_id on public.contributions(member_id);
 create index if not exists idx_contributions_month on public.contributions(month);

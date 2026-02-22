@@ -12,6 +12,9 @@ const ALLOWED_TYPES: TransactionType[] = [
   "penalty_payment",
   "cycle_distribution",
   "initial_deposit",
+  "seed_deposit",
+  "share_purchase",
+  "compulsory_interest",
 ];
 
 export const listLedgerEntries = asyncHandler(async (req: Request, res: Response) => {

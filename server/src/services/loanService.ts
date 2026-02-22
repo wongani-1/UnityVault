@@ -51,6 +51,21 @@ export class LoanService {
     }
   }
 
+  private async getAvailableTreasury(groupId: string) {
+    const group = await this.groupRepository.getById(groupId);
+    if (!group) throw new ApiError("Group not found", 404);
+
+    const transactions = await this.transactionRepository.listByGroup(groupId);
+    const ledgerCash = transactions.reduce((sum, transaction) => {
+      return sum + (transaction.groupCashChange || 0);
+    }, 0);
+
+    const baseTreasury = transactions.length > 0 ? ledgerCash : group.cash;
+    const availableTreasury = Number(Math.max(0, baseTreasury).toFixed(2));
+
+    return { group, availableTreasury };
+  }
+
   /**
    * Check loan eligibility for a member
    * Returns eligibility status and reasons for ineligibility
@@ -60,8 +75,7 @@ export class LoanService {
     if (!member) throw new ApiError("Member not found", 404);
     if (member.groupId !== params.groupId) throw new ApiError("Access denied", 403);
 
-    const group = await this.groupRepository.getById(params.groupId);
-    if (!group) throw new ApiError("Group not found", 404);
+    const { group, availableTreasury } = await this.getAvailableTreasury(params.groupId);
 
     const reasons: string[] = [];
     let isEligible = true;
@@ -70,6 +84,20 @@ export class LoanService {
     if (member.status !== "active") {
       isEligible = false;
       reasons.push("Member status must be Active");
+    }
+
+    // 1b. Require seed deposit before any loan
+    if (!member.seedPaid) {
+      isEligible = false;
+      reasons.push("Seed deposit is required before taking a loan");
+    }
+
+    // 1c. Require shares to determine loan cap
+    const sharesOwned = member.sharesOwned || 0;
+    const maxLoanByShares = (group.settings.initialLoanAmount || 0) * sharesOwned;
+    if (sharesOwned <= 0) {
+      isEligible = false;
+      reasons.push("You must purchase at least one share before taking a loan");
     }
 
     // 2. Check for overdue installments
@@ -116,6 +144,21 @@ export class LoanService {
       );
     }
 
+    if (params.requestedAmount > 0 && maxLoanByShares > 0 && params.requestedAmount > maxLoanByShares) {
+      isEligible = false;
+      reasons.push(
+        `Requested amount exceeds your share-based limit (MWK ${maxLoanByShares.toLocaleString()})`
+      );
+    }
+
+    // 5b. Check group treasury has enough funds for this loan amount
+    if (params.requestedAmount > 0 && params.requestedAmount > availableTreasury) {
+      isEligible = false;
+      reasons.push(
+        `Requested amount exceeds available group treasury (MWK ${availableTreasury.toLocaleString()})`
+      );
+    }
+
     // 6. Check for existing active loans
     const activeLoans = memberLoans.filter(
       (loan) => loan.status === "active" && (loan.balance === undefined || loan.balance > 0)
@@ -137,6 +180,9 @@ export class LoanService {
       isEligible,
       reasons,
       maxLoanAmount,
+      availableTreasury,
+      sharesOwned,
+      maxLoanByShares,
       contributionMonths: paidContributions.length,
       requiredMonths: minMonths,
     };
@@ -172,6 +218,14 @@ export class LoanService {
     if (!eligibility.isEligible) {
       throw new ApiError(
         `Loan application denied: ${eligibility.reasons.join("; ")}`,
+        400
+      );
+    }
+
+    const { availableTreasury } = await this.getAvailableTreasury(params.groupId);
+    if (params.principal > availableTreasury) {
+      throw new ApiError(
+        `Loan application denied: requested amount exceeds available group treasury (MWK ${availableTreasury.toLocaleString()})`,
         400
       );
     }
@@ -240,11 +294,29 @@ export class LoanService {
       throw new ApiError("Only pending loans can be approved", 400);
     }
 
-    const group = await this.groupRepository.getById(params.groupId);
-    if (!group) throw new ApiError("Group not found", 404);
+    const { group, availableTreasury } = await this.getAvailableTreasury(params.groupId);
+
+    if (loan.principal > availableTreasury) {
+      throw new ApiError(
+        `Cannot approve loan: available group treasury is MWK ${availableTreasury.toLocaleString()}, which is less than the requested MWK ${loan.principal.toLocaleString()}`,
+        400
+      );
+    }
 
     const member = await this.memberRepository.getById(loan.memberId);
     if (!member) throw new ApiError("Member not found", 404);
+
+    if (!member.seedPaid) {
+      throw new ApiError("Seed deposit is required before loan approval", 400);
+    }
+
+    const shareLimit = (group.settings.initialLoanAmount || 0) * (member.sharesOwned || 0);
+    if (member.sharesOwned <= 0 || loan.principal > shareLimit) {
+      throw new ApiError(
+        `Cannot approve loan: share-based limit is MWK ${shareLimit.toLocaleString()}`,
+        400
+      );
+    }
 
     // Calculate interest and total amounts
     const interestRate = group.settings.loanInterestRate;

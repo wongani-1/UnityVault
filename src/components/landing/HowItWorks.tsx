@@ -71,7 +71,7 @@ const HowItWorks = () => {
               <div
                 key={step.step}
                 data-reveal
-                className={`reveal ${i % 2 === 1 ? "reveal-right" : "reveal-left"} relative flex items-start gap-6 lg:gap-12 ${
+                className={`reveal reveal-up relative flex items-start gap-6 lg:gap-12 ${
                   i % 2 === 1 ? "lg:flex-row-reverse lg:text-right" : ""
                 }`}
                 style={{ transitionDelay: `${i * 120}ms` }}
