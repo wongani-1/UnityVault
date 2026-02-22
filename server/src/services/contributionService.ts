@@ -1,5 +1,12 @@
-import type { ContributionRepository, MemberRepository, PenaltyRepository, GroupRepository } from "../repositories/interfaces";
-import type { Contribution, Penalty } from "../models/types";
+import type {
+  ContributionRepository,
+  MemberRepository,
+  PenaltyRepository,
+  GroupRepository,
+  TransactionRepository,
+} from "../repositories/interfaces";
+import type { DistributionRepository } from "../repositories/interfaces/distributionRepository";
+import type { Contribution, Penalty, Transaction } from "../models/types";
 import { createId } from "../utils/id";
 import { ApiError } from "../utils/apiError";
 import { EmailService } from "./emailService";
@@ -10,8 +17,39 @@ export class ContributionService {
     private memberRepository: MemberRepository,
     private penaltyRepository: PenaltyRepository,
     private groupRepository: GroupRepository,
-    private emailService: EmailService
+    private transactionRepository: TransactionRepository,
+    private emailService: EmailService,
+    private distributionRepository: DistributionRepository
   ) {}
+
+  private async ensureCycleOpen(groupId: string, at = new Date()) {
+    const year = at.getFullYear();
+    const distribution = await this.distributionRepository.getByGroupAndYear(groupId, year);
+    if (distribution?.status === "completed") {
+      throw new ApiError(`Cycle ${year} is closed. No new transactions are allowed.`, 400);
+    }
+  }
+
+  private getPaymentMethodLabel(
+    paymentMethod: "airtel_money" | "tnm_mpamba" | "card"
+  ): string | undefined {
+    if (!paymentMethod) return undefined;
+    if (paymentMethod === "airtel_money") return "Airtel Money";
+    if (paymentMethod === "tnm_mpamba") return "TNM Mpamba";
+    if (paymentMethod === "card") return "Card Payment";
+    return undefined;
+  }
+
+  private extractPaymentMethodFromDescription(
+    description?: string
+  ): "airtel_money" | "tnm_mpamba" | "card" | undefined {
+    if (!description) return undefined;
+    const text = description.toLowerCase();
+    if (text.includes("airtel money")) return "airtel_money";
+    if (text.includes("tnm mpamba") || text.includes("mpamba")) return "tnm_mpamba";
+    if (text.includes("card payment") || text.includes(" via card")) return "card";
+    return undefined;
+  }
 
   /**
    * Generate monthly contributions for all active members in a group
@@ -23,6 +61,8 @@ export class ContributionService {
     amount: number;
     dueDate: string; // ISO date string
   }) {
+    await this.ensureCycleOpen(params.groupId);
+
     const members = await this.memberRepository.listByGroup(params.groupId);
     const activeMembers = members.filter(m => m.status === "active");
     const generated: Contribution[] = [];
@@ -63,6 +103,7 @@ export class ContributionService {
     memberId: string;
     groupId: string;
     requesterRole: "member" | "group_admin";
+    paymentMethod: "airtel_money" | "tnm_mpamba" | "card";
   }) {
     const contribution = await this.contributionRepository.getById(params.contributionId);
     if (!contribution) throw new ApiError("Contribution not found", 404);
@@ -71,6 +112,8 @@ export class ContributionService {
       throw new ApiError("Access denied", 403);
     }
     if (contribution.status === "paid") throw new ApiError("Contribution already paid", 400);
+
+    await this.ensureCycleOpen(params.groupId);
 
     const member = await this.memberRepository.getById(contribution.memberId);
     if (!member) throw new ApiError("Member not found", 404);
@@ -85,6 +128,30 @@ export class ContributionService {
     const updatedMember = await this.memberRepository.update(member.id, {
       balance: member.balance + contribution.amount,
     });
+
+    const paymentMethodLabel = this.getPaymentMethodLabel(params.paymentMethod);
+    if (!paymentMethodLabel) {
+      throw new ApiError("Invalid payment method", 400);
+    }
+
+    const ledgerEntry: Transaction = {
+      id: createId("transaction"),
+      groupId: params.groupId,
+      memberId: member.id,
+      type: "contribution",
+      amount: contribution.amount,
+      description: paymentMethodLabel
+        ? `Contribution payment for ${contribution.month} via ${paymentMethodLabel}`
+        : `Contribution payment for ${contribution.month}`,
+      memberSavingsChange: contribution.amount,
+      groupIncomeChange: 0,
+      groupCashChange: contribution.amount,
+      contributionId: contribution.id,
+      createdAt: new Date().toISOString(),
+      createdBy: params.memberId,
+    };
+
+    await this.transactionRepository.create(ledgerEntry);
 
     // Send payment confirmation email if member has email
     if (member.email && updated && updatedMember) {
@@ -158,6 +225,24 @@ export class ContributionService {
             await this.penaltyRepository.create(penalty);
             overdueCount.penaltiesGenerated++;
 
+            const penaltyLedgerEntry: Transaction = {
+              id: createId("transaction"),
+              groupId: contribution.groupId,
+              memberId: contribution.memberId,
+              type: "penalty_charged",
+              amount: Number(penaltyAmount.toFixed(2)),
+              description: `Penalty charged for late contribution (${contribution.month})`,
+              memberSavingsChange: 0,
+              groupIncomeChange: 0,
+              groupCashChange: 0,
+              contributionId: contribution.id,
+              penaltyId: penalty.id,
+              createdAt: new Date().toISOString(),
+              createdBy: "system",
+            };
+
+            await this.transactionRepository.create(penaltyLedgerEntry);
+
             // Update member penalties total
             const member = await this.memberRepository.getById(contribution.memberId);
             if (member) {
@@ -183,6 +268,8 @@ export class ContributionService {
     amount: number;
     month: string;
   }) {
+    await this.ensureCycleOpen(params.groupId);
+
     const member = await this.memberRepository.getById(params.memberId);
     if (!member) throw new ApiError("Member not found", 404);
     if (member.groupId !== params.groupId) throw new ApiError("Access denied", 403);
@@ -209,11 +296,30 @@ export class ContributionService {
       paidAt: new Date().toISOString(),
     };
 
-    await this.memberRepository.update(member.id, {
+    const updatedMember = await this.memberRepository.update(member.id, {
       balance: member.balance + params.amount,
     });
 
-    return this.contributionRepository.create(contribution);
+    const createdContribution = await this.contributionRepository.create(contribution);
+
+    const ledgerEntry: Transaction = {
+      id: createId("transaction"),
+      groupId: params.groupId,
+      memberId: params.memberId,
+      type: "contribution",
+      amount: params.amount,
+      description: `Manual contribution recorded for ${params.month}`,
+      memberSavingsChange: params.amount,
+      groupIncomeChange: 0,
+      groupCashChange: params.amount,
+      contributionId: createdContribution.id,
+      createdAt: new Date().toISOString(),
+      createdBy: params.memberId,
+    };
+
+    await this.transactionRepository.create(ledgerEntry);
+
+    return createdContribution;
   }
 
   async listByGroup(groupId: string) {
@@ -246,7 +352,34 @@ export class ContributionService {
       }
     }
     
-    return this.contributionRepository.listByMember(memberId);
+    const [contributions, transactions] = await Promise.all([
+      this.contributionRepository.listByMember(memberId),
+      this.transactionRepository.listByMember(memberId),
+    ]);
+
+    const contributionPaymentTx = transactions
+      .filter((tx) => tx.type === "contribution" && tx.contributionId)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+    const methodByContributionId = new Map<
+      string,
+      "airtel_money" | "tnm_mpamba" | "card"
+    >();
+
+    contributionPaymentTx.forEach((tx) => {
+      if (!tx.contributionId || methodByContributionId.has(tx.contributionId)) return;
+      const parsed = this.extractPaymentMethodFromDescription(tx.description);
+      if (parsed) {
+        methodByContributionId.set(tx.contributionId, parsed);
+      }
+    });
+
+    return contributions.map((contribution) => ({
+      ...contribution,
+      paymentMethod: contribution.paidAt
+        ? methodByContributionId.get(contribution.id)
+        : undefined,
+    }));
   }
 
   async listUnpaidByGroup(groupId: string) {

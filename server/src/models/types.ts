@@ -5,7 +5,14 @@ export type LoanStatus = "pending" | "approved" | "rejected" | "active" | "compl
 export type InstallmentStatus = "unpaid" | "paid" | "overdue";
 export type ContributionStatus = "unpaid" | "paid" | "overdue";
 export type PenaltyStatus = "unpaid" | "paid";
-export type TransactionType = "contribution" | "loan_disbursement" | "loan_repayment" | "penalty_payment" | "initial_deposit";
+export type TransactionType =
+  | "contribution"
+  | "loan_disbursement"
+  | "loan_repayment"
+  | "penalty_charged"
+  | "penalty_payment"
+  | "cycle_distribution"
+  | "initial_deposit";
 
 export type GroupSettings = {
   contributionAmount: number;

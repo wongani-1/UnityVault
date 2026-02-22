@@ -6,8 +6,10 @@ import type {
   NotificationRepository,
   ContributionRepository,
   AuditRepository,
+  TransactionRepository,
 } from "../repositories/interfaces";
-import type { Loan, LoanInstallment } from "../models/types";
+import type { DistributionRepository } from "../repositories/interfaces/distributionRepository";
+import type { Loan, LoanInstallment, Transaction } from "../models/types";
 import { createId } from "../utils/id";
 import { ApiError } from "../utils/apiError";
 import type { EmailService } from "./emailService";
@@ -19,6 +21,14 @@ const addMonths = (date: Date, months: number) => {
   return next;
 };
 
+const CYCLE_MONTHS = 12;
+const LOAN_RESTRICT_LAST_MONTHS = 2;
+
+const isInLoanRestrictionWindow = (at: Date) => {
+  const month = at.getMonth() + 1;
+  return month > CYCLE_MONTHS - LOAN_RESTRICT_LAST_MONTHS;
+};
+
 export class LoanService {
   constructor(
     private loanRepository: LoanRepository,
@@ -28,8 +38,18 @@ export class LoanService {
     private notificationRepository: NotificationRepository,
     private contributionRepository: ContributionRepository,
     private auditRepository: AuditRepository,
-    private emailService: EmailService
+    private transactionRepository: TransactionRepository,
+    private emailService: EmailService,
+    private distributionRepository: DistributionRepository
   ) {}
+
+  private async ensureCycleOpen(groupId: string, at = new Date()) {
+    const year = at.getFullYear();
+    const distribution = await this.distributionRepository.getByGroupAndYear(groupId, year);
+    if (distribution?.status === "completed") {
+      throw new ApiError(`Cycle ${year} is closed. No new transactions are allowed.`, 400);
+    }
+  }
 
   /**
    * Check loan eligibility for a member
@@ -105,6 +125,14 @@ export class LoanService {
       reasons.push("You already have an active loan. Please clear it before applying for a new one");
     }
 
+    // 7. Restrict loans in final cycle months to reduce default risk
+    if (isInLoanRestrictionWindow(new Date())) {
+      isEligible = false;
+      reasons.push(
+        `Loans are disabled in the final ${LOAN_RESTRICT_LAST_MONTHS} months of the cycle`
+      );
+    }
+
     return {
       isEligible,
       reasons,
@@ -121,6 +149,15 @@ export class LoanService {
     installments: number;
     reason?: string;
   }) {
+    await this.ensureCycleOpen(params.groupId);
+
+    if (isInLoanRestrictionWindow(new Date())) {
+      throw new ApiError(
+        `Loan requests are disabled in the final ${LOAN_RESTRICT_LAST_MONTHS} months of the cycle`,
+        400
+      );
+    }
+
     const member = await this.memberRepository.getById(params.memberId);
     if (!member) throw new ApiError("Member not found", 404);
     if (member.groupId !== params.groupId) throw new ApiError("Access denied", 403);
@@ -194,6 +231,8 @@ export class LoanService {
     installments: number;
     actorId: string;
   }) {
+    await this.ensureCycleOpen(params.groupId);
+
     const loan = await this.loanRepository.getById(params.loanId);
     if (!loan) throw new ApiError("Loan not found", 404);
     if (loan.groupId !== params.groupId) throw new ApiError("Access denied", 403);
@@ -247,6 +286,23 @@ export class LoanService {
     });
 
     if (!updated) throw new ApiError("Failed to approve loan");
+
+    const disbursementEntry: Transaction = {
+      id: createId("transaction"),
+      groupId: params.groupId,
+      memberId: loan.memberId,
+      type: "loan_disbursement",
+      amount: loan.principal,
+      description: `Loan issued to member (${params.installments} installments)`,
+      memberSavingsChange: 0,
+      groupIncomeChange: 0,
+      groupCashChange: -loan.principal,
+      loanId: loan.id,
+      createdAt: now.toISOString(),
+      createdBy: params.actorId,
+    };
+
+    await this.transactionRepository.create(disbursementEntry);
 
     // Send notification to member
     await this.notificationRepository.create({
@@ -417,6 +473,24 @@ export class LoanService {
                 isPaid: false,
               });
 
+              const penaltyLedgerEntry: Transaction = {
+                id: createId("transaction"),
+                groupId,
+                memberId: loan.memberId,
+                type: "penalty_charged",
+                amount: Number(penaltyAmount.toFixed(2)),
+                description: `Penalty charged for overdue installment #${installment.installmentNumber}`,
+                memberSavingsChange: 0,
+                groupIncomeChange: 0,
+                groupCashChange: 0,
+                loanId: loan.id,
+                installmentId: installment.id,
+                createdAt: now.toISOString(),
+                createdBy: "system",
+              };
+
+              await this.transactionRepository.create(penaltyLedgerEntry);
+
               // Update member penalties total
               const member = await this.memberRepository.getById(loan.memberId);
               if (member) {
@@ -462,6 +536,8 @@ export class LoanService {
     actorId: string;
     actorRole: "member" | "group_admin";
   }) {
+    await this.ensureCycleOpen(params.groupId);
+
     const loan = await this.loanRepository.getById(params.loanId);
     if (!loan) throw new ApiError("Loan not found", 404);
     if (loan.groupId !== params.groupId) throw new ApiError("Access denied", 403);
@@ -501,6 +577,24 @@ export class LoanService {
     });
 
     if (!updated) throw new ApiError("Failed to record repayment");
+
+    const repaymentEntry: Transaction = {
+      id: createId("transaction"),
+      groupId: params.groupId,
+      memberId: loan.memberId,
+      type: "loan_repayment",
+      amount: installment.amount,
+      description: `Loan installment repayment #${installment.installmentNumber}`,
+      memberSavingsChange: 0,
+      groupIncomeChange: installment.interestAmount,
+      groupCashChange: installment.amount,
+      loanId: loan.id,
+      installmentId: installment.id,
+      createdAt: now.toISOString(),
+      createdBy: params.actorId,
+    };
+
+    await this.transactionRepository.create(repaymentEntry);
 
     // Create audit log
     await this.auditRepository.create({

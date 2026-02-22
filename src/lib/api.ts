@@ -18,12 +18,17 @@ export const apiRequest = async <T>(path: string, options: ApiOptions = {}) => {
     headers.Authorization = `Bearer ${token}`;
   }
 
-  const response = await fetch(`${API_BASE}${path}`, {
-    method: options.method || "GET",
-    headers,
-    credentials: "include",
-    body: options.body ? JSON.stringify(options.body) : undefined,
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE}${path}`, {
+      method: options.method || "GET",
+      headers,
+      credentials: "include",
+      body: options.body ? JSON.stringify(options.body) : undefined,
+    });
+  } catch {
+    throw new Error("Network error. Please check your connection and try again.");
+  }
 
   if (!response.ok) {
     let message = "Request failed";

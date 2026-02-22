@@ -53,8 +53,27 @@ self.addEventListener('fetch', (event) => {
           return response;
         })
         .catch(() => {
-          // Return cached response if offline
-          return caches.match(request);
+          // Return cached response for GET if available; always return a valid Response object
+          if (request.method === 'GET') {
+            return caches.match(request).then((cached) => {
+              if (cached) return cached;
+              return new Response(
+                JSON.stringify({ error: 'Network error. No cached data available.' }),
+                {
+                  status: 503,
+                  headers: { 'Content-Type': 'application/json' },
+                }
+              );
+            });
+          }
+
+          return new Response(
+            JSON.stringify({ error: 'Network error. Please check your connection and try again.' }),
+            {
+              status: 503,
+              headers: { 'Content-Type': 'application/json' },
+            }
+          );
         })
     );
     return;

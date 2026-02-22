@@ -4,6 +4,7 @@ import type {
   GroupRepository,
   TransactionRepository 
 } from "../repositories/interfaces";
+import type { DistributionRepository } from "../repositories/interfaces/distributionRepository";
 import type { Penalty, Transaction } from "../models/types";
 import { createId } from "../utils/id";
 import { ApiError } from "../utils/apiError";
@@ -13,10 +14,21 @@ export class PenaltyService {
     private penaltyRepository: PenaltyRepository,
     private memberRepository: MemberRepository,
     private groupRepository: GroupRepository,
-    private transactionRepository: TransactionRepository
+    private transactionRepository: TransactionRepository,
+    private distributionRepository: DistributionRepository
   ) {}
 
+  private async ensureCycleOpen(groupId: string, at = new Date()) {
+    const year = at.getFullYear();
+    const distribution = await this.distributionRepository.getByGroupAndYear(groupId, year);
+    if (distribution?.status === "completed") {
+      throw new ApiError(`Cycle ${year} is closed. No new transactions are allowed.`, 400);
+    }
+  }
+
   async create(params: Omit<Penalty, "id" | "createdAt" | "isPaid" | "status" | "dueDate">) {
+    await this.ensureCycleOpen(params.groupId);
+
     const member = await this.memberRepository.getById(params.memberId);
     if (!member) throw new ApiError("Member not found", 404);
 
@@ -37,7 +49,29 @@ export class PenaltyService {
       penaltiesTotal: member.penaltiesTotal + penalty.amount,
     });
 
-    return this.penaltyRepository.create(penalty);
+    const createdPenalty = await this.penaltyRepository.create(penalty);
+
+    const penaltyChargeEntry: Transaction = {
+      id: createId("transaction"),
+      groupId: createdPenalty.groupId,
+      memberId: createdPenalty.memberId,
+      type: "penalty_charged",
+      amount: createdPenalty.amount,
+      description: `Penalty charged: ${createdPenalty.reason}`,
+      memberSavingsChange: 0,
+      groupIncomeChange: 0,
+      groupCashChange: 0,
+      contributionId: createdPenalty.contributionId,
+      installmentId: createdPenalty.installmentId,
+      loanId: createdPenalty.loanId,
+      penaltyId: createdPenalty.id,
+      createdAt: createdPenalty.createdAt,
+      createdBy: "system",
+    };
+
+    await this.transactionRepository.create(penaltyChargeEntry);
+
+    return createdPenalty;
   }
 
   async listByGroup(groupId: string) {
@@ -59,6 +93,8 @@ export class PenaltyService {
 
     const group = await this.groupRepository.getById(penalty.groupId);
     if (!group) throw new ApiError("Group not found", 404);
+
+    await this.ensureCycleOpen(penalty.groupId);
 
     const paidAt = new Date().toISOString();
 

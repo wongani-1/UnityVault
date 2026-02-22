@@ -17,6 +17,13 @@ const MemberContributions = () => {
   const [items, setItems] = useState<Array<{date: string; amount: string; status: string; method: string}>>([]);
   const [loading, setLoading] = useState(true);
 
+  const formatPaymentMethod = (method?: "airtel_money" | "tnm_mpamba" | "card") => {
+    if (method === "airtel_money") return "Airtel Money";
+    if (method === "tnm_mpamba") return "TNM Mpamba";
+    if (method === "card") return "Card Payment";
+    return "-";
+  };
+
   useEffect(() => {
     let active = true;
     const load = async () => {
@@ -27,6 +34,7 @@ const MemberContributions = () => {
           month: string;
           paidAt?: string;
           createdAt: string;
+          paymentMethod?: "airtel_money" | "tnm_mpamba" | "card";
         }> }>("/contributions");
 
         if (!active) return;
@@ -34,7 +42,7 @@ const MemberContributions = () => {
           date: (item.paidAt || item.createdAt).slice(0, 10),
           amount: `MWK ${item.amount}`,
           status: item.paidAt ? "Paid" : "Pending",
-          method: "Recorded",
+          method: item.paidAt ? formatPaymentMethod(item.paymentMethod) : "-",
         }));
         setItems(mapped);
       } catch (error) {

@@ -122,6 +122,12 @@ interface ContributionData {
   paidAt?: string;
 }
 
+interface DistributionStatusItem {
+  year: number;
+  status: "pending" | "completed" | "cancelled";
+  distributedAt?: string;
+}
+
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const isAdmin = useAdminRole();
@@ -144,6 +150,7 @@ const AdminDashboard = () => {
   const [collectionRateSubtitle, setCollectionRateSubtitle] = useState("No data yet");
   const [groupTreasury, setGroupTreasury] = useState("MWK 0");
   const [treasuryBreakdown, setTreasuryBreakdown] = useState("Contributions + Penalties");
+  const [cycleLockedAt, setCycleLockedAt] = useState<string | null>(null);
   const [generateDialogOpen, setGenerateDialogOpen] = useState(false);
   const [generatingContributions, setGeneratingContributions] = useState(false);
   const [contributionForm, setContributionForm] = useState({
@@ -182,6 +189,15 @@ const AdminDashboard = () => {
       const contributionData = await apiRequest<{ items: ContributionData[] }>("/contributions");
       setContributions(contributionData.items);
       const contributionMap = new Map(contributionData.items.map((c) => [c.id, c.amount]));
+
+      const currentYear = new Date().getFullYear();
+      const distributions = await apiRequest<{ items: DistributionStatusItem[] }>("/distributions").catch(
+        () => ({ items: [] })
+      );
+      const currentYearDistribution = distributions.items.find(
+        (d) => d.year === currentYear && d.status === "completed"
+      );
+      setCycleLockedAt(currentYearDistribution?.distributedAt || null);
 
       // Calculate cycle-to-date paid contributions per member
       const memberContributions = new Map<string, number>();
@@ -436,6 +452,20 @@ const AdminDashboard = () => {
           {copiedLink ? "Copied!" : "Copy Invite Link"}
         </Button>
       </div>
+
+      {cycleLockedAt && (
+        <div className="mb-6 rounded-xl border border-warning/30 bg-warning/10 p-4">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="mt-0.5 h-5 w-5 text-warning" />
+            <div>
+              <p className="text-sm font-semibold text-foreground">Cycle Locked</p>
+              <p className="text-xs text-muted-foreground">
+                This cycle was closed on {new Date(cycleLockedAt).toLocaleDateString()}. New loans, contribution payments, and penalty payments are locked.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Summary */}
       <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">

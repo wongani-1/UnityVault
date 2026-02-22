@@ -1,4 +1,5 @@
 import type { MemberRepository, GroupRepository } from "../repositories/interfaces";
+import type { DistributionRepository } from "../repositories/interfaces/distributionRepository";
 import type { Member } from "../models/types";
 import { createId } from "../utils/id";
 import { hashPassword, verifyPassword } from "../utils/password";
@@ -15,8 +16,20 @@ export class MemberService {
     private groupRepository: GroupRepository,
     private auditService: AuditService,
     private notificationService: NotificationService,
-    private emailService: EmailService
+    private emailService: EmailService,
+    private distributionRepository: DistributionRepository
   ) {}
+
+  private async ensureCycleOpen(groupId: string, at = new Date()) {
+    const year = at.getFullYear();
+    const distribution = await this.distributionRepository.getByGroupAndYear(groupId, year);
+    if (distribution?.status === "completed") {
+      throw new ApiError(
+        `Cycle ${year} is closed. New members cannot be added until the next cycle starts.`,
+        400
+      );
+    }
+  }
 
   async register(params: {
     groupId: string;
@@ -70,6 +83,8 @@ export class MemberService {
     email?: string;
     phone?: string;
   }) {
+    await this.ensureCycleOpen(params.groupId);
+
     if (!params.groupId || !params.first_name || !params.last_name || !params.username) {
       throw new ApiError("Missing required fields");
     }

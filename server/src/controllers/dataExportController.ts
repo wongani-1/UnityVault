@@ -15,8 +15,7 @@ export const exportMemberData = asyncHandler(async (req: Request, res: Response)
   const member = await container.memberService.getById(memberId);
   if (!member) throw new ApiError("Member not found", 404);
 
-  const contributions = await container.contributionService.listByGroup(groupId);
-  const memberContributions = contributions.filter(c => c.memberId === memberId);
+  const memberContributions = await container.contributionService.listByMember(memberId);
 
   const loans = await container.loanService.listByGroup(groupId);
   const memberLoans = loans.filter(l => l.memberId === memberId);
@@ -89,6 +88,14 @@ const generateMemberPDF = (
   loans: any[],
   penalties: any[]
 ): void => {
+
+  const formatPaymentMethod = (method?: string) => {
+    if (method === "airtel_money") return "Airtel Money";
+    if (method === "tnm_mpamba") return "TNM Mpamba";
+    if (method === "card") return "Card Payment";
+    return "N/A";
+  };
+
   // Header
   doc.fontSize(20).fillColor("#047857").text("UnityVault Member Report", { align: "center" });
   doc.moveDown(0.5);
@@ -122,16 +129,17 @@ const generateMemberPDF = (
   if (contributions.length > 0) {
     addSectionHeader(doc, "Contributions History");
     
-    const contribHeaders = ["Month", "Amount", "Status", "Due Date", "Paid Date"];
+    const contribHeaders = ["Month", "Amount", "Method", "Status", "Due Date", "Paid Date"];
     const contribRows = contributions.map(c => [
       c.month,
       `MWK ${c.amount.toLocaleString()}`,
+      formatPaymentMethod(c.paymentMethod),
       c.status,
       new Date(c.dueDate).toLocaleDateString(),
       c.paidAt ? new Date(c.paidAt).toLocaleDateString() : "N/A",
     ]);
 
-    drawTable(doc, contribHeaders, contribRows, [80, 80, 70, 90, 90]);
+    drawTable(doc, contribHeaders, contribRows, [65, 70, 85, 60, 80, 80]);
   }
 
   // Loans Section

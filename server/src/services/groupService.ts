@@ -2,6 +2,7 @@ import type {
   GroupRepository,
   AdminRepository,
 } from "../repositories/interfaces";
+import type { DistributionRepository } from "../repositories/interfaces/distributionRepository";
 import type { Admin, Group, GroupSettings } from "../models/types";
 import { createGroupId, createId } from "../utils/id";
 import { hashPassword } from "../utils/password";
@@ -12,8 +13,20 @@ export class GroupService {
   constructor(
     private groupRepository: GroupRepository,
     private adminRepository: AdminRepository,
-    private auditService: AuditService
+    private auditService: AuditService,
+    private distributionRepository: DistributionRepository
   ) {}
+
+  private async ensureCycleOpen(groupId: string, at = new Date()) {
+    const year = at.getFullYear();
+    const distribution = await this.distributionRepository.getByGroupAndYear(groupId, year);
+    if (distribution?.status === "completed") {
+      throw new ApiError(
+        `Cycle ${year} is closed. Group settings cannot be changed until the next cycle starts.`,
+        400
+      );
+    }
+  }
 
   async createGroup(params: {
     name: string;
@@ -74,6 +87,8 @@ export class GroupService {
   }
 
   async updateSettings(groupId: string, settings: GroupSettings) {
+    await this.ensureCycleOpen(groupId);
+
     if (
       settings.contributionAmount < 0 ||
       settings.loanInterestRate < 0 ||

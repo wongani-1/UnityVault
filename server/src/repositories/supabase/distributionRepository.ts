@@ -74,7 +74,18 @@ export const distributionRepository: DistributionRepository = {
       .insert(toDistributionRow(distribution))
       .select("*")
       .single();
-    if (error) throw new Error(error.message);
+    if (error) {
+      const duplicateError =
+        error.message.toLowerCase().includes("duplicate") ||
+        error.message.toLowerCase().includes("unique");
+
+      if (duplicateError) {
+        const existing = await this.getByGroupAndYear(distribution.groupId, distribution.year);
+        if (existing) return existing;
+      }
+
+      throw new Error(error.message);
+    }
     return fromDistributionRow(data);
   },
 
@@ -97,8 +108,27 @@ export const distributionRepository: DistributionRepository = {
       .eq("group_id", groupId)
       .eq("year", year)
       .maybeSingle();
-    if (error) throw new Error(error.message);
-    return data ? fromDistributionRow(data) : undefined;
+
+    if (!error) {
+      return data ? fromDistributionRow(data) : undefined;
+    }
+
+    const isMultipleRowsError = error.message.toLowerCase().includes("multiple");
+    if (!isMultipleRowsError) {
+      throw new Error(error.message);
+    }
+
+    const { data: fallbackRows, error: fallbackError } = await supabase
+      .from("distributions")
+      .select("*")
+      .eq("group_id", groupId)
+      .eq("year", year)
+      .order("created_at", { ascending: false })
+      .limit(1);
+
+    if (fallbackError) throw new Error(fallbackError.message);
+    const row = (fallbackRows || [])[0];
+    return row ? fromDistributionRow(row) : undefined;
   },
 
   async update(id: string, updates: Partial<Distribution>) {

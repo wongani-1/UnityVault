@@ -40,8 +40,44 @@ export const memberRepository: MemberRepository = {
       .select("*")
       .or(`username.eq.${identifier},email.eq.${identifier},phone.eq.${identifier}`)
       .maybeSingle();
-    if (error) throw new Error(error.message);
-    return data ? fromMemberRow(data) : undefined;
+
+    if (!error) {
+      return data ? fromMemberRow(data) : undefined;
+    }
+
+    const isMultipleRowsError =
+      error.code === "PGRST116" ||
+      /multiple|more than 1 row/i.test(error.message || "");
+
+    if (!isMultipleRowsError) {
+      throw new Error(error.message);
+    }
+
+    const { data: manyRows, error: manyError } = await supabase
+      .from("members")
+      .select("*")
+      .or(`username.eq.${identifier},email.eq.${identifier},phone.eq.${identifier}`)
+      .order("created_at", { ascending: false })
+      .limit(20);
+
+    if (manyError) throw new Error(manyError.message);
+
+    const rows = manyRows || [];
+    if (rows.length === 0) return undefined;
+
+    const activeExact = rows.find((row) =>
+      row.status === "active" &&
+      (row.username === identifier || row.email === identifier || row.phone === identifier)
+    );
+
+    if (activeExact) return fromMemberRow(activeExact);
+
+    const latestExact = rows.find(
+      (row) =>
+        row.username === identifier || row.email === identifier || row.phone === identifier
+    );
+
+    return latestExact ? fromMemberRow(latestExact) : undefined;
   },
   async findByInviteToken(token) {
     const supabase = requireSupabase();

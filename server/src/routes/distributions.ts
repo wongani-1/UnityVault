@@ -21,3 +21,6 @@ distributionRoutes.get("/", distributionController.listDistributions);
 
 // Get member's distribution history
 distributionRoutes.get("/member", distributionController.getMemberDistributions);
+
+// Live estimated payout for current/future cycle close
+distributionRoutes.get("/estimate", distributionController.getEstimatedPayout);

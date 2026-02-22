@@ -16,6 +16,7 @@ import { TwoFactorService } from "./services/twoFactorService";
 import { SessionService } from "./services/sessionService";
 import { DistributionService } from "./services/distributionService";
 import { PaymentService } from "./services/paymentService";
+import { LedgerService } from "./services/ledgerService";
 
 const repositories =
   env.dataStore === "supabase" ? supabaseRepositories : memoryRepositories;
@@ -28,26 +29,31 @@ const penaltyService = new PenaltyService(
   repositories.penaltyRepository,
   repositories.memberRepository,
   repositories.groupRepository,
-  repositories.transactionRepository
+  repositories.transactionRepository,
+  repositories.distributionRepository
 );
 const groupService = new GroupService(
   repositories.groupRepository,
   repositories.adminRepository,
-  auditService
+  auditService,
+  repositories.distributionRepository
 );
 const memberService = new MemberService(
   repositories.memberRepository,
   repositories.groupRepository,
   auditService,
   notificationService,
-  emailService
+  emailService,
+  repositories.distributionRepository
 );
 const contributionService = new ContributionService(
   repositories.contributionRepository,
   repositories.memberRepository,
   repositories.penaltyRepository,
   repositories.groupRepository,
-  emailService
+  repositories.transactionRepository,
+  emailService,
+  repositories.distributionRepository
 );
 const loanService = new LoanService(
   repositories.loanRepository,
@@ -57,7 +63,9 @@ const loanService = new LoanService(
   repositories.notificationRepository,
   repositories.contributionRepository,
   repositories.auditRepository,
-  emailService
+  repositories.transactionRepository,
+  emailService,
+  repositories.distributionRepository
 );
 const authService = new AuthService(
   repositories.groupRepository,
@@ -79,9 +87,11 @@ const distributionService = new DistributionService(
   repositories.penaltyRepository,
   repositories.memberRepository,
   repositories.groupRepository,
-  repositories.distributionRepository
+  repositories.distributionRepository,
+  repositories.transactionRepository
 );
 const paymentService = new PaymentService();
+const ledgerService = new LedgerService(repositories.transactionRepository);
 
 export const container = {
   adminService,
@@ -99,5 +109,6 @@ export const container = {
   sessionService,
   distributionService,
   paymentService,
+  ledgerService,
   paymentRepository: repositories.paymentRepository,
 };

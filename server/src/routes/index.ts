@@ -17,6 +17,7 @@ import { receiptRoutes } from "./receipts";
 import { pushRoutes } from "./push";
 import { distributionRoutes } from "./distributions";
 import { paymentRouter } from "./payments";
+import { ledgerRoutes } from "./ledger";
 
 export const apiRouter = Router();
 
@@ -38,3 +39,4 @@ apiRouter.use("/receipts", receiptRoutes);
 apiRouter.use("/push", pushRoutes);
 apiRouter.use("/distributions", distributionRoutes);
 apiRouter.use("/payments", paymentRouter);
+apiRouter.use("/ledger", ledgerRoutes);

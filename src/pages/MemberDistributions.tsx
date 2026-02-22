@@ -25,8 +25,21 @@ type MemberDistribution = {
   createdAt: string;
 };
 
+type EstimatedPayout = {
+  year: number;
+  baseShare: number;
+  expectedContribution: number;
+  actualContribution: number;
+  remainingContributionBalance: number;
+  loanBalance: number;
+  pendingPenalties: number;
+  complianceStatus: "completed" | "partial" | "defaulted";
+  estimatedPayout: number;
+};
+
 const MemberDistributions = () => {
   const [distributions, setDistributions] = useState<MemberDistribution[]>([]);
+  const [estimatedPayout, setEstimatedPayout] = useState<EstimatedPayout | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -36,8 +49,14 @@ const MemberDistributions = () => {
   const loadDistributions = async () => {
     setLoading(true);
     try {
-      const data = await apiRequest<{ items: MemberDistribution[] }>("/distributions/member");
+      const [data, estimate] = await Promise.all([
+        apiRequest<{ items: MemberDistribution[] }>("/distributions/member"),
+        apiRequest<EstimatedPayout>(`/distributions/estimate?year=${new Date().getFullYear()}`).catch(
+          () => null
+        ),
+      ]);
       setDistributions(data.items);
+      setEstimatedPayout(estimate);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to load distributions";
       toast.error(message);
@@ -57,6 +76,34 @@ const MemberDistributions = () => {
   return (
     <DashboardLayout title="My Distributions" subtitle="Your year-end profit distributions">
       <div className="space-y-6">
+        {/* Live Estimate */}
+        {estimatedPayout && (
+          <Card className="border-0 shadow-card">
+            <CardHeader>
+              <CardTitle>Live Estimated Payout ({estimatedPayout.year})</CardTitle>
+              <CardDescription>
+                Based on current contributions, loans, and penalties
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 md:grid-cols-3">
+                <div>
+                  <p className="text-xs text-muted-foreground">Your expected payout</p>
+                  <p className="text-xl font-semibold">MWK {estimatedPayout.estimatedPayout.toLocaleString()}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Remaining contribution balance</p>
+                  <p className="text-xl font-semibold">MWK {estimatedPayout.remainingContributionBalance.toLocaleString()}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Loan balance</p>
+                  <p className="text-xl font-semibold">MWK {estimatedPayout.loanBalance.toLocaleString()}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Summary Cards */}
         <div className="grid gap-6 md:grid-cols-3">
           <Card className="border-0 shadow-card">
@@ -175,10 +222,10 @@ const MemberDistributions = () => {
           <CardContent className="pt-6">
             <h3 className="font-semibold mb-2">How Distributions Work</h3>
             <ul className="text-sm text-muted-foreground space-y-1">
-              <li>• At year-end, all profits from loans and penalties are pooled</li>
-              <li>• Profits are distributed equally among all active members</li>
-              <li>• You receive your contributions PLUS your equal share of profits</li>
-              <li>• Distributions are processed by group administrators</li>
+              <li>• Base share is calculated from cycle fund and eligible members</li>
+              <li>• Shortfalls, outstanding loans, and pending penalties reduce payout</li>
+              <li>• Repayments and interest improve your projected payout over time</li>
+              <li>• Final payout is confirmed when admin executes cycle distribution</li>
             </ul>
           </CardContent>
         </Card>

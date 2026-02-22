@@ -308,9 +308,19 @@ const MemberContributionPayment = () => {
       // Process payment based on type
       let paidId = null;
       if (paymentType === "contribution" && paymentInfo.itemId) {
+        const selectedPaymentMethod =
+          method === "card"
+            ? "card"
+            : mobileProvider === "airtel"
+            ? "airtel_money"
+            : "tnm_mpamba";
+
         await apiRequest("/contributions/pay", {
           method: "POST",
-          body: { contributionId: paymentInfo.itemId },
+          body: {
+            contributionId: paymentInfo.itemId,
+            paymentMethod: selectedPaymentMethod,
+          },
         });
         paidId = paymentInfo.itemId;
         toast.success("Contribution payment recorded successfully!");

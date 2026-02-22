@@ -15,7 +15,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { UserPlus } from "lucide-react";
+import { AlertCircle, UserPlus } from "lucide-react";
 import { apiRequest } from "@/lib/api";
 import { toast } from "@/components/ui/sonner";
 
@@ -84,6 +84,8 @@ const AdminMembers = () => {
   const [allLoans, setAllLoans] = useState<Loan[]>([]);
   const [penalties, setPenalties] = useState<Penalty[]>([]);
   const [inviteInfo, setInviteInfo] = useState<InviteInfo | null>(null);
+  const [cycleLocked, setCycleLocked] = useState(false);
+  const [cycleYear, setCycleYear] = useState<number | null>(null);
   const [form, setForm] = useState({
     first_name: "",
     last_name: "",
@@ -120,7 +122,25 @@ const AdminMembers = () => {
   useEffect(() => {
     loadMembers();
     checkSubscription();
+    checkCycleLock();
   }, []);
+
+  const checkCycleLock = async () => {
+    try {
+      const data = await apiRequest<{
+        items: Array<{ year: number; status: "pending" | "completed" | "cancelled" }>;
+      }>("/distributions");
+      const currentYear = new Date().getFullYear();
+      const completed = data.items.find(
+        (item) => item.year === currentYear && item.status === "completed"
+      );
+      setCycleLocked(Boolean(completed));
+      setCycleYear(completed ? completed.year : null);
+    } catch {
+      setCycleLocked(false);
+      setCycleYear(null);
+    }
+  };
 
   const checkSubscription = async () => {
     try {
@@ -140,6 +160,11 @@ const AdminMembers = () => {
   };
 
   const handleAddMemberClick = async () => {
+    if (cycleLocked) {
+      toast.error("Cycle is closed. You can only view members until the next cycle starts.");
+      return;
+    }
+
     const isActive = await checkSubscription();
     if (!isActive) {
       setSubscriptionDialogOpen(true);
@@ -153,6 +178,11 @@ const AdminMembers = () => {
   };
 
   const handleAddMember = async () => {
+    if (cycleLocked) {
+      toast.error("Cycle is closed. New members cannot be added right now.");
+      return;
+    }
+
     if (!form.first_name || !form.last_name || !form.username) {
       toast.error("First name, last name, and username are required.");
       return;
@@ -221,10 +251,26 @@ const AdminMembers = () => {
 
   return (
     <DashboardLayout title="Members" subtitle="Manage group members" isAdmin>
+      {cycleLocked && (
+        <Card className="mb-6 border-warning/30 bg-warning/10 shadow-card">
+          <CardContent className="pt-6">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="mt-0.5 h-5 w-5 text-warning" />
+              <div>
+                <p className="text-sm font-semibold text-foreground">Read-only mode</p>
+                <p className="text-xs text-muted-foreground">
+                  Cycle {cycleYear ?? new Date().getFullYear()} is closed. Adding members is disabled.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <Card className="border-0 shadow-card">
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-lg">Member Directory</CardTitle>
-          <Button variant="hero" size="sm" onClick={handleAddMemberClick}>
+          <Button variant="hero" size="sm" onClick={handleAddMemberClick} disabled={cycleLocked}>
             <UserPlus className="mr-2 h-4 w-4" />
             Add Member
           </Button>

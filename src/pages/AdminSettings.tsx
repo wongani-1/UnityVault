@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { apiRequest } from "../lib/api";
 import { toast } from "@/components/ui/sonner";
-import { Monitor, Smartphone, LogOut, Download } from "lucide-react";
+import { Monitor, Smartphone, LogOut, Download, AlertCircle } from "lucide-react";
 
 type Session = {
   id: string;
@@ -33,27 +33,41 @@ const AdminSettings = () => {
   const [error, setError] = useState<string | null>(null);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loadingSessions, setLoadingSessions] = useState(false);
+  const [cycleLocked, setCycleLocked] = useState(false);
+  const [cycleYear, setCycleYear] = useState<number | null>(null);
 
   useEffect(() => {
     let active = true;
     const load = async () => {
       try {
-        const data = await apiRequest<{
+        const [settingsData, distributionsData] = await Promise.all([
+          apiRequest<{
           contributionAmount: number;
           loanInterestRate: number;
           penaltyRate: number;
           contributionPenaltyRate: number;
           compulsoryInterestRate: number;
-        }>("/groups/settings");
+          }>("/groups/settings"),
+          apiRequest<{
+            items: Array<{ year: number; status: "pending" | "completed" | "cancelled" }>;
+          }>("/distributions"),
+        ]);
 
         if (!active) return;
+        const currentYear = new Date().getFullYear();
+        const completed = distributionsData.items.find(
+          (item) => item.year === currentYear && item.status === "completed"
+        );
+        setCycleLocked(Boolean(completed));
+        setCycleYear(completed ? completed.year : null);
+
         setForm({
           shareFee: "",
-          monthlyContribution: String(data.contributionAmount ?? ""),
+          monthlyContribution: String(settingsData.contributionAmount ?? ""),
           initialLoanAmount: "",
-          loanInterestPercent: String((data.loanInterestRate || 0) * 100),
-          penaltyMonthlyMiss: String((data.contributionPenaltyRate || 0) * 100),
-          penaltyLoanMiss: String((data.penaltyRate || 0) * 100),
+          loanInterestPercent: String((settingsData.loanInterestRate || 0) * 100),
+          penaltyMonthlyMiss: String((settingsData.contributionPenaltyRate || 0) * 100),
+          penaltyLoanMiss: String((settingsData.penaltyRate || 0) * 100),
           seedAmount: "",
         });
       } catch (error) {
@@ -76,6 +90,11 @@ const AdminSettings = () => {
   };
 
   const handleSave = async () => {
+    if (cycleLocked) {
+      toast.error("Cycle is closed. Group settings are read-only until the next cycle starts.");
+      return;
+    }
+
     const numbers = Object.values(form).map((value) => Number(value));
     const invalid = numbers.some((value) => Number.isNaN(value) || value < 0);
     if (invalid) {
@@ -190,14 +209,30 @@ const AdminSettings = () => {
   return (
     <DashboardLayout title="Settings" subtitle="Manage group rules and fees" isAdmin>
       <div className="space-y-6">
+        {cycleLocked && (
+          <Card className="border-warning/30 bg-warning/10 shadow-card">
+            <CardContent className="pt-6">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="mt-0.5 h-5 w-5 text-warning" />
+                <div>
+                  <p className="text-sm font-semibold text-foreground">Read-only mode</p>
+                  <p className="text-xs text-muted-foreground">
+                    Cycle {cycleYear ?? new Date().getFullYear()} is closed. Group settings cannot be changed.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         <Card className="border-0 shadow-card">
         <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <CardTitle className="text-lg">Group Rules</CardTitle>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={handleReset}>
+            <Button variant="outline" size="sm" onClick={handleReset} disabled={cycleLocked}>
               Reset
             </Button>
-            <Button variant="hero" size="sm" onClick={handleSave}>
+            <Button variant="hero" size="sm" onClick={handleSave} disabled={cycleLocked}>
               Save Changes
             </Button>
           </div>
@@ -215,6 +250,7 @@ const AdminSettings = () => {
               step="1"
               value={form.shareFee}
               onChange={(e) => updateField("shareFee", e.target.value)}
+              disabled={cycleLocked}
             />
             <p className="text-xs text-muted-foreground">One-time fee per member.</p>
           </div>
@@ -228,6 +264,7 @@ const AdminSettings = () => {
               step="1"
               value={form.monthlyContribution}
               onChange={(e) => updateField("monthlyContribution", e.target.value)}
+              disabled={cycleLocked}
             />
             <p className="text-xs text-muted-foreground">Required monthly savings amount.</p>
           </div>
@@ -241,6 +278,7 @@ const AdminSettings = () => {
               step="1"
               value={form.initialLoanAmount}
               onChange={(e) => updateField("initialLoanAmount", e.target.value)}
+              disabled={cycleLocked}
             />
             <p className="text-xs text-muted-foreground">Default loan cap for new members.</p>
           </div>
@@ -254,6 +292,7 @@ const AdminSettings = () => {
               step="0.1"
               value={form.loanInterestPercent}
               onChange={(e) => updateField("loanInterestPercent", e.target.value)}
+              disabled={cycleLocked}
             />
             <p className="text-xs text-muted-foreground">Monthly interest rate.</p>
           </div>
@@ -267,6 +306,7 @@ const AdminSettings = () => {
               step="0.1"
               value={form.penaltyMonthlyMiss}
               onChange={(e) => updateField("penaltyMonthlyMiss", e.target.value)}
+              disabled={cycleLocked}
             />
             <p className="text-xs text-muted-foreground">Percentage of the missed contribution amount.</p>
           </div>
@@ -280,6 +320,7 @@ const AdminSettings = () => {
               step="0.1"
               value={form.penaltyLoanMiss}
               onChange={(e) => updateField("penaltyLoanMiss", e.target.value)}
+              disabled={cycleLocked}
             />
             <p className="text-xs text-muted-foreground">Percentage of the missed loan payment amount.</p>
           </div>
@@ -293,6 +334,7 @@ const AdminSettings = () => {
               step="1"
               value={form.seedAmount}
               onChange={(e) => updateField("seedAmount", e.target.value)}
+              disabled={cycleLocked}
             />
             <p className="text-xs text-muted-foreground">Opening balance to start the group fund.</p>
           </div>

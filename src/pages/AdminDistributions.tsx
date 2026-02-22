@@ -54,6 +54,11 @@ type MemberDistribution = {
   totalContributions: number;
   profitShare: number;
   totalPayout: number;
+  expectedContribution?: number;
+  contributionShortfall?: number;
+  outstandingLoan?: number;
+  pendingPenalties?: number;
+  complianceStatus?: "completed" | "partial" | "defaulted";
   paidAt?: string;
 };
 
@@ -67,6 +72,11 @@ const AdminDistributions = () => {
   const [executing, setExecuting] = useState(false);
   const [showBreakdown, setShowBreakdown] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+
+  const currentYear = new Date().getFullYear();
+  const currentCycleCompleted = distributions.find(
+    (d) => d.year === currentYear && d.status === "completed"
+  );
 
   useEffect(() => {
     loadDistributions();
@@ -149,6 +159,22 @@ const AdminDistributions = () => {
   return (
     <DashboardLayout title="Year-End Distributions" subtitle="Manage annual profit sharing" isAdmin>
       <div className="space-y-6">
+        {currentCycleCompleted && (
+          <Card className="border-warning/30 bg-warning/10 shadow-card">
+            <CardContent className="pt-6">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="mt-0.5 h-5 w-5 text-warning" />
+                <div>
+                  <p className="text-sm font-semibold text-foreground">Cycle Locked</p>
+                  <p className="text-xs text-muted-foreground">
+                    Current cycle ({currentYear}) is closed since {currentCycleCompleted.distributedAt ? new Date(currentCycleCompleted.distributedAt).toLocaleDateString() : "distribution execution"}. New financial transactions are locked.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Calculate Distribution Card */}
         <Card className="border-0 shadow-card">
           <CardHeader>
@@ -304,7 +330,7 @@ const AdminDistributions = () => {
                 Distribution Breakdown - {selectedDistribution?.year}
               </DialogTitle>
               <DialogDescription>
-                Individual payouts for each member
+                Final payout = Base Share - Contribution Shortfall - Outstanding Loan - Pending Penalties
               </DialogDescription>
             </DialogHeader>
             <div className="max-h-[60vh] overflow-y-auto">
@@ -312,8 +338,13 @@ const AdminDistributions = () => {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Member</TableHead>
+                    <TableHead>Status</TableHead>
                     <TableHead>Contributions</TableHead>
-                    <TableHead>Profit Share</TableHead>
+                    <TableHead>Expected</TableHead>
+                    <TableHead>Shortfall</TableHead>
+                    <TableHead>Loan Balance</TableHead>
+                    <TableHead>Pending Penalties</TableHead>
+                    <TableHead>Base Share</TableHead>
                     <TableHead>Total Payout</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -321,7 +352,12 @@ const AdminDistributions = () => {
                   {memberBreakdown.map((member) => (
                     <TableRow key={member.id}>
                       <TableCell className="font-medium">{member.memberName}</TableCell>
+                      <TableCell className="capitalize">{member.complianceStatus || "—"}</TableCell>
                       <TableCell>MWK {member.totalContributions.toLocaleString()}</TableCell>
+                      <TableCell>MWK {(member.expectedContribution || 0).toLocaleString()}</TableCell>
+                      <TableCell>MWK {(member.contributionShortfall || 0).toLocaleString()}</TableCell>
+                      <TableCell>MWK {(member.outstandingLoan || 0).toLocaleString()}</TableCell>
+                      <TableCell>MWK {(member.pendingPenalties || 0).toLocaleString()}</TableCell>
                       <TableCell className="text-success">
                         MWK {member.profitShare.toLocaleString()}
                       </TableCell>

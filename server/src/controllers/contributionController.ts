@@ -44,7 +44,21 @@ export const generateMonthlyContributions = asyncHandler(async (req: Request, re
 export const recordPayment = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) throw new ApiError("Unauthorized", 401);
   
-  const { contributionId } = req.body as { contributionId: string };
+  const { contributionId, paymentMethod } = req.body as {
+    contributionId: string;
+    paymentMethod?: "airtel_money" | "tnm_mpamba" | "card";
+  };
+
+  if (!paymentMethod) {
+    throw new ApiError("paymentMethod is required (airtel_money, tnm_mpamba, or card)", 400);
+  }
+
+  if (
+    paymentMethod !== undefined &&
+    !["airtel_money", "tnm_mpamba", "card"].includes(paymentMethod)
+  ) {
+    throw new ApiError("Invalid payment method", 400);
+  }
 
   if (!contributionId) {
     throw new ApiError("contributionId is required", 400);
@@ -55,6 +69,7 @@ export const recordPayment = asyncHandler(async (req: Request, res: Response) =>
     memberId: req.user.userId,
     groupId: req.user.groupId,
     requesterRole: req.user.role === "group_admin" ? "group_admin" : "member",
+    paymentMethod,
   });
 
   res.json(contribution);
@@ -88,23 +103,10 @@ export const checkOverdueContributions = asyncHandler(async (req: Request, res: 
  */
 export const addContribution = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) throw new ApiError("Unauthorized", 401);
-  const { memberId, amount, month } = req.body as {
-    memberId: string;
-    amount: number;
-    month: string;
-  };
-
-  if (!memberId || !month) throw new ApiError("Missing required fields", 400);
-  if (!amount || amount <= 0) throw new ApiError("Amount must be greater than zero", 400);
-
-  const contribution = await container.contributionService.addContribution({
-    groupId: req.user.groupId,
-    memberId,
-    amount,
-    month,
-  });
-
-  res.status(201).json(contribution);
+  throw new ApiError(
+    "Manual recorded contributions are disabled. Use /contributions/pay with a payment method.",
+    400
+  );
 });
 
 export const listContributions = asyncHandler(async (req: Request, res: Response) => {

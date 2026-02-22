@@ -92,3 +92,27 @@ export const getMemberDistributions = asyncHandler(async (req: Request, res: Res
 
   res.json({ items: enriched });
 });
+
+export const getEstimatedPayout = asyncHandler(async (req: Request, res: Response) => {
+  if (!req.user) throw new ApiError("Unauthorized", 401);
+
+  const year = req.query.year ? parseInt(req.query.year as string, 10) : new Date().getFullYear();
+  if (!Number.isFinite(year)) {
+    throw new ApiError("Invalid year", 400);
+  }
+
+  const memberId =
+    req.user.role === "member" ? req.user.userId : ((req.query.memberId as string) || undefined);
+
+  if (!memberId) {
+    throw new ApiError("Member ID is required", 400);
+  }
+
+  const estimate = await container.distributionService.getEstimatedPayout({
+    groupId: req.user.groupId,
+    memberId,
+    year,
+  });
+
+  res.json(estimate);
+});

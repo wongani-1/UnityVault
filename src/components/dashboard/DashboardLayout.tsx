@@ -49,7 +49,7 @@ const adminNav = [
   { label: "Penalties", icon: AlertTriangle, href: "/admin/penalties" },
   { label: "Distributions", icon: TrendingUp, href: "/admin/distributions" },
   { label: "Reports", icon: FileText, href: "/admin/reports" },
-  { label: "Audit Logs", icon: ShieldCheck, href: "/admin/audit" },
+  { label: "Audit & Ledger", icon: ShieldCheck, href: "/admin/audit" },
   { label: "Settings", icon: Settings, href: "/admin/settings" },
 ];
 
