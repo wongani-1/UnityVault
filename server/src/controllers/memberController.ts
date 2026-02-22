@@ -4,9 +4,10 @@ import { asyncHandler } from "../utils/asyncHandler";
 import { ApiError } from "../utils/apiError";
 
 export const registerMember = asyncHandler(async (req: Request, res: Response) => {
-  const { groupId, fullName, username, password, email, phone } = req.body as {
+  const { groupId, first_name, last_name, username, password, email, phone } = req.body as {
     groupId: string;
-    fullName: string;
+    first_name: string;
+    last_name: string;
     username: string;
     password: string;
     email?: string;
@@ -15,7 +16,8 @@ export const registerMember = asyncHandler(async (req: Request, res: Response) =
 
   const member = await container.memberService.register({
     groupId,
-    fullName,
+    first_name,
+    last_name,
     username,
     password,
     email,
@@ -27,8 +29,9 @@ export const registerMember = asyncHandler(async (req: Request, res: Response) =
 
 export const inviteMember = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) throw new ApiError("Unauthorized", 401);
-  const { fullName, username, email, phone } = req.body as {
-    fullName: string;
+  const { first_name, last_name, username, email, phone } = req.body as {
+    first_name: string;
+    last_name: string;
     username: string;
     email?: string;
     phone?: string;
@@ -36,7 +39,8 @@ export const inviteMember = asyncHandler(async (req: Request, res: Response) => 
 
   const result = await container.memberService.createInvite({
     groupId: req.user.groupId,
-    fullName,
+    first_name,
+    last_name,
     username,
     email,
     phone,
@@ -68,15 +72,17 @@ export const getMe = asyncHandler(async (req: Request, res: Response) => {
 
 export const updateMe = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) throw new ApiError("Unauthorized", 401);
-  const { fullName, email, phone, username } = req.body as {
-    fullName?: string;
+  const { first_name, last_name, email, phone, username } = req.body as {
+    first_name?: string;
+    last_name?: string;
     email?: string;
     phone?: string;
     username?: string;
   };
 
   const member = await container.memberService.updateProfile(req.user.userId, {
-    fullName,
+    first_name,
+    last_name,
     email,
     phone,
     username,

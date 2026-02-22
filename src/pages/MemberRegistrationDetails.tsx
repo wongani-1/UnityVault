@@ -13,7 +13,8 @@ const MemberRegistrationDetails = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [form, setForm] = useState({
-    fullName: "",
+    first_name: "",
+    last_name: "",
     email: "",
     phone: "",
     password: "",
@@ -64,7 +65,8 @@ const MemberRegistrationDetails = () => {
         method: "POST",
         body: {
           groupId,
-          fullName: form.fullName,
+          first_name: form.first_name,
+          last_name: form.last_name,
           email: form.email,
           phone: form.phone,
           password: form.password,
@@ -91,7 +93,8 @@ const MemberRegistrationDetails = () => {
       localStorage.setItem(
         "unityvault:memberProfile",
         JSON.stringify({
-          fullName: form.fullName,
+          firstName: form.first_name,
+          lastName: form.last_name,
           groupId: auth.user.groupId,
         })
       );
@@ -126,17 +129,30 @@ const MemberRegistrationDetails = () => {
             {/* Personal Information */}
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="fullName">
-                  <User className="mr-2 inline h-4 w-4" />
-                  Full Name
-                </Label>
-                <Input
-                  id="fullName"
-                  placeholder="e.g. Thandiwe Banda"
-                  value={form.fullName}
-                  onChange={(e) => updateField("fullName", e.target.value)}
-                />
-              </div>
+              <Label htmlFor="firstName">
+                <User className="mr-2 inline h-4 w-4" />
+                First Name
+              </Label>
+              <Input
+                id="firstName"
+                placeholder="e.g. Thandiwe"
+                value={form.first_name}
+                onChange={(e) => updateField("first_name", e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="lastName">
+                <User className="mr-2 inline h-4 w-4" />
+                Last Name
+              </Label>
+              <Input
+                id="lastName"
+                placeholder="e.g. Banda"
+                value={form.last_name}
+                onChange={(e) => updateField("last_name", e.target.value)}
+              />
+            </div>
 
               <div className="space-y-2">
                 <Label htmlFor="email">

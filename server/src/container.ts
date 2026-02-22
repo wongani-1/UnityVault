@@ -15,6 +15,7 @@ import { PasswordResetService } from "./services/passwordResetService";
 import { TwoFactorService } from "./services/twoFactorService";
 import { SessionService } from "./services/sessionService";
 import { DistributionService } from "./services/distributionService";
+import { PaymentService } from "./services/paymentService";
 
 const repositories =
   env.dataStore === "supabase" ? supabaseRepositories : memoryRepositories;
@@ -80,6 +81,7 @@ const distributionService = new DistributionService(
   repositories.groupRepository,
   repositories.distributionRepository
 );
+const paymentService = new PaymentService();
 
 export const container = {
   adminService,
@@ -96,4 +98,6 @@ export const container = {
   twoFactorService,
   sessionService,
   distributionService,
+  paymentService,
+  paymentRepository: repositories.paymentRepository,
 };

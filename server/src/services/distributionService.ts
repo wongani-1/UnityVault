@@ -164,7 +164,7 @@ export class DistributionService {
           id: uuid(),
           distributionId: distribution.id,
           memberId: member.id,
-          memberName: member.fullName || member.username,
+          memberName: `${member.first_name} ${member.last_name}` || member.username,
           totalContributions,
           profitShare: distribution.profitPerMember,
           totalPayout: Number(totalPayout.toFixed(2)),

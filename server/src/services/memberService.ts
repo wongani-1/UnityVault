@@ -20,20 +20,22 @@ export class MemberService {
 
   async register(params: {
     groupId: string;
-    fullName: string;
+    first_name: string;
+    last_name: string;
     username: string;
     password: string;
     email?: string;
     phone?: string;
   }) {
-    if (!params.groupId || !params.fullName || !params.username || !params.password) {
+    if (!params.groupId || !params.first_name || !params.last_name || !params.username || !params.password) {
       throw new ApiError("Missing required fields");
     }
 
     const member: Member = {
       id: createId("member"),
       groupId: params.groupId,
-      fullName: params.fullName,
+      first_name: params.first_name,
+      last_name: params.last_name,
       username: params.username,
       email: params.email,
       phone: params.phone,
@@ -52,7 +54,7 @@ export class MemberService {
     await this.notificationService.create({
       groupId: params.groupId,
       type: "member_registration",
-      message: `${member.fullName} requested to join the group`,
+      message: `${member.first_name} ${member.last_name} requested to join the group`,
       adminId: undefined,
       memberId: member.id,
     });
@@ -62,12 +64,13 @@ export class MemberService {
 
   async createInvite(params: {
     groupId: string;
-    fullName: string;
+    first_name: string;
+    last_name: string;
     username: string;
     email?: string;
     phone?: string;
   }) {
-    if (!params.groupId || !params.fullName || !params.username) {
+    if (!params.groupId || !params.first_name || !params.last_name || !params.username) {
       throw new ApiError("Missing required fields");
     }
 
@@ -83,7 +86,8 @@ export class MemberService {
     const member: Member = {
       id: createId("member"),
       groupId: params.groupId,
-      fullName: params.fullName,
+      first_name: params.first_name,
+      last_name: params.last_name,
       username: params.username,
       email: params.email,
       phone: params.phone,
@@ -108,7 +112,7 @@ export class MemberService {
     await this.notificationService.create({
       groupId: params.groupId,
       type: "member_invite",
-      message: `${member.fullName} was invited to join the group`,
+      message: `${member.first_name} ${member.last_name} was invited to join the group`,
       adminId: undefined,
       memberId: member.id,
     });
@@ -121,7 +125,7 @@ export class MemberService {
       // Send email asynchronously, don't block the response
       this.emailService.sendMemberInvite({
         to: params.email,
-        memberName: params.fullName,
+        memberName: `${params.first_name} ${params.last_name}`,
         groupName,
         otp,
         link,
@@ -241,7 +245,7 @@ export class MemberService {
     return { ...member, passwordHash: "" };
   }
 
-  async updateProfile(memberId: string, patch: { fullName?: string; email?: string; phone?: string; username?: string }) {
+  async updateProfile(memberId: string, patch: { first_name?: string; last_name?: string; email?: string; phone?: string; username?: string }) {
     const updated = await this.memberRepository.update(memberId, patch);
     if (!updated) throw new ApiError("Member not found", 404);
     return { ...updated, passwordHash: "" };

@@ -28,7 +28,8 @@ export const memberRepository: MemberRepository = {
     const { data, error } = await supabase
       .from("members")
       .select("*")
-      .eq("group_id", groupId);
+      .eq("group_id", groupId)
+      .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
     return (data || []).map(fromMemberRow);
   },

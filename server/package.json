@@ -36,6 +36,7 @@
     "@types/node": "^22.16.5",
     "@types/nodemailer": "^7.0.9",
     "@types/uuid": "^10.0.0",
+    "supabase": "^2.76.12",
     "tsx": "^4.19.1",
     "typescript": "^5.8.3"
   }

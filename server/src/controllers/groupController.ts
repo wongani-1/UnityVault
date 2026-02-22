@@ -16,7 +16,13 @@ export const createGroup = asyncHandler(async (req: Request, res: Response) => {
       loanToSavingsRatio: number;
       enableAutomaticPenalties: boolean;
     };
-    admin: { email: string; username: string; password: string };
+    admin: {
+      email: string;
+      username: string;
+      password: string;
+      first_name?: string;
+      last_name?: string;
+    };
   };
 
   const result = await container.groupService.createGroup({ name, settings, admin });

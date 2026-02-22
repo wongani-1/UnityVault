@@ -31,7 +31,8 @@ type Penalty = {
 
 type Member = {
   id: string;
-  fullName: string;
+  first_name: string;
+  last_name: string;
 };
 
 type Contribution = {
@@ -60,7 +61,7 @@ const AdminPenalties = () => {
       try {
         // Load members for name lookup
         const memberData = await apiRequest<{ items: Member[] }>("/members");
-        const memberMap = new Map(memberData.items.map((m) => [m.id, m.fullName]));
+        const memberMap = new Map(memberData.items.map((m) => [m.id, `${m.first_name} ${m.last_name}`]));
 
         // Load contributions for amount lookup
         const contributionData = await apiRequest<{ items: Contribution[] }>("/contributions");

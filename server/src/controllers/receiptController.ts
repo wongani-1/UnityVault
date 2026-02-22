@@ -69,7 +69,7 @@ export const generateContributionReceipt = asyncHandler(async (req: Request, res
   const details = [
     ["Receipt No:", contributionId.substring(0, 8).toUpperCase()],
     ["Date:", new Date(contribution.paidAt || contribution.createdAt).toLocaleDateString()],
-    ["Member:", member.fullName || member.username],
+    ["Member:", `${member.first_name} ${member.last_name}` || member.username],
     ["Month:", contribution.month],
     ["Amount Paid:", `MWK ${contribution.amount.toLocaleString()}`],
     ["Payment Status:", contribution.status.toUpperCase()],
@@ -161,7 +161,7 @@ export const generateLoanPaymentReceipt = asyncHandler(async (req: Request, res:
   const details = [
     ["Receipt No:", installmentId.substring(0, 8).toUpperCase()],
     ["Date:", new Date(installment.paidAt || installment.dueDate).toLocaleDateString()],
-    ["Member:", member.fullName || member.username],
+    ["Member:", `${member.first_name} ${member.last_name}` || member.username],
     ["Installment:", `#${installment.installmentNumber}`],
     ["Principal Amount:", `MWK ${installment.principalAmount.toLocaleString()}`],
     ["Interest Amount:", `MWK ${installment.interestAmount.toLocaleString()}`],

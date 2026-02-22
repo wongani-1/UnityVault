@@ -131,7 +131,7 @@ export const exportReport = asyncHandler(async (req: Request, res: Response) => 
     const items = members.map(member => {
       const contribution = contributionMap.get(member.id);
       return {
-        memberName: member.fullName,
+        memberName: `${member.first_name} ${member.last_name}`,
         status: contribution ? contribution.status : "unpaid",
         amount: contribution ? contribution.amount : group.settings.contributionAmount,
         paidAt: contribution?.paidAt || null,
@@ -164,7 +164,7 @@ export const exportReport = asyncHandler(async (req: Request, res: Response) => 
       const totalInstallments = loan.installments.length;
       
       return {
-        memberName: member?.fullName || "Unknown",
+        memberName: member ? `${member.first_name} ${member.last_name}` : "Unknown",
         principal: loan.principal,
         totalDue: loan.totalDue,
         balance: loan.balance,

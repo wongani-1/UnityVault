@@ -18,7 +18,7 @@ export class GroupService {
   async createGroup(params: {
     name: string;
     settings: GroupSettings;
-    admin: { email: string; username: string; password: string; fullName?: string; phone?: string };
+    admin: { email: string; username: string; password: string; first_name?: string; last_name?: string; phone?: string };
   }) {
     if (!params.name) throw new ApiError("Group name is required");
     if (!params.admin.email || !params.admin.username || !params.admin.password) {
@@ -38,7 +38,8 @@ export class GroupService {
     const admin: Admin = {
       id: createId("admin"),
       groupId: group.id,
-      fullName: params.admin.fullName,
+      first_name: params.admin.first_name,
+      last_name: params.admin.last_name,
       email: params.admin.email,
       phone: params.admin.phone,
       username: params.admin.username,

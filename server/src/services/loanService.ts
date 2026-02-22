@@ -162,7 +162,7 @@ export class LoanService {
       groupId: params.groupId,
       adminId: undefined, // Will be sent to all group admins
       type: "loan_request",
-      message: `${member.fullName} has requested a loan of MWK ${params.principal.toLocaleString()}`,
+      message: `${member.first_name} ${member.last_name} has requested a loan of MWK ${params.principal.toLocaleString()}`,
       status: "pending",
       isRead: false,
       createdAt: new Date().toISOString(),
@@ -275,7 +275,7 @@ export class LoanService {
         totalDue,
         installments: params.installments,
         memberId: loan.memberId,
-        memberName: member.fullName,
+        memberName: `${member.first_name} ${member.last_name}`,
       },
     });
 
@@ -286,7 +286,7 @@ export class LoanService {
       // Send email asynchronously, don't block the response
       this.emailService.sendLoanApproval({
         to: member.email,
-        memberName: member.fullName,
+        memberName: `${member.first_name} ${member.last_name}`,
         groupName: group.name,
         loanAmount: loan.principal,
         totalDue,
@@ -352,7 +352,7 @@ export class LoanService {
       meta: {
         reason: params.reason,
         memberId: loan.memberId,
-        memberName: member.fullName,
+        memberName: `${member.first_name} ${member.last_name}`,
         principal: loan.principal,
       },
     });
@@ -517,7 +517,7 @@ export class LoanService {
         amount: installment.amount,
         remainingBalance: newBalance,
         memberId: loan.memberId,
-        memberName: member.fullName,
+        memberName: `${member.first_name} ${member.last_name}`,
       },
     });
 
@@ -548,7 +548,7 @@ export class LoanService {
           principal: loan.principal,
           totalPaid: loan.totalDue,
           memberId: loan.memberId,
-          memberName: member.fullName,
+          memberName: `${member.first_name} ${member.last_name}`,
         },
       });
     }

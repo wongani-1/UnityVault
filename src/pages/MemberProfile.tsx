@@ -10,7 +10,8 @@ import { Shield, Download, Key, Copy, Eye, EyeOff } from "lucide-react";
 
 const MemberProfile = () => {
   const [form, setForm] = useState({
-    fullName: "",
+    first_name: "",
+    last_name: "",
     email: "",
     phone: "",
     username: "",
@@ -36,12 +37,13 @@ const MemberProfile = () => {
     let active = true;
     const load = async () => {
       try {
-        const member = await apiRequest<{ fullName?: string; email?: string; phone?: string; username: string; twoFactorEnabled?: boolean }>(
+        const member = await apiRequest<{ first_name?: string; last_name?: string; email?: string; phone?: string; username: string; groupId: string; twoFactorEnabled?: boolean }>(
           "/members/me"
         );
         if (!active) return;
         setForm({
-          fullName: member.fullName || "",
+          first_name: member.first_name || "",
+          last_name: member.last_name || "",
           email: member.email || "",
           phone: member.phone || "",
           username: member.username || "",
@@ -67,12 +69,13 @@ const MemberProfile = () => {
 
   const handleSave = async () => {
     try {
-      const updated = await apiRequest<{ fullName?: string; email?: string; phone?: string; username: string; groupId: string }>(
+      const updated = await apiRequest<{ first_name?: string; last_name?: string; email?: string; phone?: string; username: string; groupId: string }>(
         "/members/me",
         {
           method: "PUT",
           body: {
-            fullName: form.fullName,
+            first_name: form.first_name,
+            last_name: form.last_name,
             email: form.email,
             phone: form.phone,
             username: form.username,
@@ -87,7 +90,10 @@ const MemberProfile = () => {
           "unityvault:memberProfile",
           JSON.stringify({
             ...parsed,
-            fullName: updated.fullName,
+            fullName:
+              updated.first_name && updated.last_name
+                ? `${updated.first_name} ${updated.last_name}`
+                : parsed?.fullName,
             groupId: updated.groupId,
           })
         );
@@ -239,12 +245,21 @@ const MemberProfile = () => {
             <p className="text-sm text-muted-foreground md:col-span-2">Loading profile...</p>
           )}
           <div className="space-y-2">
-            <Label htmlFor="member-fullname">Full name</Label>
+            <Label htmlFor="member-first-name">First name</Label>
             <Input
-              id="member-fullname"
-              value={form.fullName}
-              onChange={(e) => updateField("fullName", e.target.value)}
-              placeholder="Your name"
+              id="member-first-name"
+              value={form.first_name}
+              onChange={(e) => updateField("first_name", e.target.value)}
+              placeholder="First name"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="member-last-name">Last name</Label>
+            <Input
+              id="member-last-name"
+              value={form.last_name}
+              onChange={(e) => updateField("last_name", e.target.value)}
+              placeholder="Last name"
             />
           </div>
           <div className="space-y-2">

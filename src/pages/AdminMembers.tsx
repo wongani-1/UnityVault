@@ -21,7 +21,8 @@ import { toast } from "@/components/ui/sonner";
 
 type Member = {
   id: string;
-  fullName: string;
+  first_name: string;
+  last_name: string;
   email?: string;
   phone?: string;
   username: string;
@@ -84,7 +85,8 @@ const AdminMembers = () => {
   const [penalties, setPenalties] = useState<Penalty[]>([]);
   const [inviteInfo, setInviteInfo] = useState<InviteInfo | null>(null);
   const [form, setForm] = useState({
-    fullName: "",
+    first_name: "",
+    last_name: "",
     email: "",
     phone: "",
     username: "",
@@ -151,8 +153,8 @@ const AdminMembers = () => {
   };
 
   const handleAddMember = async () => {
-    if (!form.fullName || !form.username) {
-      toast.error("Full name and username are required.");
+    if (!form.first_name || !form.last_name || !form.username) {
+      toast.error("First name, last name, and username are required.");
       return;
     }
     if (!form.email && !form.phone) {
@@ -165,7 +167,8 @@ const AdminMembers = () => {
       const result = await apiRequest<{ invite: InviteInfo }>("/members/invite", {
         method: "POST",
         body: {
-          fullName: form.fullName,
+          first_name: form.first_name,
+          last_name: form.last_name,
           username: form.username,
           email: form.email || undefined,
           phone: form.phone || undefined,
@@ -173,7 +176,7 @@ const AdminMembers = () => {
       });
       setInviteInfo(result.invite);
       toast.success("Invite generated");
-      setForm({ fullName: "", email: "", phone: "", username: "" });
+      setForm({ first_name: "", last_name: "", email: "", phone: "", username: "" });
       await loadMembers();
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to add member";
@@ -246,7 +249,7 @@ const AdminMembers = () => {
             <TableBody>
               {members.map((member) => (
                 <TableRow key={member.id}>
-                  <TableCell className="font-medium">{member.fullName}</TableCell>
+                  <TableCell className="font-medium">{member.first_name} {member.last_name}</TableCell>
                   <TableCell className="text-muted-foreground">{member.phone || "-"}</TableCell>
                   <TableCell>MWK {(member.balance || 0).toLocaleString()}</TableCell>
                   <TableCell>MWK {getOutstandingLoans(member.id).toLocaleString()}</TableCell>
@@ -292,12 +295,21 @@ const AdminMembers = () => {
           </DialogHeader>
           <div className="grid gap-4">
             <div className="space-y-2">
-              <Label htmlFor="member-fullName">Full name</Label>
+              <Label htmlFor="member-firstName">First name</Label>
               <Input
-                id="member-fullName"
-                value={form.fullName}
-                onChange={(e) => updateField("fullName", e.target.value)}
-                placeholder="Member name"
+                id="member-firstName"
+                value={form.first_name}
+                onChange={(e) => updateField("first_name", e.target.value)}
+                placeholder="First name"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="member-lastName">Last name</Label>
+              <Input
+                id="member-lastName"
+                value={form.last_name}
+                onChange={(e) => updateField("last_name", e.target.value)}
+                placeholder="Last name"
               />
             </div>
             <div className="space-y-2">
@@ -420,7 +432,7 @@ const AdminMembers = () => {
               <div className="grid gap-4 md:grid-cols-2">
                 <div>
                   <p className="text-xs uppercase text-muted-foreground">Name</p>
-                  <p className="text-sm font-semibold text-foreground">{selectedMember.fullName}</p>
+                  <p className="text-sm font-semibold text-foreground">{selectedMember.first_name} {selectedMember.last_name}</p>
                 </div>
                 <div>
                   <p className="text-xs uppercase text-muted-foreground">Username</p>

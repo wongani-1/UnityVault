@@ -54,6 +54,7 @@ export const recordPayment = asyncHandler(async (req: Request, res: Response) =>
     contributionId,
     memberId: req.user.userId,
     groupId: req.user.groupId,
+    requesterRole: req.user.role === "group_admin" ? "group_admin" : "member",
   });
 
   res.json(contribution);

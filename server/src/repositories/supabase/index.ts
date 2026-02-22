@@ -8,3 +8,4 @@ export { notificationRepository } from "./notificationRepository";
 export { auditRepository } from "./auditRepository";
 export { transactionRepository } from "./transactionRepository";
 export { distributionRepository } from "./distributionRepository";
+export { paymentRepository } from "./paymentRepository";

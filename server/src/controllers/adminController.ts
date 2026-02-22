@@ -11,15 +11,17 @@ export const getAdminMe = asyncHandler(async (req: Request, res: Response) => {
 
 export const updateAdminMe = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) throw new ApiError("Unauthorized", 401);
-  const { fullName, email, phone, username } = req.body as {
-    fullName?: string;
+  const { first_name, last_name, email, phone, username } = req.body as {
+    first_name?: string;
+    last_name?: string;
     email?: string;
     phone?: string;
     username?: string;
   };
 
   const admin = await container.adminService.updateProfile(req.user.userId, {
-    fullName,
+    first_name,
+    last_name,
     email,
     phone,
     username,

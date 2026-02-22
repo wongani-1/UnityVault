@@ -78,7 +78,7 @@ BEGIN
   END IF;
 
   IF EXISTS (
-    SELECT 1 FROM information_schema.tables 
+    SELECT 1 FROM information_schema.tables
     WHERE table_schema = 'public' AND table_name = 'member_distributions'
   ) THEN
     RAISE NOTICE '✓ member_distributions table created successfully';

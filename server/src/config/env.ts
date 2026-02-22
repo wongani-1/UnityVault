@@ -24,4 +24,9 @@ export const env = {
     user: process.env.GMAIL_USER || "",
     pass: process.env.GMAIL_PASS || "",
   },
+  paychangu: {
+    mockMode: process.env.PAYCHANGU_MOCK_MODE !== "false",
+    apiToken: process.env.PAYCHANGU_API_TOKEN || "",
+    apiUrl: process.env.PAYCHANGU_API_URL || "https://api.paychangu.com",
+  },
 };

@@ -100,7 +100,7 @@ const generateMemberPDF = (
   doc.moveDown(0.5);
   
   const memberData = [
-    ["Full Name:", member.fullName],
+    ["Full Name:", `${member.first_name} ${member.last_name}`],
     ["Username:", member.username],
     ["Email:", member.email || "N/A"],
     ["Phone:", member.phone || "N/A"],
@@ -251,7 +251,7 @@ const generateGroupPDF = (
   
   const memberHeaders = ["Name", "Username", "Status", "Balance"];
   const memberRows = members.slice(0, 20).map(m => [
-    m.fullName.substring(0, 25),
+    m.last_name.substring(0, 25),
     m.username,
     m.status,
     `MWK ${m.balance.toLocaleString()}`,
@@ -270,7 +270,7 @@ const generateGroupPDF = (
   
   const adminHeaders = ["Name", "Email", "Username"];
   const adminRows = admins.map(a => [
-    a.fullName || "N/A",
+    a.first_name && a.last_name ? `${a.first_name} ${a.last_name}` : "N/A",
     a.email,
     a.username,
   ]);
@@ -302,7 +302,7 @@ const generateMembersListPDF = (
   // Table
   const headers = ["Full Name", "Username", "Email", "Phone", "Status", "Balance", "Penalties"];
   const rows = members.map(m => [
-    m.fullName.substring(0, 20),
+    m.last_name.substring(0, 20),
     m.username.substring(0, 15),
     (m.email || "").substring(0, 25),
     (m.phone || "").substring(0, 15),

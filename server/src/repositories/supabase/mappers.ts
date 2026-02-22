@@ -25,7 +25,8 @@ export type GroupRow = {
 export type AdminRow = {
   id: string;
   group_id: string;
-  full_name: string | null;
+  first_name?: string | null;
+  last_name?: string | null;
   email: string;
   phone: string | null;
   username: string;
@@ -45,7 +46,8 @@ export type AdminRow = {
 export type MemberRow = {
   id: string;
   group_id: string;
-  full_name: string;
+  first_name?: string;
+  last_name?: string;
   email: string | null;
   phone: string | null;
   username: string;
@@ -188,53 +190,73 @@ export const fromGroupRow = (row: GroupRow): Group => ({
   cash: row.cash,
 });
 
-export const toAdminRow = (admin: Admin): AdminRow => ({
+export const toAdminRow = (admin: Admin): Record<string, unknown> => ({
   id: admin.id,
   group_id: admin.groupId,
-  full_name: admin.fullName || null,
+  first_name: admin.first_name || null,
+  last_name: admin.last_name || null,
   email: admin.email,
   phone: admin.phone || null,
   username: admin.username,
   password_hash: admin.passwordHash,
   role: admin.role,
   created_at: admin.createdAt,
+  subscription_paid: admin.subscriptionPaid,
+  subscription_paid_at: admin.subscriptionPaidAt || null,
+  subscription_expires_at: admin.subscriptionExpiresAt || null,
 });
 
-export const toAdminPatch = (patch: Partial<Admin>): Partial<AdminRow> => ({
-  ...(patch.groupId !== undefined ? { group_id: patch.groupId } : {}),
-  ...(patch.fullName !== undefined ? { full_name: patch.fullName || null } : {}),
-  ...(patch.email !== undefined ? { email: patch.email } : {}),
-  ...(patch.phone !== undefined ? { phone: patch.phone || null } : {}),
-  ...(patch.username !== undefined ? { username: patch.username } : {}),
-  ...(patch.passwordHash !== undefined ? { password_hash: patch.passwordHash } : {}),
-  ...(patch.role !== undefined ? { role: patch.role } : {}),
-  ...(patch.createdAt !== undefined ? { created_at: patch.createdAt } : {}),
-});
+export const toAdminPatch = (patch: Partial<Admin>): Record<string, unknown> => {
+  const result: Record<string, unknown> = {};
+  
+  if (patch.groupId !== undefined) result.group_id = patch.groupId;
+  if (patch.first_name !== undefined) result.first_name = patch.first_name || null;
+  if (patch.last_name !== undefined) result.last_name = patch.last_name || null;
+  
+  if (patch.email !== undefined) result.email = patch.email;
+  if (patch.phone !== undefined) result.phone = patch.phone || null;
+  if (patch.username !== undefined) result.username = patch.username;
+  if (patch.passwordHash !== undefined) result.password_hash = patch.passwordHash;
+  if (patch.role !== undefined) result.role = patch.role;
+  if (patch.createdAt !== undefined) result.created_at = patch.createdAt;
+  if (patch.subscriptionPaid !== undefined) result.subscription_paid = patch.subscriptionPaid;
+  if (patch.subscriptionPaidAt !== undefined) result.subscription_paid_at = patch.subscriptionPaidAt || null;
+  if (patch.subscriptionExpiresAt !== undefined) result.subscription_expires_at = patch.subscriptionExpiresAt || null;
+  
+  return result;
+};
 
-export const fromAdminRow = (row: AdminRow): Admin => ({
-  id: row.id,
-  groupId: row.group_id,
-  fullName: row.full_name || undefined,
-  email: row.email,
-  phone: row.phone || undefined,
-  username: row.username,
-  passwordHash: row.password_hash,
-  role: row.role,
-  createdAt: row.created_at,
-  twoFactorEnabled: row.two_factor_enabled || false,
-  twoFactorSecret: row.two_factor_secret || undefined,
-  twoFactorBackupCodes: row.two_factor_backup_codes || undefined,
-  passwordResetToken: row.password_reset_token || undefined,
-  passwordResetExpiresAt: row.password_reset_expires_at || undefined,
-  subscriptionPaid: row.subscription_paid || false,
-  subscriptionPaidAt: row.subscription_paid_at || undefined,
-  subscriptionExpiresAt: row.subscription_expires_at || undefined,
-});
+export const fromAdminRow = (row: AdminRow): Admin => {
+  const firstName = row.first_name || undefined;
+  const lastName = row.last_name || undefined;
 
-export const toMemberRow = (member: Member): MemberRow => ({
+  return {
+    id: row.id,
+    groupId: row.group_id,
+    first_name: firstName,
+    last_name: lastName,
+    email: row.email,
+    phone: row.phone || undefined,
+    username: row.username,
+    passwordHash: row.password_hash,
+    role: row.role,
+    createdAt: row.created_at,
+    twoFactorEnabled: row.two_factor_enabled || false,
+    twoFactorSecret: row.two_factor_secret || undefined,
+    twoFactorBackupCodes: row.two_factor_backup_codes || undefined,
+    passwordResetToken: row.password_reset_token || undefined,
+    passwordResetExpiresAt: row.password_reset_expires_at || undefined,
+    subscriptionPaid: row.subscription_paid || false,
+    subscriptionPaidAt: row.subscription_paid_at || undefined,
+    subscriptionExpiresAt: row.subscription_expires_at || undefined,
+  };
+};
+
+export const toMemberRow = (member: Member): Record<string, unknown> => ({
   id: member.id,
   group_id: member.groupId,
-  full_name: member.fullName,
+  first_name: member.first_name,
+  last_name: member.last_name,
   email: member.email || null,
   phone: member.phone || null,
   username: member.username,
@@ -247,49 +269,65 @@ export const toMemberRow = (member: Member): MemberRow => ({
   invite_otp_hash: member.inviteOtpHash || null,
   invite_expires_at: member.inviteExpiresAt || null,
   invite_sent_at: member.inviteSentAt || null,
+  registration_fee_paid: member.registrationFeePaid,
+  registration_fee_paid_at: member.registrationFeePaidAt || null,
 });
 
-export const toMemberPatch = (patch: Partial<Member>): Partial<MemberRow> => ({
-  ...(patch.groupId !== undefined ? { group_id: patch.groupId } : {}),
-  ...(patch.fullName !== undefined ? { full_name: patch.fullName } : {}),
-  ...(patch.email !== undefined ? { email: patch.email || null } : {}),
-  ...(patch.phone !== undefined ? { phone: patch.phone || null } : {}),
-  ...(patch.username !== undefined ? { username: patch.username } : {}),
-  ...(patch.passwordHash !== undefined ? { password_hash: patch.passwordHash } : {}),
-  ...(patch.status !== undefined ? { status: patch.status } : {}),
-  ...(patch.createdAt !== undefined ? { created_at: patch.createdAt } : {}),
-  ...(patch.balance !== undefined ? { balance: patch.balance } : {}),
-  ...(patch.penaltiesTotal !== undefined ? { penalties_total: patch.penaltiesTotal } : {}),
-  ...(patch.inviteToken !== undefined ? { invite_token: patch.inviteToken || null } : {}),
-  ...(patch.inviteOtpHash !== undefined ? { invite_otp_hash: patch.inviteOtpHash || null } : {}),
-  ...(patch.inviteExpiresAt !== undefined ? { invite_expires_at: patch.inviteExpiresAt || null } : {}),
-  ...(patch.inviteSentAt !== undefined ? { invite_sent_at: patch.inviteSentAt || null } : {}),
-});
+export const toMemberPatch = (patch: Partial<Member>): Record<string, unknown> => {
+  const result: Record<string, unknown> = {};
+  
+  if (patch.groupId !== undefined) result.group_id = patch.groupId;
+  if (patch.first_name !== undefined) result.first_name = patch.first_name;
+  if (patch.last_name !== undefined) result.last_name = patch.last_name;
+  
+  if (patch.email !== undefined) result.email = patch.email || null;
+  if (patch.phone !== undefined) result.phone = patch.phone || null;
+  if (patch.username !== undefined) result.username = patch.username;
+  if (patch.passwordHash !== undefined) result.password_hash = patch.passwordHash;
+  if (patch.status !== undefined) result.status = patch.status;
+  if (patch.createdAt !== undefined) result.created_at = patch.createdAt;
+  if (patch.balance !== undefined) result.balance = patch.balance;
+  if (patch.penaltiesTotal !== undefined) result.penalties_total = patch.penaltiesTotal;
+  if (patch.inviteToken !== undefined) result.invite_token = patch.inviteToken || null;
+  if (patch.inviteOtpHash !== undefined) result.invite_otp_hash = patch.inviteOtpHash || null;
+  if (patch.inviteExpiresAt !== undefined) result.invite_expires_at = patch.inviteExpiresAt || null;
+  if (patch.inviteSentAt !== undefined) result.invite_sent_at = patch.inviteSentAt || null;
+  if (patch.registrationFeePaid !== undefined) result.registration_fee_paid = patch.registrationFeePaid;
+  if (patch.registrationFeePaidAt !== undefined) result.registration_fee_paid_at = patch.registrationFeePaidAt || null;
+  
+  return result;
+};
 
-export const fromMemberRow = (row: MemberRow): Member => ({
-  id: row.id,
-  groupId: row.group_id,
-  fullName: row.full_name,
-  email: row.email || undefined,
-  phone: row.phone || undefined,
-  username: row.username,
-  passwordHash: row.password_hash,
-  status: row.status as Member["status"],
-  createdAt: row.created_at,
-  balance: row.balance,
-  penaltiesTotal: row.penalties_total,
-  inviteToken: row.invite_token || undefined,
-  inviteOtpHash: row.invite_otp_hash || undefined,
-  inviteExpiresAt: row.invite_expires_at || undefined,
-  twoFactorEnabled: row.two_factor_enabled || false,
-  twoFactorSecret: row.two_factor_secret || undefined,
-  twoFactorBackupCodes: row.two_factor_backup_codes || undefined,
-  passwordResetToken: row.password_reset_token || undefined,
-  passwordResetExpiresAt: row.password_reset_expires_at || undefined,
-  inviteSentAt: row.invite_sent_at || undefined,
-  registrationFeePaid: row.registration_fee_paid || false,
-  registrationFeePaidAt: row.registration_fee_paid_at || undefined,
-});
+export const fromMemberRow = (row: MemberRow): Member => {
+  const firstName = row.first_name || row.username;
+  const lastName = row.last_name || "";
+
+  return {
+    id: row.id,
+    groupId: row.group_id,
+    first_name: firstName,
+    last_name: lastName,
+    email: row.email || undefined,
+    phone: row.phone || undefined,
+    username: row.username,
+    passwordHash: row.password_hash,
+    status: row.status as Member["status"],
+    createdAt: row.created_at,
+    balance: row.balance,
+    penaltiesTotal: row.penalties_total,
+    inviteToken: row.invite_token || undefined,
+    inviteOtpHash: row.invite_otp_hash || undefined,
+    inviteExpiresAt: row.invite_expires_at || undefined,
+    twoFactorEnabled: row.two_factor_enabled || false,
+    twoFactorSecret: row.two_factor_secret || undefined,
+    twoFactorBackupCodes: row.two_factor_backup_codes || undefined,
+    passwordResetToken: row.password_reset_token || undefined,
+    passwordResetExpiresAt: row.password_reset_expires_at || undefined,
+    inviteSentAt: row.invite_sent_at || undefined,
+    registrationFeePaid: row.registration_fee_paid || false,
+    registrationFeePaidAt: row.registration_fee_paid_at || undefined,
+  };
+};
 
 export const toContributionRow = (contribution: Contribution): ContributionRow => ({
   id: contribution.id,

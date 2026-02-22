@@ -45,14 +45,14 @@ const Login = () => {
       }
       localStorage.setItem("unityvault:role", "member");
 
-      const profile = await apiRequest<{ id: string; fullName: string; groupId: string }>(
+      const profile = await apiRequest<{ id: string; first_name: string; last_name: string; groupId: string }>(
         "/members/me"
       );
       const group = await apiRequest<{ name: string }>("/groups/me");
       localStorage.setItem(
         "unityvault:memberProfile",
         JSON.stringify({
-          fullName: profile.fullName,
+          fullName: `${profile.first_name} ${profile.last_name}`,
           groupId: profile.groupId,
           groupName: group.name,
         })
@@ -110,7 +110,7 @@ const Login = () => {
       const group = await apiRequest<{ id: string; name: string }>(
         `/groups/${auth.user.groupId}`
       );
-      const adminProfile = await apiRequest<{ fullName?: string; email: string; phone?: string; username: string }>(
+      const adminProfile = await apiRequest<{ first_name?: string; last_name?: string; email: string; phone?: string; username: string }>(
         "/admins/me"
       );
       localStorage.setItem(
@@ -118,7 +118,7 @@ const Login = () => {
         JSON.stringify({
           groupId: group.id,
           groupName: group.name,
-          adminName: adminProfile.fullName || adminProfile.username,
+          adminName: (adminProfile.first_name && adminProfile.last_name) ? `${adminProfile.first_name} ${adminProfile.last_name}` : adminProfile.username,
           adminEmail: adminProfile.email,
           adminPhone: adminProfile.phone,
         })

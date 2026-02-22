@@ -32,7 +32,8 @@ type Loan = {
 
 type Member = {
   id: string;
-  fullName: string;
+  first_name: string;
+  last_name: string;
 };
 
 type DisplayLoan = {
@@ -57,7 +58,7 @@ const AdminLoans = () => {
     try {
       // Load members for name lookup
       const memberData = await apiRequest<{ items: Member[] }>("/members");
-      const memberMap = new Map(memberData.items.map((m) => [m.id, m.fullName]));
+      const memberMap = new Map(memberData.items.map((m) => [m.id, `${m.first_name} ${m.last_name}`]));
       setMembers(memberMap);
 
       // Load loans

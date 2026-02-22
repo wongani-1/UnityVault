@@ -10,7 +10,8 @@ import { Shield, Download, Key, Copy, Eye, EyeOff, Calendar, AlertCircle, CheckC
 
 const AdminProfile = () => {
   const [form, setForm] = useState({
-    fullName: "",
+    first_name: "",
+    last_name: "",
     email: "",
     phone: "",
     username: "",
@@ -40,7 +41,7 @@ const AdminProfile = () => {
     const load = async () => {
       try {
         const [admin, subscription] = await Promise.all([
-          apiRequest<{ fullName?: string; email: string; phone?: string; username: string; twoFactorEnabled?: boolean }>(
+          apiRequest<{ first_name?: string; last_name?: string; email: string; phone?: string; username: string; twoFactorEnabled?: boolean }>(
             "/admins/me"
           ),
           apiRequest<{ 
@@ -51,7 +52,8 @@ const AdminProfile = () => {
         ]);
         if (!active) return;
         setForm({
-          fullName: admin.fullName || "",
+          first_name: admin.first_name || "",
+          last_name: admin.last_name || "",
           email: admin.email || "",
           phone: admin.phone || "",
           username: admin.username || "",
@@ -80,12 +82,13 @@ const AdminProfile = () => {
 
   const handleSave = async () => {
     try {
-      const updated = await apiRequest<{ fullName?: string; email: string; phone?: string; username: string }>(
+      const updated = await apiRequest<{ first_name?: string; last_name?: string; email: string; phone?: string; username: string }>(
         "/admins/me",
         {
           method: "PUT",
           body: {
-            fullName: form.fullName,
+            first_name: form.first_name,
+            last_name: form.last_name,
             email: form.email,
             phone: form.phone,
             username: form.username,
@@ -100,7 +103,10 @@ const AdminProfile = () => {
           "unityvault:adminGroup",
           JSON.stringify({
             ...parsed,
-            adminName: updated.fullName || updated.username,
+            adminName:
+              updated.first_name && updated.last_name
+                ? `${updated.first_name} ${updated.last_name}`
+                : updated.username,
             adminEmail: updated.email,
             adminPhone: updated.phone,
           })
@@ -313,12 +319,21 @@ const AdminProfile = () => {
             <p className="text-sm text-muted-foreground md:col-span-2">Loading profile...</p>
           )}
           <div className="space-y-2">
-            <Label htmlFor="admin-fullname">Full name</Label>
+            <Label htmlFor="admin-first-name">First name</Label>
             <Input
-              id="admin-fullname"
-              value={form.fullName}
-              onChange={(e) => updateField("fullName", e.target.value)}
-              placeholder="Your name"
+              id="admin-first-name"
+              value={form.first_name}
+              onChange={(e) => updateField("first_name", e.target.value)}
+              placeholder="First name"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="admin-last-name">Last name</Label>
+            <Input
+              id="admin-last-name"
+              value={form.last_name}
+              onChange={(e) => updateField("last_name", e.target.value)}
+              placeholder="Last name"
             />
           </div>
           <div className="space-y-2">

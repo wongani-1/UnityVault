@@ -2,16 +2,41 @@ import type { AdminRepository } from "../interfaces/adminRepository";
 import { requireSupabase } from "../../db/supabaseClient";
 import { fromAdminRow, toAdminPatch, toAdminRow } from "./mappers";
 
+const getMissingColumn = (message: string): string | undefined => {
+  const match = message.match(/Could not find the '([^']+)' column/);
+  return match?.[1];
+};
+
+const removeMissingColumn = (payload: Record<string, unknown>, column: string) => {
+  if (column in payload) {
+    delete payload[column];
+    return true;
+  }
+  return false;
+};
+
 export const adminRepository: AdminRepository = {
   async create(admin) {
     const supabase = requireSupabase();
-    const { data, error } = await supabase
-      .from("admins")
-      .insert(toAdminRow(admin))
-      .select("*")
-      .single();
-    if (error) throw new Error(error.message);
-    return fromAdminRow(data);
+    const adminRow = toAdminRow(admin) as Record<string, unknown>;
+    const insertPayload = { ...adminRow } as Record<string, unknown>;
+
+    while (true) {
+      const { data, error } = await supabase
+        .from("admins")
+        .insert(insertPayload)
+        .select("*")
+        .single();
+
+      if (!error) {
+        return fromAdminRow(data);
+      }
+
+      const missingColumn = getMissingColumn(error.message || "");
+      if (!missingColumn || !removeMissingColumn(insertPayload, missingColumn)) {
+        throw new Error(error.message);
+      }
+    }
   },
   async getById(id) {
     const supabase = requireSupabase();
@@ -55,13 +80,29 @@ export const adminRepository: AdminRepository = {
   },
   async update(id, patch) {
     const supabase = requireSupabase();
-    const { data, error } = await supabase
-      .from("admins")
-      .update(toAdminPatch(patch))
-      .eq("id", id)
-      .select("*")
-      .maybeSingle();
-    if (error) throw new Error(error.message);
-    return data ? fromAdminRow(data) : undefined;
+    const adminPatch = toAdminPatch(patch) as Record<string, unknown>;
+    const updatePayload = { ...adminPatch } as Record<string, unknown>;
+
+    while (true) {
+      if (Object.keys(updatePayload).length === 0) {
+        return this.getById(id);
+      }
+
+      const { data, error } = await supabase
+        .from("admins")
+        .update(updatePayload)
+        .eq("id", id)
+        .select("*")
+        .maybeSingle();
+
+      if (!error) {
+        return data ? fromAdminRow(data) : undefined;
+      }
+
+      const missingColumn = getMissingColumn(error.message || "");
+      if (!missingColumn || !removeMissingColumn(updatePayload, missingColumn)) {
+        throw new Error(error.message);
+      }
+    }
   },
 };

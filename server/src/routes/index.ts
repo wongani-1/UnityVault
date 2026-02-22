@@ -16,6 +16,7 @@ import { dataExportRouter } from "./dataExport";
 import { receiptRoutes } from "./receipts";
 import { pushRoutes } from "./push";
 import { distributionRoutes } from "./distributions";
+import { paymentRouter } from "./payments";
 
 export const apiRouter = Router();
 
@@ -36,3 +37,4 @@ apiRouter.use("/export", dataExportRouter);
 apiRouter.use("/receipts", receiptRoutes);
 apiRouter.use("/push", pushRoutes);
 apiRouter.use("/distributions", distributionRoutes);
+apiRouter.use("/payments", paymentRouter);

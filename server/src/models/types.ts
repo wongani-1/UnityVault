@@ -31,7 +31,8 @@ export type Group = {
 export type Admin = {
   id: string;
   groupId: string;
-  fullName?: string;
+  first_name?: string;
+  last_name?: string;
   email: string;
   phone?: string;
   username: string;
@@ -54,7 +55,8 @@ export type Admin = {
 export type Member = {
   id: string;
   groupId: string;
-  fullName: string;
+  first_name: string;
+  last_name: string;
   email?: string;
   phone?: string;
   username: string;

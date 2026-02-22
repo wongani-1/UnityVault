@@ -10,6 +10,7 @@ import type {
   Transaction,
 } from "../../models/types";
 import type { Distribution, MemberDistribution } from "../../models/distribution";
+import type { PaymentTransaction } from "../../services/paymentService";
 
 export const store = {
   groups: new Map<string, Group>(),
@@ -23,4 +24,5 @@ export const store = {
   transactions: new Map<string, Transaction>(),
   distributions: new Map<string, Distribution>(),
   memberDistributions: new Map<string, MemberDistribution>(),
+  paymentTransactions: new Map<string, PaymentTransaction>(),
 };

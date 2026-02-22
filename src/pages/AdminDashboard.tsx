@@ -1,5 +1,6 @@
 ﻿import { useMemo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAdminRole } from "@/hooks/use-admin-role";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import SummaryCard from "@/components/dashboard/SummaryCard";
 import { Button } from "@/components/ui/button";
@@ -35,13 +36,15 @@ import {
   Calendar,
   RefreshCw,
   Plus,
+  PiggyBank,
 } from "lucide-react";
 import { apiRequest } from "@/lib/api";
 import { toast } from "@/components/ui/sonner";
 
 interface MemberData {
   id: string;
-  fullName: string;
+  first_name: string;
+  last_name: string;
   phone?: string;
   status: string;
   balance: number;
@@ -121,6 +124,7 @@ interface ContributionData {
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
+  const isAdmin = useAdminRole();
   const [copiedLink, setCopiedLink] = useState(false);
   const [members, setMembers] = useState<DisplayMember[]>([]);
   const [loanRequests, setLoanRequests] = useState<DisplayLoan[]>([]);
@@ -138,6 +142,8 @@ const AdminDashboard = () => {
   const [activeLoans, setActiveLoans] = useState("MWK 0");
   const [collectionRate, setCollectionRate] = useState("0%");
   const [collectionRateSubtitle, setCollectionRateSubtitle] = useState("No data yet");
+  const [groupTreasury, setGroupTreasury] = useState("MWK 0");
+  const [treasuryBreakdown, setTreasuryBreakdown] = useState("Contributions + Penalties");
   const [generateDialogOpen, setGenerateDialogOpen] = useState(false);
   const [generatingContributions, setGeneratingContributions] = useState(false);
   const [contributionForm, setContributionForm] = useState({
@@ -161,7 +167,7 @@ const AdminDashboard = () => {
       
       // Load loans
       const loanData = await apiRequest<{ items: LoanData[] }>("/loans");
-      const memberMap = new Map(memberData.items.map((m) => [m.id, m.fullName]));
+      const memberMap = new Map(memberData.items.map((m) => [m.id, `${m.first_name} ${m.last_name}`]));
       
       // Calculate member loan totals
       const memberLoans = new Map<string, number>();
@@ -177,11 +183,10 @@ const AdminDashboard = () => {
       setContributions(contributionData.items);
       const contributionMap = new Map(contributionData.items.map((c) => [c.id, c.amount]));
 
-      // Calculate current cycle (month) contributions per member
-      const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM format
+      // Calculate cycle-to-date paid contributions per member
       const memberContributions = new Map<string, number>();
       contributionData.items
-        .filter(c => c.month === currentMonth && c.status === "paid")
+        .filter(c => c.status === "paid")
         .forEach((c) => {
           const currentTotal = memberContributions.get(c.memberId) || 0;
           memberContributions.set(c.memberId, currentTotal + c.amount);
@@ -190,7 +195,7 @@ const AdminDashboard = () => {
       // Set members with actual contributions and loan balances
       setMembers(memberData.items.map((m) => ({
         id: m.id,
-        name: m.fullName,
+        name: `${m.first_name} ${m.last_name}`,
         phone: m.phone || "+—",
         status: m.status === "active" ? "Active" : "Pending",
         contributions: `MWK ${(memberContributions.get(m.id) || 0).toLocaleString()}`,
@@ -238,16 +243,49 @@ const AdminDashboard = () => {
       // Calculate summary stats
       const activeCount = memberData.items.filter((m) => m.status === "active").length;
       
-      // Calculate total contributions for current cycle (already filtered above)
+      // Calculate total contributions for cycle-to-date (already filtered above)
       const contribTotal = Array.from(memberContributions.values()).reduce((sum, amt) => sum + amt, 0);
       
-      // Only count active and approved loans
+      // Only count active and approved loans for dashboard outstanding loans card
       const activeLoansList = loanData.items.filter((l) => l.status === "active" || l.status === "approved");
       const loansTotal = activeLoansList.reduce((sum: number, l) => sum + (l.balance || 0), 0);
+
+      // Calculate group treasury from actual cash flow only:
+      // + paid contributions
+      // + paid penalties
+      // - disbursed loan principal
+      // + paid loan installments (principal + interest)
+      const allPaidContributions = contributionData.items
+        .filter(c => c.status === "paid")
+        .reduce((sum, c) => sum + c.amount, 0);
+      
+      const paidPenalties = penaltyData.items
+        .filter(p => p.status === "paid")
+        .reduce((sum, p) => sum + p.amount, 0);
+
+      const disbursedLoans = loanData.items.filter(
+        (l) => l.status === "approved" || l.status === "active" || l.status === "completed"
+      );
+
+      const totalLoanDisbursed = disbursedLoans.reduce(
+        (sum, l) => sum + (l.principal || 0),
+        0
+      );
+
+      const totalLoanRepaid = disbursedLoans.reduce((sum, l) => {
+        const totalDue = l.totalDue || 0;
+        const balance = l.balance || 0;
+        const repaid = Math.max(totalDue - balance, 0);
+        return sum + repaid;
+      }, 0);
+
+      const treasuryTotal = allPaidContributions + paidPenalties - totalLoanDisbursed + totalLoanRepaid;
 
       setTotalMembers(String(activeCount));
       setTotalContributions(`MWK ${contribTotal.toLocaleString()}`);
       setActiveLoans(`MWK ${loansTotal.toLocaleString()}`);
+      setGroupTreasury(`MWK ${treasuryTotal.toLocaleString()}`);
+      setTreasuryBreakdown(`Cash on hand only`);
 
       // Calculate collection rate
       const paidContributions = contributionData.items.filter(c => c.status === "paid").length;
@@ -270,8 +308,10 @@ const AdminDashboard = () => {
   };
 
   useEffect(() => {
-    loadDashboardData();
-  }, []);
+    if (isAdmin) {
+      loadDashboardData();
+    }
+  }, [isAdmin]);
 
   // Update contribution form when group settings are loaded
   useEffect(() => {
@@ -324,6 +364,11 @@ const AdminDashboard = () => {
   };
 
   const handleGenerateContributions = async () => {
+    if (!isAdmin) {
+      toast.error("Access denied");
+      return;
+    }
+
     if (!contributionForm.dueDate) {
       toast.error("Please select a due date");
       return;
@@ -393,7 +438,15 @@ const AdminDashboard = () => {
       </div>
 
       {/* Summary */}
-      <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <SummaryCard
+          title="Group Treasury"
+          value={groupTreasury}
+          subtitle={treasuryBreakdown}
+          tooltip="(Paid Contributions + Paid Penalties) - Loan Principal Disbursed + Loan Repayments (including interest)"
+          icon={PiggyBank}
+          variant="primary"
+        />
         <SummaryCard
           title="Total Members"
           value={totalMembers}
@@ -404,7 +457,7 @@ const AdminDashboard = () => {
         <SummaryCard
           title="Total Contributions"
           value={totalContributions}
-          subtitle="This cycle"
+          subtitle="Cycle-to-date"
           icon={Wallet}
         />
         <SummaryCard

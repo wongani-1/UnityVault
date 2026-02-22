@@ -62,14 +62,17 @@ export class ContributionService {
     contributionId: string;
     memberId: string;
     groupId: string;
+    requesterRole: "member" | "group_admin";
   }) {
     const contribution = await this.contributionRepository.getById(params.contributionId);
     if (!contribution) throw new ApiError("Contribution not found", 404);
     if (contribution.groupId !== params.groupId) throw new ApiError("Access denied", 403);
-    if (contribution.memberId !== params.memberId) throw new ApiError("Access denied", 403);
+    if (params.requesterRole === "member" && contribution.memberId !== params.memberId) {
+      throw new ApiError("Access denied", 403);
+    }
     if (contribution.status === "paid") throw new ApiError("Contribution already paid", 400);
 
-    const member = await this.memberRepository.getById(params.memberId);
+    const member = await this.memberRepository.getById(contribution.memberId);
     if (!member) throw new ApiError("Member not found", 404);
 
     // Mark contribution as paid
@@ -91,7 +94,7 @@ export class ContributionService {
       // Send email asynchronously, don't block the response
       this.emailService.sendContributionConfirmation({
         to: member.email,
-        memberName: member.fullName,
+        memberName: `${member.first_name} ${member.last_name}`,
         groupName,
         amount: contribution.amount,
         month: contribution.month,

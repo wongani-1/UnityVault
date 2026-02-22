@@ -16,7 +16,7 @@ export class AdminService {
     return admins.map(admin => ({ ...admin, passwordHash: "" }));
   }
 
-  async updateProfile(adminId: string, patch: { fullName?: string; email?: string; phone?: string; username?: string }) {
+  async updateProfile(adminId: string, patch: { first_name?: string; last_name?: string; email?: string; phone?: string; username?: string }) {
     const updated = await this.adminRepository.update(adminId, patch);
     if (!updated) throw new ApiError("Admin not found", 404);
     return { ...updated, passwordHash: "" };

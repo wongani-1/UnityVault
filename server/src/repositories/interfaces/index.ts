@@ -8,3 +8,4 @@ export type { NotificationRepository } from "./notificationRepository";
 export type { AuditRepository } from "./auditRepository";
 export type { TransactionRepository } from "./transactionRepository";
 export type { DistributionRepository } from "./distributionRepository";
+export type { PaymentRepository } from "./paymentRepository";

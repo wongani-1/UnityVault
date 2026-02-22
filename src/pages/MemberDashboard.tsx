@@ -41,8 +41,9 @@ interface Contribution {
 
 interface Loan {
   id: string;
-  amount: number;
+  principal: number;
   balance: number;
+  totalDue: number;
   status: string;
   approvedAt?: string;
   dueDate?: string;
@@ -91,7 +92,7 @@ const MemberDashboard = () => {
   const totalContributions = useMemo(() => {
     return contributions
       .filter(c => c.paidAt)
-      .reduce((sum, c) => sum + c.amount, 0);
+      .reduce((sum, c) => sum + (c.amount || 0), 0);
   }, [contributions]);
 
   const paidContributionsCount = useMemo(() => {
@@ -100,18 +101,18 @@ const MemberDashboard = () => {
 
   const outstandingLoans = useMemo(() => {
     return loans
-      .filter(l => l.status === "approved")
-      .reduce((sum, l) => sum + l.balance, 0);
+      .filter(l => l.status === "approved" || l.status === "active")
+      .reduce((sum, l) => sum + (l.balance || 0), 0);
   }, [loans]);
 
   const activeLoansCount = useMemo(() => {
-    return loans.filter(l => l.status === "approved" && l.balance > 0).length;
+    return loans.filter(l => (l.status === "approved" || l.status === "active") && (l.balance || 0) > 0).length;
   }, [loans]);
 
   const pendingPenalties = useMemo(() => {
     return penalties
       .filter(p => !p.isPaid)
-      .reduce((sum, p) => sum + p.amount, 0);
+      .reduce((sum, p) => sum + (p.amount || 0), 0);
   }, [penalties]);
 
   const pendingPenaltiesCount = useMemo(() => {
@@ -242,7 +243,7 @@ const MemberDashboard = () => {
   const contributionHistory = useMemo(() => {
     return contributions.slice(0, 5).map(c => ({
       date: (c.paidAt || c.createdAt).slice(0, 10),
-      amount: `MWK ${c.amount.toLocaleString()}`,
+      amount: `MWK ${(c.amount || 0).toLocaleString()}`,
       status: c.paidAt ? "Paid" : "Pending",
       method: "Recorded",
     }));
@@ -251,15 +252,18 @@ const MemberDashboard = () => {
   // Format loans for display
   const loanHistory = useMemo(() => {
     return loans.map(l => {
-      const repaidPercentage = l.amount > 0 ? Math.round(((l.amount - l.balance) / l.amount) * 100) : 0;
+      const amount = l.principal || 0;
+      const balance = l.balance || 0;
+      const totalDue = l.totalDue || 0;
+      const repaidPercentage = totalDue > 0 ? Math.round(((totalDue - balance) / totalDue) * 100) : 0;
       return {
         id: l.id,
-        amount: `MWK ${l.amount.toLocaleString()}`,
-        balance: `MWK ${l.balance.toLocaleString()}`,
+        amount: `MWK ${amount.toLocaleString()}`,
+        balance: `MWK ${balance.toLocaleString()}`,
         repaid: repaidPercentage,
-        status: l.balance === 0 ? "Cleared" : l.status === "approved" ? "Active" : "Pending",
+        status: balance === 0 ? "Cleared" : (l.status === "approved" || l.status === "active") ? "Active" : "Pending",
         dueDate: l.dueDate ? new Date(l.dueDate).toISOString().slice(0, 10) : "—",
-        nextPayment: l.balance > 0 ? `MWK ${Math.ceil(l.balance / 3).toLocaleString()}` : "—",
+        nextPayment: balance > 0 ? `MWK ${Math.ceil(balance / 3).toLocaleString()}` : "—",
       };
     });
   }, [loans]);
