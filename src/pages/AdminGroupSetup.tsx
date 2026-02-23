@@ -1,12 +1,14 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ArrowLeft, ShieldCheck } from "lucide-react";
+import { toast } from "@/components/ui/sonner";
 
 const AdminGroupSetup = () => {
+  const location = useLocation();
   const [form, setForm] = useState({
     shareFee: "",
     monthlyContribution: "",
@@ -18,6 +20,14 @@ const AdminGroupSetup = () => {
   });
   const [formError, setFormError] = useState<string | null>(null);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const state = location.state as { groupCreated?: boolean } | null;
+    if (state?.groupCreated) {
+      toast.success("Group created successfully");
+      navigate(location.pathname, { replace: true, state: null });
+    }
+  }, [location.pathname, location.state, navigate]);
 
   const updateField = (field: keyof typeof form, value: string) =>
     setForm((prev) => ({ ...prev, [field]: value }));

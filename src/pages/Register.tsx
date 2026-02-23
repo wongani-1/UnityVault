@@ -123,11 +123,9 @@ const Register = () => {
         })
       );
 
-      navigate("/register/success", {
+      navigate("/admin/group-rules", {
         state: {
-          groupId: result.group.id,
-          groupName: result.group.name,
-          adminName,
+          groupCreated: true,
         },
       });
     } catch (error) {
