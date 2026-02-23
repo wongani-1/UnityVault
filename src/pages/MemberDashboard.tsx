@@ -98,7 +98,6 @@ const MemberDashboard = () => {
   }, []);
 
   const [profile, setProfile] = useState(storedProfile);
-  const [isCheckingRegistration, setIsCheckingRegistration] = useState(true);
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [sharePurchaseDialogOpen, setSharePurchaseDialogOpen] = useState(false);
   const [sharesToPurchase, setSharesToPurchase] = useState(1);
@@ -181,36 +180,6 @@ const MemberDashboard = () => {
     setSharePurchaseDialogOpen(false);
     navigate(`/member/share-purchase?shares=${sharesToPurchase}`);
   };
-
-  // Check if member is fully registered, if not redirect to payment after 5 seconds
-  useEffect(() => {
-    const checkRegistration = () => {
-      const hasProfile = profile?.fullName && profile?.groupId;
-      const hasToken = localStorage.getItem("unityvault:token");
-      const hasRole = localStorage.getItem("unityvault:role") === "member";
-
-      // If user doesn't have a complete profile or auth, they need to register
-      if (!hasProfile || !hasToken || !hasRole) {
-        const timer = setTimeout(() => {
-          // Get group ID from URL if accessing via group link
-          const urlParams = new URLSearchParams(window.location.search);
-          const urlGroupId = urlParams.get("groupId");
-          
-          if (urlGroupId) {
-            localStorage.setItem("unityvault:pendingGroupId", urlGroupId);
-          }
-          
-          navigate("/member/registration-fee");
-        }, 5000);
-
-        return () => clearTimeout(timer);
-      } else {
-        setIsCheckingRegistration(false);
-      }
-    };
-
-    checkRegistration();
-  }, [navigate, profile]);
 
   // Load member profile and group settings (always fetch fresh data)
   useEffect(() => {
@@ -395,7 +364,7 @@ const MemberDashboard = () => {
           value={`${sharesOwned}`}
           subtitle={`Loan limit: MWK ${loanLimit.toLocaleString()}`}
           icon={Share2}
-          variant="success"
+          variant="primary"
         />
         <SummaryCard
           title="Penalties Due"
