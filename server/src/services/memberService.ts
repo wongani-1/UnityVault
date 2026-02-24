@@ -164,6 +164,12 @@ export class MemberService {
     email?: string;
     phone?: string;
   }) {
+    console.log("Creating member invite", {
+      groupId: params.groupId,
+      username: params.username,
+      hasEmail: Boolean(params.email),
+      hasPhone: Boolean(params.phone),
+    });
     await this.ensureCycleOpen(params.groupId);
 
     const normalizedUsername = params.username?.trim();
@@ -231,6 +237,10 @@ export class MemberService {
     if (normalizedEmail) {
       const group = await this.groupRepository.getById(params.groupId);
       const groupName = group?.name || "Your Group";
+      console.log("Sending invite email", {
+        to: normalizedEmail,
+        groupName,
+      });
       
       // Send email asynchronously, don't block the response
       this.emailService.sendMemberInvite({
@@ -243,6 +253,8 @@ export class MemberService {
       }).catch(error => {
         console.error("Failed to send invitation email:", error);
       });
+    } else {
+      console.log("Skipping invite email because no email was provided");
     }
 
     return {
