@@ -10,11 +10,31 @@ import {
 } from "../config/subscriptionPlans";
 
 export class AdminService {
+  private static readonly STARTER_TRIAL_DAYS = 14;
+
   constructor(
     private adminRepository: AdminRepository,
     private memberRepository: MemberRepository,
     private paymentRepository: PaymentRepository
   ) {}
+
+  private getStarterTrialEnd(createdAt?: string): string | undefined {
+    if (!createdAt) return undefined;
+    const created = new Date(createdAt);
+    if (Number.isNaN(created.getTime())) return undefined;
+    return new Date(
+      created.getTime() + AdminService.STARTER_TRIAL_DAYS * 24 * 60 * 60 * 1000
+    ).toISOString();
+  }
+
+  private getTrialDaysRemaining(trialEndsAt?: string): number {
+    if (!trialEndsAt) return 0;
+    const endsAt = new Date(trialEndsAt);
+    if (Number.isNaN(endsAt.getTime())) return 0;
+    const remainingMs = endsAt.getTime() - Date.now();
+    if (remainingMs <= 0) return 0;
+    return Math.ceil(remainingMs / (1000 * 60 * 60 * 24));
+  }
 
   private resolvePlanFromPaymentReference(reference?: string): SubscriptionPlan | undefined {
     if (!reference?.startsWith("subscription:")) return undefined;
@@ -125,23 +145,40 @@ export class AdminService {
   async isSubscriptionActive(adminId: string): Promise<boolean> {
     const admin = await this.adminRepository.getById(adminId);
     if (!admin) return false;
-    
-    if (!admin.subscriptionPaid || !admin.subscriptionExpiresAt) {
-      return false;
-    }
 
+    const latestPlan = await this.getLatestSubscriptionPlan(adminId);
     const now = new Date();
-    const expiresAt = new Date(admin.subscriptionExpiresAt);
-    return now < expiresAt;
+    const hasPaidSubscriptionWindow =
+      admin.subscriptionPaid &&
+      Boolean(admin.subscriptionExpiresAt) &&
+      now < new Date(admin.subscriptionExpiresAt as string);
+
+    const isStarterTrialEligible = !admin.subscriptionPaid && !latestPlan;
+    const trialEndsAt = isStarterTrialEligible ? this.getStarterTrialEnd(admin.createdAt) : undefined;
+    const isStarterTrialActive = isStarterTrialEligible && Boolean(trialEndsAt) && now < new Date(trialEndsAt as string);
+
+    return hasPaidSubscriptionWindow || isStarterTrialActive;
   }
 
   async getSubscriptionStatus(adminId: string) {
     const admin = await this.adminRepository.getById(adminId);
     if (!admin) throw new ApiError("Admin not found", 404);
 
-    const isActive = await this.isSubscriptionActive(adminId);
     const latestPlan = await this.getLatestSubscriptionPlan(adminId);
     const effectivePlan = latestPlan || getSubscriptionPlan("starter");
+
+    const now = new Date();
+    const paidSubscriptionActive =
+      admin.subscriptionPaid &&
+      Boolean(admin.subscriptionExpiresAt) &&
+      now < new Date(admin.subscriptionExpiresAt as string);
+
+    const isStarterTrialEligible = !admin.subscriptionPaid && !latestPlan;
+    const trialEndsAt = isStarterTrialEligible ? this.getStarterTrialEnd(admin.createdAt) : undefined;
+    const isTrialActive =
+      Boolean(isStarterTrialEligible && trialEndsAt) && now < new Date(trialEndsAt as string);
+    const trialDaysRemaining = isTrialActive ? this.getTrialDaysRemaining(trialEndsAt) : 0;
+    const isActive = paidSubscriptionActive || isTrialActive;
 
     const members = await this.memberRepository.listByGroup(admin.groupId);
     const memberCount = members.length;
@@ -159,6 +196,10 @@ export class AdminService {
       memberCount,
       canAddMembers,
       manageMultipleGroups: effectivePlan?.manageMultipleGroups || false,
+      isTrialActive,
+      trialEndsAt,
+      trialDaysRemaining,
+      trialDurationDays: AdminService.STARTER_TRIAL_DAYS,
     };
   }
 
@@ -169,6 +210,13 @@ export class AdminService {
 
     const subscription = await this.getSubscriptionStatus(params.adminId);
     if (!subscription.isActive) {
+      if (!subscription.subscriptionPaid && subscription.planId === "starter" && subscription.trialEndsAt) {
+        throw new ApiError(
+          "Your 14-day Starter trial has ended. Please choose a paid subscription plan to continue adding members.",
+          400
+        );
+      }
+
       throw new ApiError(
         "Subscription required. Please pay or renew your subscription to add members.",
         400

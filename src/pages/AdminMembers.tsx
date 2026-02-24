@@ -87,6 +87,9 @@ const AdminMembers = () => {
   const [subscriptionMemberLimit, setSubscriptionMemberLimit] = useState<number | null>(null);
   const [subscriptionMemberCount, setSubscriptionMemberCount] = useState(0);
   const [canAddMembers, setCanAddMembers] = useState(false);
+  const [subscriptionTrialActive, setSubscriptionTrialActive] = useState(false);
+  const [subscriptionTrialEndsAt, setSubscriptionTrialEndsAt] = useState<string | null>(null);
+  const [subscriptionTrialDaysRemaining, setSubscriptionTrialDaysRemaining] = useState(0);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [detailsLoading, setDetailsLoading] = useState(false);
@@ -163,6 +166,9 @@ const AdminMembers = () => {
         memberLimit?: number | null;
         memberCount?: number;
         canAddMembers?: boolean;
+        isTrialActive?: boolean;
+        trialEndsAt?: string;
+        trialDaysRemaining?: number;
       }>("/admins/me/subscription-status");
       setSubscriptionPaid(data.subscriptionPaid);
       setSubscriptionActive(data.isActive);
@@ -171,6 +177,9 @@ const AdminMembers = () => {
       setSubscriptionMemberLimit(data.memberLimit ?? null);
       setSubscriptionMemberCount(data.memberCount || 0);
       setCanAddMembers(Boolean(data.canAddMembers));
+      setSubscriptionTrialActive(Boolean(data.isTrialActive));
+      setSubscriptionTrialEndsAt(data.trialEndsAt || null);
+      setSubscriptionTrialDaysRemaining(data.trialDaysRemaining || 0);
       return data;
     } catch (error) {
       console.error("Failed to check subscription status:", error);
@@ -249,6 +258,9 @@ const AdminMembers = () => {
   const handleDialogChange = (open: boolean) => {
     setDialogOpen(open);
   };
+
+  const trialExpired = !subscriptionActive && !subscriptionPaid && Boolean(subscriptionTrialEndsAt);
+  const blockedByPlanLimit = subscriptionActive && !canAddMembers;
 
   const handleViewDetails = async (member: Member) => {
     setSelectedMember(member);
@@ -428,12 +440,22 @@ const AdminMembers = () => {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {subscriptionPaid ? "Subscription Expired" : "Subscription Required"}
+              {blockedByPlanLimit
+                ? "Plan Limit Reached"
+                : trialExpired
+                ? "Starter Trial Ended"
+                : subscriptionPaid
+                ? "Subscription Expired"
+                : "Subscription Required"}
             </DialogTitle>
             <DialogDescription>
-              {subscriptionPaid 
+              {blockedByPlanLimit
+                ? "Your current plan member limit has been reached. Upgrade to continue adding members."
+                : trialExpired
+                ? "Your 14-day Starter trial has ended. Choose a paid plan to keep adding members."
+                : subscriptionPaid
                 ? "Your monthly subscription has expired. Renew to continue adding members to your group."
-                : "To add members to your group, you need to pay the monthly subscription fee."}
+                : "Choose a subscription plan to continue adding members to your group."}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -444,6 +466,11 @@ const AdminMembers = () => {
                   ? `${subscriptionMemberCount} members (no limit)`
                   : `${subscriptionMemberCount}/${subscriptionMemberLimit} members used`}
               </p>
+              {subscriptionTrialActive && subscriptionTrialEndsAt && (
+                <p className="text-xs text-muted-foreground mt-2">
+                  Starter trial ends on {new Date(subscriptionTrialEndsAt).toLocaleDateString()} ({subscriptionTrialDaysRemaining} day{subscriptionTrialDaysRemaining === 1 ? "" : "s"} remaining)
+                </p>
+              )}
               {subscriptionExpiresAt && (
                 <p className="text-xs text-muted-foreground mt-2">
                   {subscriptionActive ? "Valid" : "Expired"}: {new Date(subscriptionExpiresAt).toLocaleDateString()}
@@ -451,8 +478,10 @@ const AdminMembers = () => {
               )}
             </div>
             <p className="text-sm text-muted-foreground">
-              {subscriptionActive && !canAddMembers
-                ? "Your current plan member limit has been reached. Upgrade to continue adding members."
+              {trialExpired
+                ? "Trial access has ended. Choose a plan to continue managing member invites."
+                : blockedByPlanLimit
+                ? "Upgrade your plan to increase the member limit for your group."
                 : "Choose or renew a subscription plan to keep managing your group."}
             </p>
             <div className="flex justify-end gap-2">
@@ -466,7 +495,7 @@ const AdminMembers = () => {
                   navigate("/admin/subscription-fee");
                 }}
               >
-                {subscriptionPaid ? "Renew / Upgrade Plan" : "Choose Plan"}
+                {blockedByPlanLimit || subscriptionPaid ? "Renew / Upgrade Plan" : "Choose Plan"}
               </Button>
             </div>
           </div>

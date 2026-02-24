@@ -35,6 +35,9 @@ const AdminProfile = () => {
   const [subscriptionActive, setSubscriptionActive] = useState(false);
   const [subscriptionExpiresAt, setSubscriptionExpiresAt] = useState<string | null>(null);
   const [subscriptionPaid, setSubscriptionPaid] = useState(false);
+  const [trialActive, setTrialActive] = useState(false);
+  const [trialEndsAt, setTrialEndsAt] = useState<string | null>(null);
+  const [trialDaysRemaining, setTrialDaysRemaining] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -48,6 +51,9 @@ const AdminProfile = () => {
             subscriptionPaid: boolean; 
             isActive: boolean; 
             subscriptionExpiresAt?: string;
+            isTrialActive?: boolean;
+            trialEndsAt?: string;
+            trialDaysRemaining?: number;
           }>("/admins/me/subscription-status")
         ]);
         if (!active) return;
@@ -62,6 +68,9 @@ const AdminProfile = () => {
         setSubscriptionPaid(subscription.subscriptionPaid);
         setSubscriptionActive(subscription.isActive);
         setSubscriptionExpiresAt(subscription.subscriptionExpiresAt || null);
+        setTrialActive(Boolean(subscription.isTrialActive));
+        setTrialEndsAt(subscription.trialEndsAt || null);
+        setTrialDaysRemaining(subscription.trialDaysRemaining || 0);
       } catch (error) {
         const message = error instanceof Error ? error.message : "Failed to load profile";
         toast.error(message);
@@ -266,7 +275,9 @@ const AdminProfile = () => {
                     {subscriptionActive ? (
                       <>
                         <CheckCircle className="h-5 w-5 text-green-500" />
-                        <span className="font-medium text-green-700">Active Subscription</span>
+                        <span className="font-medium text-green-700">
+                          {trialActive ? "Starter Trial Active" : "Active Subscription"}
+                        </span>
                       </>
                     ) : (
                       <>
@@ -277,7 +288,16 @@ const AdminProfile = () => {
                       </>
                     )}
                   </div>
-                  {subscriptionExpiresAt && (
+                  {trialActive && trialEndsAt && (
+                    <p className="text-sm text-muted-foreground">
+                      Trial ends on {new Date(trialEndsAt).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                      })}
+                    </p>
+                  )}
+                  {!trialActive && subscriptionExpiresAt && (
                     <p className="text-sm text-muted-foreground">
                       {subscriptionActive ? "Expires" : "Expired"} on {new Date(subscriptionExpiresAt).toLocaleDateString('en-US', { 
                         year: 'numeric', 
@@ -286,15 +306,24 @@ const AdminProfile = () => {
                       })}
                     </p>
                   )}
-                  {subscriptionActive && subscriptionExpiresAt && (
+                  {trialActive && (
+                    <p className="text-xs text-muted-foreground">
+                      {trialDaysRemaining} day{trialDaysRemaining === 1 ? "" : "s"} remaining in your 14-day Starter trial
+                    </p>
+                  )}
+                  {!trialActive && subscriptionActive && subscriptionExpiresAt && (
                     <p className="text-xs text-muted-foreground">
                       {Math.ceil((new Date(subscriptionExpiresAt).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))} days remaining
                     </p>
                   )}
                 </div>
                 <div className="text-right">
-                  <div className="text-2xl font-bold text-primary">MWK 10,000</div>
-                  <p className="text-xs text-muted-foreground">per month</p>
+                  <div className="text-2xl font-bold text-primary">
+                    {trialActive ? "Trial" : "MWK 15,000+"}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {trialActive ? "Starter (14 days)" : "per month"}
+                  </p>
                 </div>
               </div>
               {!subscriptionActive && (
