@@ -29,7 +29,7 @@ app.use(
     cookie: {
       httpOnly: true,
       sameSite: "lax",
-      secure: false,
+      secure: env.dataStore !== "memory", // Use secure cookies in production
       maxAge: 1000 * 60 * 60 * 8,
     },
   })

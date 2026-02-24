@@ -1,0 +1,39 @@
+services:
+  # Backend API Service
+  - type: web
+    name: unityvault-api
+    env: node
+    region: oregon
+    plan: free
+    buildCommand: cd server && npm install && npm run build
+    startCommand: cd server && npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: JWT_SECRET
+        generateValue: true
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: DATA_STORE
+        value: supabase
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: CORS_ORIGIN
+        sync: false
+      - key: APP_BASE_URL
+        sync: false
+      - key: GMAIL_USER
+        sync: false
+      - key: GMAIL_PASS
+        sync: false
+      - key: PAYCHANGU_MOCK_MODE
+        value: true
+      - key: PAYCHANGU_API_TOKEN
+        sync: false
+      - key: PAYCHANGU_API_URL
+        value: https://api.paychangu.com
