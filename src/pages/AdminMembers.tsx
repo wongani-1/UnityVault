@@ -68,6 +68,10 @@ const AdminMembers = () => {
   const [subscriptionPaid, setSubscriptionPaid] = useState(false);
   const [subscriptionActive, setSubscriptionActive] = useState(false);
   const [subscriptionExpiresAt, setSubscriptionExpiresAt] = useState<string | null>(null);
+  const [subscriptionPlanName, setSubscriptionPlanName] = useState("Starter");
+  const [subscriptionMemberLimit, setSubscriptionMemberLimit] = useState<number | null>(null);
+  const [subscriptionMemberCount, setSubscriptionMemberCount] = useState(0);
+  const [canAddMembers, setCanAddMembers] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [detailsLoading, setDetailsLoading] = useState(false);
@@ -140,14 +144,22 @@ const AdminMembers = () => {
         subscriptionPaid: boolean;
         isActive: boolean;
         subscriptionExpiresAt?: string;
+        planName?: string;
+        memberLimit?: number | null;
+        memberCount?: number;
+        canAddMembers?: boolean;
       }>("/admins/me/subscription-status");
       setSubscriptionPaid(data.subscriptionPaid);
       setSubscriptionActive(data.isActive);
       setSubscriptionExpiresAt(data.subscriptionExpiresAt || null);
-      return data.isActive;
+      setSubscriptionPlanName(data.planName || "Starter");
+      setSubscriptionMemberLimit(data.memberLimit ?? null);
+      setSubscriptionMemberCount(data.memberCount || 0);
+      setCanAddMembers(Boolean(data.canAddMembers));
+      return data;
     } catch (error) {
       console.error("Failed to check subscription status:", error);
-      return false;
+      return null;
     }
   };
 
@@ -157,8 +169,8 @@ const AdminMembers = () => {
       return;
     }
 
-    const isActive = await checkSubscription();
-    if (!isActive) {
+    const status = await checkSubscription();
+    if (!status || !status.isActive || !status.canAddMembers) {
       setSubscriptionDialogOpen(true);
     } else {
       setDialogOpen(true);
@@ -401,16 +413,22 @@ const AdminMembers = () => {
           </DialogHeader>
           <div className="space-y-4">
             <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
-              <p className="text-2xl font-bold text-primary">MWK 10,000/month</p>
-              <p className="text-sm text-muted-foreground">Monthly subscription fee</p>
+              <p className="text-2xl font-bold text-primary">{subscriptionPlanName} Plan</p>
+              <p className="text-sm text-muted-foreground">
+                {subscriptionMemberLimit === null
+                  ? `${subscriptionMemberCount} members (no limit)`
+                  : `${subscriptionMemberCount}/${subscriptionMemberLimit} members used`}
+              </p>
               {subscriptionExpiresAt && (
                 <p className="text-xs text-muted-foreground mt-2">
-                  {subscriptionPaid ? "Expired" : "Valid"}: {new Date(subscriptionExpiresAt).toLocaleDateString()}
+                  {subscriptionActive ? "Valid" : "Expired"}: {new Date(subscriptionExpiresAt).toLocaleDateString()}
                 </p>
               )}
             </div>
             <p className="text-sm text-muted-foreground">
-              This monthly subscription allows you to manage your group and add unlimited members.
+              {subscriptionActive && !canAddMembers
+                ? "Your current plan member limit has been reached. Upgrade to continue adding members."
+                : "Choose or renew a subscription plan to keep managing your group."}
             </p>
             <div className="flex justify-end gap-2">
               <Button variant="ghost" onClick={() => setSubscriptionDialogOpen(false)}>
@@ -420,10 +438,10 @@ const AdminMembers = () => {
                 variant="hero" 
                 onClick={() => {
                   setSubscriptionDialogOpen(false);
-                  window.location.href = "/admin/subscription-payment";
+                  navigate("/admin/subscription-fee");
                 }}
               >
-                {subscriptionPaid ? "Renew Subscription" : "Proceed to Payment"}
+                {subscriptionPaid ? "Renew / Upgrade Plan" : "Choose Plan"}
               </Button>
             </div>
           </div>
@@ -539,30 +557,6 @@ const AdminMembers = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Subscription Payment Dialog */}
-      <Dialog open={subscriptionDialogOpen} onOpenChange={setSubscriptionDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Subscription Required</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              Before you can add members to your group, you need to pay the one-time subscription fee of <strong>MWK 10,000</strong>.
-            </p>
-            <p className="text-sm text-muted-foreground">
-              This subscription fee enables you to manage your group, add unlimited members, and access all admin features.
-            </p>
-            <div className="flex justify-end gap-2 pt-4">
-              <Button variant="ghost" onClick={() => setSubscriptionDialogOpen(false)}>
-                Cancel
-              </Button>
-              <Button onClick={() => navigate("/admin/subscription-fee")}>
-                Pay Subscription Fee
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
     </DashboardLayout>
   );
 };

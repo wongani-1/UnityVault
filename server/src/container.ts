@@ -23,7 +23,11 @@ const repositories =
 
 const emailService = new EmailService();
 const auditService = new AuditService(repositories.auditRepository);
-const adminService = new AdminService(repositories.adminRepository);
+const adminService = new AdminService(
+  repositories.adminRepository,
+  repositories.memberRepository,
+  repositories.paymentRepository
+);
 const notificationService = new NotificationService(repositories.notificationRepository);
 const penaltyService = new PenaltyService(
   repositories.penaltyRepository,

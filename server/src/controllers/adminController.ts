@@ -2,6 +2,7 @@ import type { Request, Response } from "express";
 import { container } from "../container";
 import { asyncHandler } from "../utils/asyncHandler";
 import { ApiError } from "../utils/apiError";
+import type { SubscriptionPlanId } from "../config/subscriptionPlans";
 
 export const getAdminMe = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) throw new ApiError("Unauthorized", 401);
@@ -51,21 +52,18 @@ export const changeAdminPassword = asyncHandler(async (req: Request, res: Respon
 
 export const recordSubscriptionPayment = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) throw new ApiError("Unauthorized", 401);
-  
-  const admin = await container.adminService.recordSubscriptionPayment(req.user.userId);
+
+  const { planId } = req.body as { planId?: SubscriptionPlanId };
+  const admin = await container.adminService.recordSubscriptionPayment(
+    req.user.userId,
+    planId || "starter"
+  );
   res.json(admin);
 });
 
 export const checkSubscriptionStatus = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) throw new ApiError("Unauthorized", 401);
-  
-  const admin = await container.adminService.getById(req.user.userId);
-  const isActive = await container.adminService.isSubscriptionActive(req.user.userId);
-  
-  res.json({ 
-    subscriptionPaid: admin.subscriptionPaid,
-    subscriptionPaidAt: admin.subscriptionPaidAt,
-    subscriptionExpiresAt: admin.subscriptionExpiresAt,
-    isActive
-  });
+
+  const subscription = await container.adminService.getSubscriptionStatus(req.user.userId);
+  res.json(subscription);
 });

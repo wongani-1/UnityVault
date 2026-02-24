@@ -40,7 +40,6 @@ export const inviteMember = asyncHandler(async (req: Request, res: Response) => 
     email?: string;
     phone?: string;
   };
-
   console.log("Invite member payload", {
     first_name,
     last_name,
@@ -49,7 +48,13 @@ export const inviteMember = asyncHandler(async (req: Request, res: Response) => 
     hasPhone: Boolean(phone),
   });
 
+  await container.adminService.assertCanManageMembers({
+    adminId: req.user.userId,
+    groupId: req.user.groupId,
+  });
+
   const result = await container.memberService.createInvite({
+    adminId: req.user.userId,
     groupId: req.user.groupId,
     first_name,
     last_name,

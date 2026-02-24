@@ -157,6 +157,7 @@ export class MemberService {
   }
 
   async createInvite(params: {
+    adminId: string;
     groupId: string;
     first_name: string;
     last_name: string;

@@ -11,6 +11,40 @@ import { ArrowLeft, CreditCard, Smartphone, ShieldCheck } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
 import { apiRequest } from "@/lib/api";
 
+type SubscriptionPlanId = "starter" | "professional" | "enterprise";
+
+const subscriptionPlans: Array<{
+  id: SubscriptionPlanId;
+  name: string;
+  price: number | null;
+  billing: string;
+  subtitle: string;
+  popularLabel?: string;
+}> = [
+  {
+    id: "starter",
+    name: "Starter",
+    price: 15000,
+    billing: "month",
+    subtitle: "For small savings groups starting their digital journey",
+  },
+  {
+    id: "professional",
+    name: "Professional",
+    price: 45000,
+    billing: "month",
+    subtitle: "For growing savings groups",
+    popularLabel: "Most Popular for Savings Groups",
+  },
+  {
+    id: "enterprise",
+    name: "Enterprise",
+    price: null,
+    billing: "custom",
+    subtitle: "For SACCOs, organizations, and financial networks",
+  },
+];
+
 const MemberRegistrationPayment = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -19,6 +53,7 @@ const MemberRegistrationPayment = () => {
   const [saveForFuture, setSaveForFuture] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [selectedPlanId, setSelectedPlanId] = useState<SubscriptionPlanId>("professional");
   const [form, setForm] = useState({
     mobileNumber: "",
     payerName: "",
@@ -34,13 +69,20 @@ const MemberRegistrationPayment = () => {
     return location.pathname.includes("admin");
   }, [location.pathname]);
 
-  const paymentAmount = isAdminSubscription ? 10000 : 5000;
-  const paymentTitle = isAdminSubscription ? "Monthly Subscription" : "Registration Fee";
+  const selectedPlan = useMemo(
+    () => subscriptionPlans.find((plan) => plan.id === selectedPlanId) || subscriptionPlans[1],
+    [selectedPlanId]
+  );
+
+  const paymentAmount = isAdminSubscription ? selectedPlan.price : 5000;
+  const paymentTitle = isAdminSubscription ? "UnityVault Subscription" : "Registration Fee";
   const paymentDescription = isAdminSubscription 
-    ? "Complete payment to start adding members to your group for the next 30 days."
+    ? "Choose a plan to activate your admin subscription."
     : "Complete payment to access your member dashboard.";
   const paymentNote = isAdminSubscription
-    ? "Monthly subscription fee (renews every 30 days)"
+    ? paymentAmount === null
+      ? "Custom pricing and onboarding"
+      : `Monthly subscription fee (renews every 30 days)`
     : "Member registration fee (one-time, non-refundable)";
 
   const updateField = (field: keyof typeof form, value: string) =>
@@ -84,6 +126,12 @@ const MemberRegistrationPayment = () => {
     setIsProcessing(true);
 
     try {
+      if (isAdminSubscription && selectedPlan.price === null) {
+        toast.info("Enterprise uses custom pricing. Please contact support for setup.");
+        setIsProcessing(false);
+        return;
+      }
+
       // Simulate payment processing
       await new Promise((resolve) => setTimeout(resolve, 2000));
 
@@ -91,9 +139,12 @@ const MemberRegistrationPayment = () => {
         // Admin subscription payment
         await apiRequest("/admins/me/subscription-payment", {
           method: "POST",
+          body: {
+            planId: selectedPlan.id,
+          },
         });
 
-        toast.success("Subscription fee payment successful!");
+        toast.success(`${selectedPlan.name} subscription activated successfully!`);
         navigate("/admin/members");
       } else {
         // Member registration payment
@@ -151,9 +202,50 @@ const MemberRegistrationPayment = () => {
           </CardHeader>
 
           <CardContent className="space-y-6">
+              {isAdminSubscription && (
+                <div className="space-y-3">
+                  <h3 className="text-sm font-semibold text-foreground">Select subscription plan</h3>
+                  <div className="grid gap-3">
+                    {subscriptionPlans.map((plan) => {
+                      const isSelected = selectedPlanId === plan.id;
+                      return (
+                        <button
+                          key={plan.id}
+                          type="button"
+                          onClick={() => setSelectedPlanId(plan.id)}
+                          className={`rounded-lg border p-4 text-left transition-all ${
+                            isSelected ? "border-primary ring-2 ring-primary/30" : "border-border"
+                          }`}
+                        >
+                          <div className="flex flex-wrap items-start justify-between gap-2">
+                            <div>
+                              <p className="font-semibold text-foreground">{plan.name}</p>
+                              <p className="text-xs text-muted-foreground">{plan.subtitle}</p>
+                              {plan.popularLabel && (
+                                <p className="mt-1 text-xs font-medium text-primary">{plan.popularLabel}</p>
+                              )}
+                            </div>
+                            <div className="text-right">
+                              <p className="font-bold text-foreground">
+                                {plan.price === null ? "Custom Pricing" : `MWK ${plan.price.toLocaleString()}`}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {plan.price === null ? "" : `/${plan.billing}`}
+                              </p>
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
             {/* Amount Display */}
             <div className="text-center">
-              <div className="text-4xl font-bold text-foreground">MWK {paymentAmount.toLocaleString()}</div>
+                <div className="text-4xl font-bold text-foreground">
+                  {paymentAmount === null ? "Custom Pricing" : `MWK ${paymentAmount.toLocaleString()}`}
+                </div>
               <p className="mt-1 text-sm text-muted-foreground">{paymentNote}</p>
             </div>
             <Separator />
@@ -326,9 +418,13 @@ const MemberRegistrationPayment = () => {
                 size="lg" 
                 className="w-full" 
                 onClick={handlePay}
-                disabled={isProcessing}
+                disabled={isProcessing || (isAdminSubscription && paymentAmount === null)}
               >
-                {isProcessing ? "Processing Payment..." : `Pay MWK ${paymentAmount.toLocaleString()}`}
+                {isProcessing
+                  ? "Processing Payment..."
+                  : paymentAmount === null
+                  ? "Contact Sales for Enterprise"
+                  : `Pay MWK ${paymentAmount.toLocaleString()}`}
               </Button>
               <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
                 <ShieldCheck className="h-3.5 w-3.5" />
