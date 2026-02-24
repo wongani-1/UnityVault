@@ -22,7 +22,11 @@ const AdminNotifications = () => {
         }> }>("/notifications");
 
         if (!active) return;
-        const mapped = data.items.map((item) => ({
+        const sorted = [...(data.items || [])].sort(
+          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+
+        const mapped = sorted.map((item) => ({
           title: item.type.replace(/_/g, " "),
           body: item.message,
           status: item.status,

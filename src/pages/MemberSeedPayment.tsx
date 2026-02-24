@@ -41,9 +41,14 @@ const MemberSeedPayment = () => {
       try {
         setLoading(true);
         const [member, group] = await Promise.all([
-          apiRequest<{ sharesOwned?: number }>("/members/me"),
+          apiRequest<{ sharesOwned?: number; seedPaid?: boolean }>("/members/me"),
           apiRequest<{ settings: { seedAmount?: number } }>("/groups/me"),
         ]);
+
+        if (member.seedPaid) {
+          navigate("/dashboard", { replace: true });
+          return;
+        }
 
         setSharesOwned(member.sharesOwned || 0);
         setSeedAmountPerShare(group.settings?.seedAmount || 0);
@@ -58,7 +63,7 @@ const MemberSeedPayment = () => {
     };
 
     loadSeedAmount();
-  }, []);
+  }, [navigate]);
 
   const updateField = (field: keyof typeof form, value: string) =>
     setForm((prev) => ({ ...prev, [field]: value }));

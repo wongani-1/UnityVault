@@ -122,6 +122,13 @@ interface ContributionData {
   paidAt?: string;
 }
 
+interface LedgerEntryData {
+  id: string;
+  type: string;
+  amount: number;
+  groupCashChange: number;
+}
+
 interface DistributionStatusItem {
   year: number;
   status: "pending" | "completed" | "cancelled";
@@ -237,6 +244,11 @@ const AdminDashboard = () => {
       setContributions(contributionData.items);
       const contributionMap = new Map(contributionData.items.map((c) => [c.id, c.amount]));
 
+      // Load ledger entries to compute true cash-on-hand treasury
+      const ledgerData = await apiRequest<{ items: LedgerEntryData[] }>("/ledger?limit=500").catch(
+        () => ({ items: [] })
+      );
+
       const currentYear = new Date().getFullYear();
       const distributions = await apiRequest<{ items: DistributionStatusItem[] }>("/distributions").catch(
         () => ({ items: [] })
@@ -313,42 +325,34 @@ const AdminDashboard = () => {
       const activeLoansList = loanData.items.filter((l) => l.status === "active" || l.status === "approved");
       const loansTotal = activeLoansList.reduce((sum: number, l) => sum + (l.balance || 0), 0);
 
-      // Calculate group treasury from actual cash flow only:
-      // + paid contributions
-      // + paid penalties
-      // - disbursed loan principal
-      // + paid loan installments (principal + interest)
-      const allPaidContributions = contributionData.items
-        .filter(c => c.status === "paid")
-        .reduce((sum, c) => sum + c.amount, 0);
-      
-      const paidPenalties = penaltyData.items
-        .filter(p => p.status === "paid")
-        .reduce((sum, p) => sum + p.amount, 0);
+      // Calculate treasury from ledger cash flow (source of truth):
+      // includes contributions, seed deposits, penalties, loan repayments (incl. interest), and deductions.
+      const ledgerItems = (ledgerData.items || []) as LedgerEntryData[];
+      let ledgerTreasuryTotal = 0;
+      let contributionCash = 0;
+      let seedCash = 0;
+      let penaltiesCash = 0;
+      let loanRepaymentCash = 0;
 
-      const disbursedLoans = loanData.items.filter(
-        (l) => l.status === "approved" || l.status === "active" || l.status === "completed"
-      );
+      for (const entry of ledgerItems) {
+        const cashChange = entry.groupCashChange || 0;
+        ledgerTreasuryTotal += cashChange;
 
-      const totalLoanDisbursed = disbursedLoans.reduce(
-        (sum, l) => sum + (l.principal || 0),
-        0
-      );
+        if (entry.type === "contribution") contributionCash += cashChange;
+        if (entry.type === "seed_deposit") seedCash += cashChange;
+        if (entry.type === "penalty_payment") penaltiesCash += cashChange;
+        if (entry.type === "loan_repayment") loanRepaymentCash += cashChange;
+      }
 
-      const totalLoanRepaid = disbursedLoans.reduce((sum, l) => {
-        const totalDue = l.totalDue || 0;
-        const balance = l.balance || 0;
-        const repaid = Math.max(totalDue - balance, 0);
-        return sum + repaid;
-      }, 0);
-
-      const treasuryTotal = allPaidContributions + paidPenalties - totalLoanDisbursed + totalLoanRepaid;
+      const treasuryTotal = Number(Math.max(0, ledgerTreasuryTotal).toFixed(2));
 
       setTotalMembers(String(activeCount));
       setTotalContributions(`MWK ${contribTotal.toLocaleString()}`);
       setActiveLoans(`MWK ${loansTotal.toLocaleString()}`);
       setGroupTreasury(`MWK ${treasuryTotal.toLocaleString()}`);
-      setTreasuryBreakdown(`Cash on hand only`);
+      setTreasuryBreakdown(
+        `Includes contributions (MWK ${contributionCash.toLocaleString()}), seed (MWK ${seedCash.toLocaleString()}), penalties (MWK ${penaltiesCash.toLocaleString()}), and loan repayments/interest (MWK ${loanRepaymentCash.toLocaleString()})`
+      );
 
       // Calculate collection rate
       const paidContributions = contributionData.items.filter(c => c.status === "paid").length;
