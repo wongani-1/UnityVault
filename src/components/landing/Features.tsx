@@ -2,25 +2,25 @@ import { Card, CardContent } from "@/components/ui/card";
 
 const features = [
   {
-    image: "/src/assets/Audit Checklist_ Stay Ready, Stay Calm.jpg",
+    image: "/Audit Checklist_ Stay Ready, Stay Calm.jpg",
     title: "Secure Member Records",
     description:
       "Keep all member data safe and organized with role-based access controls and audit trails.",
   },
   {
-    image: "/src/assets/Budgeting Google Sheet.jpg",
+    image: "/Budgeting Google Sheet.jpg",
     title: "Transparent Loan Tracking",
     description:
       "Every loan application, approval, and repayment is visible to authorized members in real time.",
   },
   {
-    image: "/src/assets/RBI fines ICICI Bank, Kotak Mahindra Bank for defaulting in fraud reporting, loan recovery rules.jpg",
+    image: "/RBI fines ICICI Bank, Kotak Mahindra Bank for defaulting in fraud reporting, loan recovery rules.jpg",
     title: "Automated Penalties & Notifications",
     description:
       "Set rules once — the system tracks missed payments and notifies members automatically.",
   },
   {
-    image: "/src/assets/Financial report.png",
+    image: "/Financial report.png",
     title: "Audit-Ready Financial Reports",
     description:
       "Generate monthly and yearly reports with a click. Perfect for auditors and compliance.",
