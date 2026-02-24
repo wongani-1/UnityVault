@@ -167,6 +167,8 @@ const MemberDashboard = () => {
   const shareFee = groupSettings?.shareFee || 0;
   const seedPaid = memberProfile?.seedPaid || false;
   const sharesOwned = memberProfile?.sharesOwned || 0;
+  const seedFeePerShare = groupSettings?.seedAmount || 0;
+  const seedDepositTotal = seedFeePerShare * sharesOwned;
 
   // Handle share purchase - redirect to payment page
   const handlePurchaseShares = () => {
@@ -325,17 +327,24 @@ const MemberDashboard = () => {
                 Seed Deposit Required
               </p>
               <p className="text-sm text-amber-700 dark:text-amber-300">
-                You need to pay a one-time seed deposit of MWK {groupSettings?.seedAmount?.toLocaleString() || "0"} 
-                before you can make contributions or apply for loans.
+                {sharesOwned > 0
+                  ? `Pay your one-time seed deposit of MWK ${seedDepositTotal.toLocaleString()} (based on ${sharesOwned} share${sharesOwned === 1 ? "" : "s"}).`
+                  : "Buy shares first to calculate your one-time seed deposit."}
               </p>
               <Button
                 variant="default"
                 size="sm"
                 className="mt-2 bg-amber-600 hover:bg-amber-700"
-                onClick={() => navigate("/member/seed-payment")}
+                onClick={() =>
+                  navigate(
+                    sharesOwned > 0
+                      ? "/member/seed-payment"
+                      : "/member/share-purchase?shares=1"
+                  )
+                }
               >
                 <Sprout className="mr-2 h-4 w-4" />
-                Pay Seed Deposit
+                {sharesOwned > 0 ? "Pay Seed Deposit" : "Buy Shares"}
               </Button>
             </div>
           </div>
@@ -455,7 +464,7 @@ const MemberDashboard = () => {
 
         <Dialog open={sharePurchaseDialogOpen} onOpenChange={setSharePurchaseDialogOpen}>
           <DialogTrigger asChild>
-            <Button variant="outline" size="lg" disabled={!seedPaid}>
+            <Button variant="outline" size="lg">
               <Share2 className="mr-2 h-4 w-4" />
               Purchase Shares
             </Button>

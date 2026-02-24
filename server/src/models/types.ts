@@ -21,7 +21,7 @@ export type GroupSettings = {
   contributionAmount: number;
   shareFee: number; // Cost per share
   initialLoanAmount: number; // Loan limit per share
-  seedAmount: number; // One-time seed/initial deposit per member
+  seedAmount: number; // One-time seed/initial deposit fee per share
   loanInterestRate: number;
   penaltyRate: number; // Penalty rate for missed loan payments (as decimal, e.g., 0.15 = 15%)
   contributionPenaltyRate: number; // Penalty rate for missed contributions (as decimal, e.g., 0.10 = 10%)

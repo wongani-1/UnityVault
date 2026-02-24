@@ -102,8 +102,8 @@ const MemberRegistrationDetails = () => {
       // Clear pending group ID
       localStorage.removeItem("unityvault:pendingGroupId");
 
-      toast.success("Registration successful! Welcome to UnityVault.");
-      navigate("/dashboard");
+      toast.success("Registration successful. Buy your shares to continue setup.");
+      navigate("/member/share-purchase?shares=1&registration=1");
     } catch (error) {
       const message = error instanceof Error ? error.message : "Registration failed";
       toast.error(message);

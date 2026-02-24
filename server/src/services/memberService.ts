@@ -471,10 +471,16 @@ export class MemberService {
     const group = await this.groupRepository.getById(member.groupId);
     if (!group) throw new ApiError("Group not found", 404);
 
-    const seedAmount = group.settings.seedAmount || 0;
-    if (seedAmount <= 0) {
-      throw new ApiError("Seed deposit amount is not configured", 400);
+    if (!member.sharesOwned || member.sharesOwned <= 0) {
+      throw new ApiError("You must purchase at least one share before paying seed deposit", 400);
     }
+
+    const seedAmountPerShare = group.settings.seedAmount || 0;
+    if (seedAmountPerShare <= 0) {
+      throw new ApiError("Seed deposit amount per share is not configured", 400);
+    }
+
+    const seedAmount = Number((seedAmountPerShare * member.sharesOwned).toFixed(2));
 
     const updated = await this.memberRepository.update(member.id, {
       seedPaid: true,
@@ -490,7 +496,7 @@ export class MemberService {
       memberId: member.id,
       type: "seed_deposit",
       amount: seedAmount,
-      description: "Seed / initial deposit",
+      description: `Seed / initial deposit (${member.sharesOwned} share${member.sharesOwned === 1 ? "" : "s"} × ${seedAmountPerShare.toLocaleString()})`,
       memberSavingsChange: seedAmount,
       groupIncomeChange: 0,
       groupCashChange: seedAmount,

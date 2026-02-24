@@ -14,6 +14,7 @@ import { apiRequest } from "@/lib/api";
 const MemberSharePurchase = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const isRegistrationFlow = searchParams.get("registration") === "1";
   const [method, setMethod] = useState<"mobile" | "card">("mobile");
   const [mobileProvider, setMobileProvider] = useState<"airtel" | "tnm" | null>(null);
   const [saveForFuture, setSaveForFuture] = useState(false);
@@ -124,8 +125,13 @@ const MemberSharePurchase = () => {
       // Clear cached profile to force refresh on dashboard
       localStorage.removeItem("unityvault:memberProfile");
 
-      toast.success(`Successfully purchased ${sharesToPurchase} share${sharesToPurchase > 1 ? 's' : ''}! Your new loan limit is MWK ${newLoanLimit.toLocaleString()}.`);
-      navigate("/dashboard");
+      if (isRegistrationFlow) {
+        toast.success("Share purchase successful. Continue to seed deposit payment.");
+        navigate("/member/seed-payment?registration=1");
+      } else {
+        toast.success(`Successfully purchased ${sharesToPurchase} share${sharesToPurchase > 1 ? 's' : ''}! Your new loan limit is MWK ${newLoanLimit.toLocaleString()}.`);
+        navigate("/dashboard");
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : "Payment failed";
       toast.error(message);

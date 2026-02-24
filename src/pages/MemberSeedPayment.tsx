@@ -1,5 +1,5 @@
-import { useState, useMemo, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -13,12 +13,15 @@ import { apiRequest } from "@/lib/api";
 
 const MemberSeedPayment = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const isRegistrationFlow = searchParams.get("registration") === "1";
   const [method, setMethod] = useState<"mobile" | "card">("mobile");
   const [mobileProvider, setMobileProvider] = useState<"airtel" | "tnm" | null>(null);
   const [saveForFuture, setSaveForFuture] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [seedAmount, setSeedAmount] = useState<number | null>(null);
+  const [seedAmountPerShare, setSeedAmountPerShare] = useState<number>(0);
+  const [sharesOwned, setSharesOwned] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState({
     mobileNumber: "",
@@ -30,17 +33,25 @@ const MemberSeedPayment = () => {
     email: "",
   });
 
-  // Fetch group settings to get seed amount
+  const totalSeedDeposit = seedAmountPerShare * sharesOwned;
+
+  // Fetch group settings and member shares
   useEffect(() => {
     const loadSeedAmount = async () => {
       try {
         setLoading(true);
-        const group = await apiRequest<{ settings: { seedAmount?: number } }>("/groups/me");
-        setSeedAmount(group.settings?.seedAmount || 0);
+        const [member, group] = await Promise.all([
+          apiRequest<{ sharesOwned?: number }>("/members/me"),
+          apiRequest<{ settings: { seedAmount?: number } }>("/groups/me"),
+        ]);
+
+        setSharesOwned(member.sharesOwned || 0);
+        setSeedAmountPerShare(group.settings?.seedAmount || 0);
       } catch (error) {
         const message = error instanceof Error ? error.message : "Failed to load seed amount";
         toast.error(message);
-        setSeedAmount(0);
+        setSeedAmountPerShare(0);
+        setSharesOwned(0);
       } finally {
         setLoading(false);
       }
@@ -101,7 +112,9 @@ const MemberSeedPayment = () => {
       // Clear cached profile to force refresh on dashboard
       localStorage.removeItem("unityvault:memberProfile");
 
-      toast.success("Seed deposit payment successful! You can now make contributions and apply for loans.");
+      toast.success(
+        `Seed deposit payment successful (MWK ${totalSeedDeposit.toLocaleString()})! You can now make contributions and apply for loans.`
+      );
       navigate("/dashboard");
     } catch (error) {
       const message = error instanceof Error ? error.message : "Payment failed";
@@ -140,7 +153,7 @@ const MemberSeedPayment = () => {
           <CardHeader className="text-center">
             <CardTitle className="text-2xl">Seed Deposit Payment</CardTitle>
             <CardDescription>
-              Pay your one-time seed deposit to unlock contributions and loan eligibility.
+              Pay your one-time initial deposit based on shares purchased.
             </CardDescription>
           </CardHeader>
 
@@ -154,19 +167,44 @@ const MemberSeedPayment = () => {
                     Required for Group Participation
                   </p>
                   <p className="text-sm text-amber-700 dark:text-amber-300">
-                    This is a one-time deposit required before you can make monthly contributions or apply for loans.
-                    After payment, you'll gain full access to all group financial activities.
+                    This one-time deposit is calculated as: shares purchased × seed fee per share.
+                    After payment, you'll gain full access to monthly contributions and loan applications.
                   </p>
                 </div>
               </div>
             </div>
 
+            {sharesOwned <= 0 && (
+              <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4">
+                <p className="text-sm font-medium text-destructive">Buy shares first</p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  You must purchase at least one share before paying the seed deposit.
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-3"
+                  onClick={() =>
+                    navigate(
+                      isRegistrationFlow
+                        ? "/member/share-purchase?shares=1&registration=1"
+                        : "/member/share-purchase?shares=1"
+                    )
+                  }
+                >
+                  Go to Share Purchase
+                </Button>
+              </div>
+            )}
+
             {/* Amount Display */}
             <div className="text-center">
               <div className="text-4xl font-bold text-foreground">
-                MWK {seedAmount?.toLocaleString() || "0"}
+                MWK {totalSeedDeposit.toLocaleString()}
               </div>
-              <p className="mt-1 text-sm text-muted-foreground">Seed deposit (one-time, non-refundable)</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {sharesOwned} share{sharesOwned === 1 ? "" : "s"} × MWK {seedAmountPerShare.toLocaleString()} (one-time)
+              </p>
             </div>
             <Separator />
 
@@ -338,9 +376,9 @@ const MemberSeedPayment = () => {
                 size="lg" 
                 className="w-full" 
                 onClick={handlePay}
-                disabled={isProcessing}
+                disabled={isProcessing || sharesOwned <= 0}
               >
-                {isProcessing ? "Processing Payment..." : `Pay MWK ${seedAmount?.toLocaleString() || "0"}`}
+                {isProcessing ? "Processing Payment..." : `Pay MWK ${totalSeedDeposit.toLocaleString()}`}
               </Button>
               <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
                 <ShieldCheck className="h-3.5 w-3.5" />

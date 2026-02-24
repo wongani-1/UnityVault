@@ -126,6 +126,7 @@ const Register = () => {
       navigate("/admin/group-rules", {
         state: {
           groupCreated: true,
+          groupName: result.group.name,
         },
       });
     } catch (error) {

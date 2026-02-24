@@ -22,9 +22,13 @@ const AdminGroupSetup = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const state = location.state as { groupCreated?: boolean } | null;
+    const state = location.state as { groupCreated?: boolean; groupName?: string } | null;
     if (state?.groupCreated) {
-      toast.success("Group created successfully");
+      toast.success(
+        state.groupName
+          ? `Group ${state.groupName} created successfully`
+          : "Group created successfully"
+      );
       navigate(location.pathname, { replace: true, state: null });
     }
   }, [location.pathname, location.state, navigate]);
