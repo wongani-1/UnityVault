@@ -1,7 +1,21 @@
-const corsOrigin = (process.env.CORS_ORIGIN || "http://localhost:8080,http://localhost:8081,http://localhost:8082,http://localhost:5173")
+const defaultCorsOrigins = [
+  "http://localhost:8080",
+  "http://localhost:8081",
+  "http://localhost:8082",
+  "http://localhost:5173",
+];
+
+const configuredCorsOrigins = (process.env.CORS_ORIGIN || "")
   .split(",")
   .map((value) => value.trim())
   .filter(Boolean);
+
+const corsOrigin = Array.from(
+  new Set([
+    ...(configuredCorsOrigins.length > 0 ? configuredCorsOrigins : defaultCorsOrigins),
+    process.env.APP_BASE_URL?.trim() || "",
+  ].filter(Boolean))
+);
 
 const dataStore =
   process.env.DATA_STORE ||
