@@ -5,48 +5,50 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 
 const tiers = [
   {
-    name: "Free",
-    price: "0",
-    description: "For small groups just getting started",
+    name: "Starter",
+    price: "15,000",
+    period: "/month",
+    description: "For small savings groups starting their digital journey",
     features: [
-      "Up to 15 members",
-      "Basic contribution tracking",
-      "Loan management",
-      "Monthly reports",
+      "Up to 10 members",
+      "Single-group management",
+      "Contribution tracking",
+      "Loan and penalty tracking",
       "Email notifications",
     ],
-    cta: "Get Started Free",
+    cta: "Choose Starter",
     variant: "hero-outline" as const,
     popular: false,
   },
   {
-    name: "Pro",
-    price: "25,000",
+    name: "Professional",
+    price: "45,000",
     period: "/month",
-    description: "For active groups that need full transparency",
+    description: "For growing savings groups",
     features: [
       "Up to 100 members",
-      "Advanced contribution rules",
-      "Automated penalty tracking",
-      "SMS & email notifications",
+      "Single-group management",
+      "Advanced contribution workflows",
+      "Automated penalty and loan tracking",
+      "Email notifications",
       "Exportable audit reports",
-      "Priority support",
+      "Priority support options",
     ],
-    cta: "Start 14-Day Trial",
+    cta: "Choose Professional",
     variant: "hero" as const,
     popular: true,
+    popularLabel: "Most Popular",
   },
   {
     name: "Enterprise",
     price: "Custom",
-    description: "For federations and large-scale programmes",
+    description: "For SACCOs, organizations, and financial networks",
     features: [
-      "Unlimited members & groups",
+      "Unlimited members",
       "Multi-group management",
-      "Custom branding",
-      "API access & integrations",
-      "Dedicated account manager",
-      "On-site training & onboarding",
+      "Custom pricing and onboarding",
+      "Dedicated support and implementation",
+      "Advanced controls for large deployments",
     ],
     cta: "Contact Sales",
     variant: "hero-outline" as const,
@@ -80,8 +82,8 @@ const Pricing = () => {
             >
               {tier.popular && (
                 <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
-                  <span className="rounded-full bg-gradient-primary px-4 py-1 text-xs font-semibold text-primary-foreground shadow-sm">
-                    Most Popular
+                  <span className="inline-block max-w-[220px] rounded-lg bg-gradient-primary px-3 py-1 text-center text-xs font-semibold leading-tight text-primary-foreground shadow-sm">
+                    {tier.popularLabel || "Most Popular"}
                   </span>
                 </div>
               )}
