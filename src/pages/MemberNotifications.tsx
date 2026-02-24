@@ -21,7 +21,11 @@ const MemberNotifications = () => {
         }> }>("/notifications");
 
         if (!active) return;
-        const mapped = data.items.map((note) => ({
+        const sorted = [...(data.items || [])].sort(
+          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+
+        const mapped = sorted.map((note) => ({
           message: note.message,
           type: note.status,
           time: note.createdAt.slice(0, 16).replace("T", " "),

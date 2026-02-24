@@ -109,6 +109,7 @@ const MemberDashboard = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [memberProfile, setMemberProfile] = useState<MemberProfile | null>(null);
   const [groupSettings, setGroupSettings] = useState<GroupSettings | null>(null);
+  const [profileResolved, setProfileResolved] = useState(false);
   const [loading, setLoading] = useState(true);
 
   // Calculated values
@@ -204,6 +205,10 @@ const MemberDashboard = () => {
       } catch (error) {
         const message = error instanceof Error ? error.message : "Failed to load profile";
         toast.error(message);
+      } finally {
+        if (active) {
+          setProfileResolved(true);
+        }
       }
     };
 
@@ -233,7 +238,10 @@ const MemberDashboard = () => {
         setContributions(contributionsData.items || []);
         setLoans(loansData.items || []);
         setPenalties(penaltiesData.items || []);
-        setNotifications(notificationsData.items || []);
+        const sortedNotifications = [...(notificationsData.items || [])].sort(
+          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+        setNotifications(sortedNotifications);
       } catch (error) {
         if (active) {
           const message = error instanceof Error ? error.message : "Failed to load dashboard data";
@@ -318,7 +326,7 @@ const MemberDashboard = () => {
       groupName={groupName}
     >
       {/* Seed Deposit Alert */}
-      {!seedPaid && (
+      {profileResolved && !seedPaid && (
         <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-900 dark:bg-amber-950">
           <div className="flex gap-3">
             <AlertCircle className="h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" />

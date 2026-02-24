@@ -155,7 +155,7 @@ export class LoanService {
     if (params.requestedAmount > 0 && params.requestedAmount > availableTreasury) {
       isEligible = false;
       reasons.push(
-        `Requested amount exceeds available group treasury (MWK ${availableTreasury.toLocaleString()})`
+        `You cannot take this loan right now because the group does not have enough funds (available treasury: MWK ${availableTreasury.toLocaleString()})`
       );
     }
 
@@ -225,7 +225,7 @@ export class LoanService {
     const { availableTreasury } = await this.getAvailableTreasury(params.groupId);
     if (params.principal > availableTreasury) {
       throw new ApiError(
-        `Loan application denied: requested amount exceeds available group treasury (MWK ${availableTreasury.toLocaleString()})`,
+        `Loan application denied: you cannot take this loan right now because the group does not have enough funds (available treasury: MWK ${availableTreasury.toLocaleString()})`,
         400
       );
     }
@@ -298,7 +298,7 @@ export class LoanService {
 
     if (loan.principal > availableTreasury) {
       throw new ApiError(
-        `Cannot approve loan: available group treasury is MWK ${availableTreasury.toLocaleString()}, which is less than the requested MWK ${loan.principal.toLocaleString()}`,
+        `Cannot approve loan: the group does not have enough funds right now (available treasury: MWK ${availableTreasury.toLocaleString()}, requested: MWK ${loan.principal.toLocaleString()})`,
         400
       );
     }
