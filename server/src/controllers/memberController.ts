@@ -46,15 +46,6 @@ export const inviteMember = asyncHandler(async (req: Request, res: Response) => 
     phone,
   });
 
-  // Mock delivery: log invite details for email/SMS handoff.
-  console.log("[Mock Invite Delivery]", {
-    toEmail: email,
-    toPhone: phone,
-    link: result.invite.link,
-    otp: result.invite.otp,
-    expiresAt: result.invite.expiresAt,
-  });
-
   res.status(201).json(result);
 });
 

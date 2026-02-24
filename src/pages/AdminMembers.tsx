@@ -59,13 +59,6 @@ type Penalty = {
   resolved: boolean;
 };
 
-type InviteInfo = {
-  otp: string;
-  link: string;
-  expiresAt: string;
-  token: string;
-};
-
 const AdminMembers = () => {
   const navigate = useNavigate();
   const [members, setMembers] = useState<Member[]>([]);
@@ -83,7 +76,6 @@ const AdminMembers = () => {
   const [loans, setLoans] = useState<Loan[]>([]);
   const [allLoans, setAllLoans] = useState<Loan[]>([]);
   const [penalties, setPenalties] = useState<Penalty[]>([]);
-  const [inviteInfo, setInviteInfo] = useState<InviteInfo | null>(null);
   const [cycleLocked, setCycleLocked] = useState(false);
   const [cycleYear, setCycleYear] = useState<number | null>(null);
   const [form, setForm] = useState({
@@ -194,7 +186,7 @@ const AdminMembers = () => {
 
     setSubmitting(true);
     try {
-      const result = await apiRequest<{ invite: InviteInfo }>("/members/invite", {
+      await apiRequest("/members/invite", {
         method: "POST",
         body: {
           first_name: form.first_name,
@@ -204,8 +196,7 @@ const AdminMembers = () => {
           phone: form.phone || undefined,
         },
       });
-      setInviteInfo(result.invite);
-      toast.success("Invite generated");
+      toast.success("Member invited successfully");
       setForm({ first_name: "", last_name: "", email: "", phone: "", username: "" });
       await loadMembers();
     } catch (error) {
@@ -220,7 +211,6 @@ const AdminMembers = () => {
 
   const handleDialogChange = (open: boolean) => {
     setDialogOpen(open);
-    if (!open) setInviteInfo(null);
   };
 
   const handleViewDetails = async (member: Member) => {
@@ -245,9 +235,7 @@ const AdminMembers = () => {
     }
   };
 
-  const inviteLink = inviteInfo
-    ? `${window.location.origin}/member/activate?token=${inviteInfo.token}`
-    : "";
+
 
   return (
     <DashboardLayout title="Members" subtitle="Manage group members" isAdmin>
@@ -386,32 +374,6 @@ const AdminMembers = () => {
                 placeholder="+265 XXX XXX XXX"
               />
             </div>
-            
-            {inviteInfo && (
-              <div className="rounded-lg border bg-secondary/30 p-3 text-sm">
-                <p className="font-semibold text-foreground">Delivery pending</p>
-                <p className="text-muted-foreground">Share this link and OTP with the member.</p>
-                <div className="mt-2 space-y-1">
-                  <p>
-                    <span className="font-medium">Link:</span>{" "}
-                    <a
-                      href={inviteLink || inviteInfo.link}
-                      className="text-primary underline"
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      {inviteLink || inviteInfo.link}
-                    </a>
-                  </p>
-                  <p>
-                    <span className="font-medium">OTP:</span> {inviteInfo.otp}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Expires: {new Date(inviteInfo.expiresAt).toLocaleString()}
-                  </p>
-                </div>
-              </div>
-            )}
             <div className="flex justify-end gap-2">
               <Button variant="ghost" onClick={() => setDialogOpen(false)}>
                 Cancel
