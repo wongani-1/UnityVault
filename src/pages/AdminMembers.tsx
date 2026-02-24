@@ -59,6 +59,21 @@ type Penalty = {
   resolved: boolean;
 };
 
+type InviteMemberResponse = {
+  member: Member;
+  invite: {
+    otp: string;
+    link: string;
+    expiresAt: string;
+    token: string;
+  };
+  emailDelivery?: {
+    attempted: boolean;
+    sent: boolean;
+    error?: string;
+  };
+};
+
 const AdminMembers = () => {
   const navigate = useNavigate();
   const [members, setMembers] = useState<Member[]>([]);
@@ -198,7 +213,7 @@ const AdminMembers = () => {
 
     setSubmitting(true);
     try {
-      await apiRequest("/members/invite", {
+      const inviteResult = await apiRequest<InviteMemberResponse>("/members/invite", {
         method: "POST",
         body: {
           first_name: form.first_name,
@@ -208,7 +223,17 @@ const AdminMembers = () => {
           phone: form.phone || undefined,
         },
       });
-      toast.success("Member invited successfully");
+      if (inviteResult.emailDelivery?.attempted && !inviteResult.emailDelivery.sent) {
+        toast.info(
+          inviteResult.emailDelivery.error
+            ? `Member added, but email was not sent: ${inviteResult.emailDelivery.error}`
+            : "Member added, but invitation email was not sent. Check server email configuration."
+        );
+      } else if (!inviteResult.emailDelivery?.attempted) {
+        toast.success("Member invited successfully. No email was sent because no email address was provided.");
+      } else {
+        toast.success("Member invited successfully and activation email sent.");
+      }
       setForm({ first_name: "", last_name: "", email: "", phone: "", username: "" });
       await loadMembers();
     } catch (error) {

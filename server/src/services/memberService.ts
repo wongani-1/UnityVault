@@ -226,6 +226,10 @@ export class MemberService {
 
     const link = `${env.appBaseUrl}/member/activate?token=${inviteToken}`;
 
+    let emailAttempted = false;
+    let emailSent = false;
+    let emailError: string | undefined;
+
     await this.notificationService.create({
       groupId: params.groupId,
       type: "member_invite",
@@ -236,24 +240,32 @@ export class MemberService {
 
     // Send invitation email if email is provided
     if (normalizedEmail) {
+      emailAttempted = true;
       const group = await this.groupRepository.getById(params.groupId);
       const groupName = group?.name || "Your Group";
       console.log("Sending invite email", {
         to: normalizedEmail,
         groupName,
       });
-      
-      // Send email asynchronously, don't block the response
-      this.emailService.sendMemberInvite({
-        to: normalizedEmail,
-        memberName: `${params.first_name} ${params.last_name}`,
-        groupName,
-        otp,
-        link,
-        expiresAt: inviteExpiresAt,
-      }).catch(error => {
+
+      try {
+        emailSent = await this.emailService.sendMemberInvite({
+          to: normalizedEmail,
+          memberName: `${params.first_name} ${params.last_name}`,
+          groupName,
+          otp,
+          link,
+          expiresAt: inviteExpiresAt,
+        });
+
+        if (!emailSent) {
+          emailError = "Email provider did not accept the message. Check server email configuration and logs.";
+        }
+      } catch (error) {
+        emailSent = false;
+        emailError = error instanceof Error ? error.message : "Unknown email delivery failure";
         console.error("Failed to send invitation email:", error);
-      });
+      }
     } else {
       console.log("Skipping invite email because no email was provided");
     }
@@ -261,6 +273,11 @@ export class MemberService {
     return {
       member: { ...member, passwordHash: "", inviteOtpHash: "" },
       invite: { otp, link, expiresAt: inviteExpiresAt, token: inviteToken },
+      emailDelivery: {
+        attempted: emailAttempted,
+        sent: emailSent,
+        error: emailError,
+      },
     };
   }
 
