@@ -15,6 +15,7 @@ export const exportMemberData = asyncHandler(async (req: Request, res: Response)
   const member = await container.memberService.getById(memberId);
   if (!member) throw new ApiError("Member not found", 404);
 
+  const group = await container.groupService.getGroup(groupId);
   const memberContributions = await container.contributionService.listByMember(memberId);
 
   const loans = await container.loanService.listByGroup(groupId);
@@ -30,7 +31,7 @@ export const exportMemberData = asyncHandler(async (req: Request, res: Response)
   res.setHeader("Content-Disposition", 'attachment; filename="member_data.pdf"');
   
   doc.pipe(res);
-  generateMemberPDF(doc, member, memberContributions, memberLoans, memberPenalties);
+  generateMemberPDF(doc, member, memberContributions, memberLoans, memberPenalties, group);
   doc.end();
 });
 
@@ -86,7 +87,8 @@ const generateMemberPDF = (
   member: any,
   contributions: any[],
   loans: any[],
-  penalties: any[]
+  penalties: any[],
+  group?: any
 ): void => {
 
   const formatPaymentMethod = (method?: string) => {
@@ -99,21 +101,37 @@ const generateMemberPDF = (
   // Header
   doc.fontSize(20).fillColor("#047857").text("UnityVault Member Report", { align: "center" });
   doc.moveDown(0.5);
+  if (group) {
+    doc.fontSize(12).fillColor("#333").text(group.name, { align: "center" });
+  }
   doc.fontSize(10).fillColor("#666").text(`Generated on ${new Date().toLocaleDateString()}`, { align: "center" });
   doc.moveDown(2);
 
   // Member Information
   doc.fontSize(14).fillColor("#047857").text("Member Information");
   doc.moveDown(0.5);
-  
+
+  const paidContributions = contributions.filter(c => c.status === "paid");
+  const totalContributed = paidContributions.reduce((sum, c) => sum + c.amount, 0);
+  const unpaidContributions = contributions.filter(c => c.status !== "paid");
+  const totalPenaltiesPaid = penalties.filter(p => p.isPaid || p.status === "paid").reduce((sum, p) => sum + p.amount, 0);
+  const totalPenaltiesUnpaid = penalties.filter(p => !p.isPaid && p.status !== "paid").reduce((sum, p) => sum + p.amount, 0);
+
   const memberData = [
     ["Full Name:", `${member.first_name} ${member.last_name}`],
     ["Username:", member.username],
     ["Email:", member.email || "N/A"],
     ["Phone:", member.phone || "N/A"],
     ["Status:", member.status.toUpperCase()],
+    ["Shares Owned:", String(member.sharesOwned || 0)],
+    ["Registration Fee:", member.registrationFeePaid ? "Paid" : "Unpaid"],
+    ["Seed Deposit:", member.seedPaid ? "Paid" : "Unpaid"],
     ["Balance:", `MWK ${member.balance.toLocaleString()}`],
+    ["Total Contributed:", `MWK ${totalContributed.toLocaleString()} (${paidContributions.length} payments)`],
+    ["Unpaid Contributions:", `${unpaidContributions.length} outstanding`],
     ["Total Penalties:", `MWK ${member.penaltiesTotal.toLocaleString()}`],
+    ["Penalties Paid:", `MWK ${totalPenaltiesPaid.toLocaleString()}`],
+    ["Penalties Unpaid:", `MWK ${totalPenaltiesUnpaid.toLocaleString()}`],
     ["Member Since:", new Date(member.createdAt).toLocaleDateString()],
   ];
 
@@ -147,16 +165,17 @@ const generateMemberPDF = (
     doc.addPage();
     addSectionHeader(doc, "Loans History");
     
-    const loanHeaders = ["Principal", "Interest", "Total Due", "Balance", "Status"];
+    const loanHeaders = ["Principal", "Interest", "Total Due", "Balance", "Status", "Date"];
     const loanRows = loans.map(l => [
       `MWK ${l.principal.toLocaleString()}`,
       `${(l.interestRate * 100).toFixed(1)}%`,
       `MWK ${l.totalDue.toLocaleString()}`,
       `MWK ${l.balance.toLocaleString()}`,
-      l.status,
+      l.status.toUpperCase(),
+      l.approvedAt ? new Date(l.approvedAt).toLocaleDateString() : "N/A",
     ]);
 
-    drawTable(doc, loanHeaders, loanRows, [90, 60, 90, 90, 70]);
+    drawTable(doc, loanHeaders, loanRows, [80, 50, 80, 80, 60, 70]);
   }
 
   // Penalties Section
@@ -166,15 +185,16 @@ const generateMemberPDF = (
     
     addSectionHeader(doc, "Penalties History");
     
-    const penaltyHeaders = ["Amount", "Reason", "Status", "Due Date"];
+    const penaltyHeaders = ["Amount", "Reason", "Status", "Due Date", "Paid Date"];
     const penaltyRows = penalties.map(p => [
       `MWK ${p.amount.toLocaleString()}`,
-      p.reason.substring(0, 30) + (p.reason.length > 30 ? "..." : ""),
-      p.status,
+      p.reason.substring(0, 25) + (p.reason.length > 25 ? "..." : ""),
+      p.status.toUpperCase(),
       new Date(p.dueDate).toLocaleDateString(),
+      p.paidAt ? new Date(p.paidAt).toLocaleDateString() : "N/A",
     ]);
 
-    drawTable(doc, penaltyHeaders, penaltyRows, [80, 150, 70, 90]);
+    drawTable(doc, penaltyHeaders, penaltyRows, [70, 120, 60, 80, 80]);
   }
 
   // Footer
@@ -207,6 +227,7 @@ const generateGroupPDF = (
   doc.moveDown(0.5);
 
   const groupData = [
+    ["Group Name:", group.name],
     ["Total Savings:", `MWK ${group.totalSavings.toLocaleString()}`],
     ["Total Income:", `MWK ${group.totalIncome.toLocaleString()}`],
     ["Available Cash:", `MWK ${group.cash.toLocaleString()}`],
@@ -216,6 +237,63 @@ const generateGroupPDF = (
   groupData.forEach(([label, value]) => {
     doc.fontSize(10).fillColor("#000").text(label, 50, doc.y, { continued: true, width: 150 })
        .fillColor("#333").text(value, { width: 350 });
+    doc.moveDown(0.3);
+  });
+
+  doc.moveDown(1);
+
+  // Group Settings
+  if (group.settings) {
+    doc.fontSize(14).fillColor("#047857").text("Group Settings");
+    doc.moveDown(0.5);
+
+    const settingsData = [
+      ["Contribution Amount:", `MWK ${group.settings.contributionAmount.toLocaleString()}`],
+      ["Share Fee:", `MWK ${group.settings.shareFee.toLocaleString()}`],
+      ["Seed Amount (per share):", `MWK ${group.settings.seedAmount.toLocaleString()}`],
+      ["Initial Loan Limit (per share):", `MWK ${group.settings.initialLoanAmount.toLocaleString()}`],
+      ["Loan Interest Rate:", `${(group.settings.loanInterestRate * 100).toFixed(1)}%`],
+      ["Penalty Rate (Loans):", `${(group.settings.penaltyRate * 100).toFixed(1)}%`],
+      ["Penalty Rate (Contributions):", `${(group.settings.contributionPenaltyRate * 100).toFixed(1)}%`],
+      ["Compulsory Interest Rate:", `${(group.settings.compulsoryInterestRate * 100).toFixed(1)}%`],
+      ["Min. Contribution Months:", String(group.settings.minimumContributionMonths)],
+      ["Loan to Savings Ratio:", `${(group.settings.loanToSavingsRatio * 100).toFixed(0)}%`],
+      ["Automatic Penalties:", group.settings.enableAutomaticPenalties ? "Enabled" : "Disabled"],
+    ];
+
+    settingsData.forEach(([label, value]) => {
+      doc.fontSize(10).fillColor("#000").text(label, 50, doc.y, { continued: true, width: 180 })
+         .fillColor("#333").text(value, { width: 300 });
+      doc.moveDown(0.3);
+    });
+
+    doc.moveDown(1);
+  }
+
+  // Financial Summary
+  const totalContributions = contributions.filter(c => c.status === "paid").reduce((sum, c) => sum + c.amount, 0);
+  const totalLoansDisbursed = loans.reduce((sum, l) => sum + l.principal, 0);
+  const totalLoansOutstanding = loans.filter(l => l.status === "active").reduce((sum, l) => sum + l.balance, 0);
+  const totalPenaltiesAmount = penalties.reduce((sum, p) => sum + p.amount, 0);
+  const totalPenaltiesPaid = penalties.filter(p => p.isPaid || p.status === "paid").reduce((sum, p) => sum + p.amount, 0);
+  const paidContribCount = contributions.filter(c => c.status === "paid").length;
+  const paymentRate = contributions.length > 0 ? ((paidContribCount / contributions.length) * 100).toFixed(1) : "0.0";
+
+  doc.fontSize(14).fillColor("#047857").text("Financial Summary");
+  doc.moveDown(0.5);
+
+  const financialData = [
+    ["Total Contributions Collected:", `MWK ${totalContributions.toLocaleString()}`],
+    ["Contribution Payment Rate:", `${paymentRate}% (${paidContribCount}/${contributions.length})`],
+    ["Total Loans Disbursed:", `MWK ${totalLoansDisbursed.toLocaleString()}`],
+    ["Total Loans Outstanding:", `MWK ${totalLoansOutstanding.toLocaleString()}`],
+    ["Total Penalties Charged:", `MWK ${totalPenaltiesAmount.toLocaleString()}`],
+    ["Total Penalties Collected:", `MWK ${totalPenaltiesPaid.toLocaleString()}`],
+  ];
+
+  financialData.forEach(([label, value]) => {
+    doc.fontSize(10).fillColor("#000").text(label, 50, doc.y, { continued: true, width: 180 })
+       .fillColor("#333").text(value, { width: 300 });
     doc.moveDown(0.3);
   });
 
@@ -257,15 +335,17 @@ const generateGroupPDF = (
   doc.addPage();
   addSectionHeader(doc, "Members Directory");
   
-  const memberHeaders = ["Name", "Username", "Status", "Balance"];
+  const memberHeaders = ["Name", "Username", "Status", "Shares", "Balance", "Penalties"];
   const memberRows = members.map(m => [
-    m.last_name.substring(0, 25),
+    `${m.first_name} ${m.last_name}`.substring(0, 25),
     m.username,
-    m.status,
+    m.status.toUpperCase(),
+    String(m.sharesOwned || 0),
     `MWK ${m.balance.toLocaleString()}`,
+    `MWK ${m.penaltiesTotal.toLocaleString()}`,
   ]);
 
-  drawTable(doc, memberHeaders, memberRows, [120, 100, 80, 100]);
+  drawTable(doc, memberHeaders, memberRows, [100, 80, 60, 40, 80, 80]);
 
   // Administrators
   doc.addPage();
@@ -303,18 +383,20 @@ const generateMembersListPDF = (
   doc.moveDown(2);
 
   // Table
-  const headers = ["Full Name", "Username", "Email", "Phone", "Status", "Balance", "Penalties"];
+  const headers = ["Full Name", "Username", "Email", "Phone", "Status", "Shares", "Balance", "Penalties", "Joined"];
   const rows = members.map(m => [
-    m.last_name.substring(0, 20),
+    `${m.first_name} ${m.last_name}`.substring(0, 22),
     m.username.substring(0, 15),
-    (m.email || "").substring(0, 25),
-    (m.phone || "").substring(0, 15),
-    m.status,
-    `${m.balance.toLocaleString()}`,
-    `${m.penaltiesTotal.toLocaleString()}`,
+    (m.email || "N/A").substring(0, 22),
+    (m.phone || "N/A").substring(0, 13),
+    m.status.toUpperCase(),
+    String(m.sharesOwned || 0),
+    `MWK ${m.balance.toLocaleString()}`,
+    `MWK ${m.penaltiesTotal.toLocaleString()}`,
+    new Date(m.createdAt).toLocaleDateString(),
   ]);
 
-  drawTable(doc, headers, rows, [100, 80, 130, 90, 60, 80, 80], 8);
+  drawTable(doc, headers, rows, [90, 65, 105, 75, 55, 40, 75, 75, 65], 7.5);
 
   // Footer
   doc.fontSize(7).fillColor("#999").text(

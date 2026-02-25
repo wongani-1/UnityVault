@@ -20,6 +20,25 @@ export const generateReportPDF = async (
   const pageHeight = doc.internal.pageSize.getHeight();
   const margin = 20;
   let yPosition = margin;
+  let currentPage = 1;
+
+  const addFooter = () => {
+    doc.setFontSize(8);
+    doc.setTextColor(150, 150, 150);
+    doc.text(
+      `UnityVault Report - ${groupName} - Page ${currentPage}`,
+      pageWidth / 2,
+      pageHeight - 10,
+      { align: "center" }
+    );
+  };
+
+  const addNewPage = () => {
+    addFooter();
+    doc.addPage();
+    currentPage++;
+    yPosition = margin;
+  };
 
   // Load and add logo
   try {
@@ -138,37 +157,28 @@ export const generateReportPDF = async (
 
       if (isContributionReport) {
         // Contribution report table headers
-        doc.setFillColor(220, 220, 220);
-        doc.rect(margin, yPosition, pageWidth - margin * 2, 8, "F");
-        doc.setTextColor(0, 0, 0);
-        doc.setFontSize(9);
-        doc.setFont("helvetica", "bold");
-        doc.text("#", margin + 2, yPosition + 5.5);
-        doc.text("Member Name", margin + 10, yPosition + 5.5);
-        doc.text("Amount", margin + 90, yPosition + 5.5);
-        doc.text("Status", margin + 125, yPosition + 5.5);
-        doc.text("Paid Date", margin + 155, yPosition + 5.5);
-        yPosition += 10;
-        doc.setFont("helvetica", "normal");
+        const renderContribHeader = () => {
+          doc.setFillColor(220, 220, 220);
+          doc.rect(margin, yPosition, pageWidth - margin * 2, 8, "F");
+          doc.setTextColor(0, 0, 0);
+          doc.setFontSize(9);
+          doc.setFont("helvetica", "bold");
+          doc.text("#", margin + 2, yPosition + 5.5);
+          doc.text("Member Name", margin + 10, yPosition + 5.5);
+          doc.text("Amount", margin + 80, yPosition + 5.5);
+          doc.text("Status", margin + 115, yPosition + 5.5);
+          doc.text("Paid Date", margin + 145, yPosition + 5.5);
+          yPosition += 10;
+          doc.setFont("helvetica", "normal");
+        };
+
+        renderContribHeader();
 
         // Table rows
         reportData.items.forEach((item: any, index: number) => {
           if (yPosition > pageHeight - margin - 10) {
-            doc.addPage();
-            yPosition = margin + 10;
-            
-            // Re-render header on new page
-            doc.setFillColor(220, 220, 220);
-            doc.rect(margin, yPosition, pageWidth - margin * 2, 8, "F");
-            doc.setTextColor(0, 0, 0);
-            doc.setFont("helvetica", "bold");
-            doc.text("#", margin + 2, yPosition + 5.5);
-            doc.text("Member Name", margin + 10, yPosition + 5.5);
-            doc.text("Amount", margin + 90, yPosition + 5.5);
-            doc.text("Status", margin + 125, yPosition + 5.5);
-            doc.text("Paid Date", margin + 155, yPosition + 5.5);
-            yPosition += 10;
-            doc.setFont("helvetica", "normal");
+            addNewPage();
+            renderContribHeader();
           }
 
           if (index % 2 === 0) {
@@ -179,55 +189,63 @@ export const generateReportPDF = async (
           doc.setTextColor(0, 0, 0);
           doc.text(String(index + 1), margin + 2, yPosition + 4);
           doc.text(item.memberName, margin + 10, yPosition + 4);
-          doc.text(`MWK ${item.amount.toLocaleString()}`, margin + 90, yPosition + 4);
+          doc.text(`MWK ${item.amount.toLocaleString()}`, margin + 80, yPosition + 4);
           
           // Color-code status
           if (item.status === "paid") {
             doc.setTextColor(0, 150, 0);
-            doc.text("Paid", margin + 125, yPosition + 4);
+            doc.text("Paid", margin + 115, yPosition + 4);
           } else {
             doc.setTextColor(200, 0, 0);
-            doc.text("Unpaid", margin + 125, yPosition + 4);
+            doc.text("Unpaid", margin + 115, yPosition + 4);
           }
           
           doc.setTextColor(80, 80, 80);
           const paidDate = item.paidAt ? new Date(item.paidAt).toLocaleDateString() : "-";
-          doc.text(paidDate, margin + 155, yPosition + 4);
+          doc.text(paidDate, margin + 145, yPosition + 4);
           
           yPosition += 7;
         });
+
+        // Totals row
+        const totalAmount = reportData.items.reduce((sum: number, item: any) => sum + (item.amount || 0), 0);
+        const paidCount = reportData.items.filter((i: any) => i.status === "paid").length;
+        yPosition += 3;
+        doc.setFillColor(220, 240, 220);
+        doc.rect(margin, yPosition - 1, pageWidth - margin * 2, 8, "F");
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(0, 0, 0);
+        doc.setFontSize(9);
+        doc.text("TOTAL", margin + 10, yPosition + 5);
+        doc.text(`MWK ${totalAmount.toLocaleString()}`, margin + 80, yPosition + 5);
+        doc.text(`${paidCount}/${reportData.items.length} paid`, margin + 115, yPosition + 5);
+        doc.setFont("helvetica", "normal");
+        yPosition += 10;
       } else if (isLoanReport) {
         // Loan report table headers
-        doc.setFillColor(220, 220, 220);
-        doc.rect(margin, yPosition, pageWidth - margin * 2, 8, "F");
-        doc.setTextColor(0, 0, 0);
-        doc.setFont("helvetica", "bold");
-        doc.text("#", margin + 2, yPosition + 5.5);
-        doc.text("Member Name", margin + 10, yPosition + 5.5);
-        doc.text("Principal", margin + 70, yPosition + 5.5);
-        doc.text("Balance", margin + 110, yPosition + 5.5);
-        doc.text("Installments", margin + 145, yPosition + 5.5);
-        yPosition += 10;
-        doc.setFont("helvetica", "normal");
+        const renderLoanHeader = () => {
+          doc.setFillColor(220, 220, 220);
+          doc.rect(margin, yPosition, pageWidth - margin * 2, 8, "F");
+          doc.setTextColor(0, 0, 0);
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(8.5);
+          doc.text("#", margin + 2, yPosition + 5.5);
+          doc.text("Member Name", margin + 10, yPosition + 5.5);
+          doc.text("Principal", margin + 60, yPosition + 5.5);
+          doc.text("Balance", margin + 95, yPosition + 5.5);
+          doc.text("Rate", margin + 128, yPosition + 5.5);
+          doc.text("Installments", margin + 143, yPosition + 5.5);
+          yPosition += 10;
+          doc.setFont("helvetica", "normal");
+        };
+
+        renderLoanHeader();
 
         // Table rows
         reportData.items.forEach((item: any, index: number) => {
           if (yPosition > pageHeight - margin - 10) {
-            doc.addPage();
-            yPosition = margin + 10;
-            
-            // Re-render header on new page
-            doc.setFillColor(220, 220, 220);
-            doc.rect(margin, yPosition, pageWidth - margin * 2, 8, "F");
-            doc.setTextColor(0, 0, 0);
-            doc.setFont("helvetica", "bold");
-            doc.text("#", margin + 2, yPosition + 5.5);
-            doc.text("Member Name", margin + 10, yPosition + 5.5);
-            doc.text("Principal", margin + 70, yPosition + 5.5);
-            doc.text("Balance", margin + 110, yPosition + 5.5);
-            doc.text("Installments", margin + 145, yPosition + 5.5);
-            yPosition += 10;
-            doc.setFont("helvetica", "normal");
+            addNewPage();
+            renderLoanHeader();
           }
 
           if (index % 2 === 0) {
@@ -236,56 +254,128 @@ export const generateReportPDF = async (
           }
 
           doc.setTextColor(0, 0, 0);
+          doc.setFontSize(8.5);
           doc.text(String(index + 1), margin + 2, yPosition + 4);
           doc.text(item.memberName, margin + 10, yPosition + 4);
-          doc.text(`MWK ${item.principal.toLocaleString()}`, margin + 70, yPosition + 4);
-          doc.text(`MWK ${item.balance.toLocaleString()}`, margin + 110, yPosition + 4);
+          doc.text(`MWK ${item.principal.toLocaleString()}`, margin + 60, yPosition + 4);
+          doc.text(`MWK ${item.balance.toLocaleString()}`, margin + 95, yPosition + 4);
           doc.setTextColor(80, 80, 80);
-          doc.text(item.installmentsPaid, margin + 145, yPosition + 4);
+          doc.text(item.interestRate || "N/A", margin + 128, yPosition + 4);
+          doc.text(item.installmentsPaid, margin + 143, yPosition + 4);
           
           yPosition += 7;
         });
+
+        // Totals row
+        const totalPrincipal = reportData.items.reduce((sum: number, item: any) => sum + (item.principal || 0), 0);
+        const totalBalance = reportData.items.reduce((sum: number, item: any) => sum + (item.balance || 0), 0);
+        yPosition += 3;
+        doc.setFillColor(220, 240, 220);
+        doc.rect(margin, yPosition - 1, pageWidth - margin * 2, 8, "F");
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(0, 0, 0);
+        doc.setFontSize(8.5);
+        doc.text("TOTAL", margin + 10, yPosition + 5);
+        doc.text(`MWK ${totalPrincipal.toLocaleString()}`, margin + 60, yPosition + 5);
+        doc.text(`MWK ${totalBalance.toLocaleString()}`, margin + 95, yPosition + 5);
+        doc.text(`${reportData.items.length} loans`, margin + 143, yPosition + 5);
+        doc.setFont("helvetica", "normal");
+        yPosition += 10;
       }
     } else {
-      // Generic list format for other reports
+      // Generic list format for other reports (penalties, etc.)
       doc.setFontSize(9);
-      reportData.items.slice(0, 50).forEach((item: any, index: number) => {
-        if (yPosition > pageHeight - margin - 15) {
-          doc.addPage();
-          yPosition = margin;
-        }
+      const isPenaltyReport = firstItem.reason !== undefined || firstItem.penaltyAmount !== undefined;
 
-        doc.setTextColor(100, 100, 100);
-        doc.text(`${index + 1}.`, margin, yPosition);
+      if (isPenaltyReport) {
+        // Penalty report table
+        const renderPenaltyHeader = () => {
+          doc.setFillColor(220, 220, 220);
+          doc.rect(margin, yPosition, pageWidth - margin * 2, 8, "F");
+          doc.setTextColor(0, 0, 0);
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(9);
+          doc.text("#", margin + 2, yPosition + 5.5);
+          doc.text("Member", margin + 10, yPosition + 5.5);
+          doc.text("Amount", margin + 70, yPosition + 5.5);
+          doc.text("Reason", margin + 105, yPosition + 5.5);
+          doc.text("Status", margin + 155, yPosition + 5.5);
+          yPosition += 10;
+          doc.setFont("helvetica", "normal");
+        };
+
+        renderPenaltyHeader();
+
+        reportData.items.forEach((item: any, index: number) => {
+          if (yPosition > pageHeight - margin - 10) {
+            addNewPage();
+            renderPenaltyHeader();
+          }
+
+          if (index % 2 === 0) {
+            doc.setFillColor(248, 248, 248);
+            doc.rect(margin, yPosition - 1, pageWidth - margin * 2, 7, "F");
+          }
+
+          doc.setTextColor(0, 0, 0);
+          doc.setFontSize(9);
+          doc.text(String(index + 1), margin + 2, yPosition + 4);
+          doc.text(item.memberName || "N/A", margin + 10, yPosition + 4);
+          const amt = item.penaltyAmount || item.amount || 0;
+          doc.text(`MWK ${amt.toLocaleString()}`, margin + 70, yPosition + 4);
+          const reason = (item.reason || "N/A").substring(0, 25);
+          doc.text(reason, margin + 105, yPosition + 4);
+
+          if (item.status === "paid" || item.isPaid) {
+            doc.setTextColor(0, 150, 0);
+            doc.text("Paid", margin + 155, yPosition + 4);
+          } else {
+            doc.setTextColor(200, 0, 0);
+            doc.text("Unpaid", margin + 155, yPosition + 4);
+          }
+
+          yPosition += 7;
+        });
+
+        // Totals row
+        const totalPenalties = reportData.items.reduce((sum: number, item: any) => sum + (item.penaltyAmount || item.amount || 0), 0);
+        const paidPenalties = reportData.items.filter((i: any) => i.status === "paid" || i.isPaid).length;
+        yPosition += 3;
+        doc.setFillColor(220, 240, 220);
+        doc.rect(margin, yPosition - 1, pageWidth - margin * 2, 8, "F");
+        doc.setFont("helvetica", "bold");
         doc.setTextColor(0, 0, 0);
+        doc.text("TOTAL", margin + 10, yPosition + 5);
+        doc.text(`MWK ${totalPenalties.toLocaleString()}`, margin + 70, yPosition + 5);
+        doc.text(`${paidPenalties}/${reportData.items.length} paid`, margin + 155, yPosition + 5);
+        doc.setFont("helvetica", "normal");
+        yPosition += 10;
+      } else {
+        // Truly generic list
+        reportData.items.forEach((item: any, index: number) => {
+          if (yPosition > pageHeight - margin - 15) {
+            addNewPage();
+          }
 
-        const itemText = Object.entries(item)
-          .slice(0, 3)
-          .map(([k, v]) => `${k}: ${v}`)
-          .join(" | ");
+          doc.setTextColor(100, 100, 100);
+          doc.setFontSize(9);
+          doc.text(`${index + 1}.`, margin, yPosition);
+          doc.setTextColor(0, 0, 0);
 
-        doc.text(itemText, margin + 10, yPosition, { maxWidth: pageWidth - margin * 2 - 10 });
-        yPosition += 7;
-      });
+          const itemText = Object.entries(item)
+            .slice(0, 4)
+            .map(([k, v]) => `${k}: ${v}`)
+            .join(" | ");
 
-      if (reportData.items.length > 50) {
-        yPosition += 5;
-        doc.setTextColor(100, 100, 100);
-        doc.text(`... and ${reportData.items.length - 50} more items`, margin, yPosition);
+          doc.text(itemText, margin + 10, yPosition, { maxWidth: pageWidth - margin * 2 - 10 });
+          yPosition += 7;
+        });
       }
     }
   }
 
-  // Add footer
-  const footerY = pageHeight - 10;
-  doc.setFontSize(8);
-  doc.setTextColor(150, 150, 150);
-  doc.text(
-    `UnityVault Report - ${groupName} - Page 1`,
-    pageWidth / 2,
-    footerY,
-    { align: "center" }
-  );
+  // Add footer on the last page
+  addFooter();
 
   return doc.output("blob");
 };

@@ -50,29 +50,38 @@ export const generateContributionReceipt = asyncHandler(async (req: Request, res
   // Pipe PDF to response
   doc.pipe(res);
 
-  // Header
-  doc.fillColor("#047857")
-     .fontSize(24)
-     .text("PAYMENT RECEIPT", { align: "center" });
+  // Branded header bar
+  doc.rect(0, 0, doc.page.width, 80).fillColor("#047857").fill();
+  doc.fontSize(24).fillColor("#ffffff").text("PAYMENT RECEIPT", 50, 25, { align: "center" });
+  doc.fontSize(10).fillColor("#d1fae5").text(group.name, 50, 52, { align: "center" });
 
-  doc.moveDown();
-  doc.fontSize(10)
-     .fillColor("#666")
-     .text(group.name, { align: "center" });
-
-  doc.moveDown(2);
+  doc.moveDown(4);
 
   // Receipt Details
-  doc.fontSize(12).fillColor("#000").text("Receipt Details", { underline: true });
+  doc.fontSize(13).fillColor("#047857").text("Receipt Details");
+  doc.moveTo(50, doc.y).lineTo(doc.page.width - 50, doc.y).strokeColor("#047857").stroke();
   doc.moveDown(0.5);
+
+  const formatMethod = (method?: string) => {
+    if (method === "airtel_money") return "Airtel Money";
+    if (method === "tnm_mpamba") return "TNM Mpamba";
+    if (method === "card") return "Card Payment";
+    return "N/A";
+  };
 
   const details = [
     ["Receipt No:", contributionId.substring(0, 8).toUpperCase()],
     ["Date:", new Date(contribution.paidAt || contribution.createdAt).toLocaleDateString()],
-    ["Member:", `${member.first_name} ${member.last_name}` || member.username],
+    ["Member:", `${member.first_name} ${member.last_name}`],
+    ["Username:", member.username],
+    ["Email:", member.email || "N/A"],
+    ["Phone:", member.phone || "N/A"],
     ["Month:", contribution.month],
     ["Amount Paid:", `MWK ${contribution.amount.toLocaleString()}`],
+    ["Payment Method:", formatMethod((contribution as any).paymentMethod)],
     ["Payment Status:", contribution.status.toUpperCase()],
+    ["Due Date:", new Date(contribution.dueDate).toLocaleDateString()],
+    ["Paid Date:", contribution.paidAt ? new Date(contribution.paidAt).toLocaleDateString() : "N/A"],
   ];
 
   details.forEach(([label, value]) => {
@@ -144,28 +153,34 @@ export const generateLoanPaymentReceipt = asyncHandler(async (req: Request, res:
 
   doc.pipe(res);
 
-  // Header
-  doc.fillColor("#047857")
-     .fontSize(24)
-     .text("LOAN PAYMENT RECEIPT", { align: "center" });
+  // Branded header bar
+  doc.rect(0, 0, doc.page.width, 80).fillColor("#047857").fill();
+  doc.fontSize(24).fillColor("#ffffff").text("LOAN PAYMENT RECEIPT", 50, 25, { align: "center" });
+  doc.fontSize(10).fillColor("#d1fae5").text(group.name, 50, 52, { align: "center" });
 
-  doc.moveDown();
-  doc.fontSize(10).fillColor("#666").text(group.name, { align: "center" });
-
-  doc.moveDown(2);
+  doc.moveDown(4);
 
   // Receipt Details
-  doc.fontSize(12).fillColor("#000").text("Receipt Details", { underline: true });
+  doc.fontSize(13).fillColor("#047857").text("Receipt Details");
+  doc.moveTo(50, doc.y).lineTo(doc.page.width - 50, doc.y).strokeColor("#047857").stroke();
   doc.moveDown(0.5);
+
+  const paidInstallments = loan.installments.filter((i: any) => i.status === "paid").length;
+  const totalInstallments = loan.installments.length;
 
   const details = [
     ["Receipt No:", installmentId.substring(0, 8).toUpperCase()],
     ["Date:", new Date(installment.paidAt || installment.dueDate).toLocaleDateString()],
-    ["Member:", `${member.first_name} ${member.last_name}` || member.username],
-    ["Installment:", `#${installment.installmentNumber}`],
+    ["Member:", `${member.first_name} ${member.last_name}`],
+    ["Username:", member.username],
+    ["Email:", member.email || "N/A"],
+    ["Phone:", member.phone || "N/A"],
+    ["Installment:", `#${installment.installmentNumber} of ${totalInstallments}`],
     ["Principal Amount:", `MWK ${installment.principalAmount.toLocaleString()}`],
     ["Interest Amount:", `MWK ${installment.interestAmount.toLocaleString()}`],
     ["Total Amount:", `MWK ${installment.amount.toLocaleString()}`],
+    ["Due Date:", new Date(installment.dueDate).toLocaleDateString()],
+    ["Paid Date:", installment.paidAt ? new Date(installment.paidAt).toLocaleDateString() : "N/A"],
     ["Payment Status:", installment.status.toUpperCase()],
   ];
 
@@ -181,14 +196,29 @@ export const generateLoanPaymentReceipt = asyncHandler(async (req: Request, res:
   doc.moveDown(2);
 
   // Loan Summary
-  doc.fontSize(12).fillColor("#000").text("Loan Summary", { underline: true });
+  doc.fontSize(13).fillColor("#047857").text("Loan Summary");
+  doc.moveTo(50, doc.y).lineTo(doc.page.width - 50, doc.y).strokeColor("#047857").stroke();
   doc.moveDown(0.5);
 
-  doc.fontSize(10)
-     .fillColor("#666")
-     .text("Loan Balance:", 50, doc.y, { continued: true, width: 150 })
-     .fillColor("#000")
-     .text(`MWK ${loan.balance.toLocaleString()}`, { width: 350 });
+  const loanSummary = [
+    ["Original Principal:", `MWK ${loan.principal.toLocaleString()}`],
+    ["Interest Rate:", `${(loan.interestRate * 100).toFixed(1)}%`],
+    ["Total Due:", `MWK ${loan.totalDue.toLocaleString()}`],
+    ["Remaining Balance:", `MWK ${loan.balance.toLocaleString()}`],
+    ["Installments Paid:", `${paidInstallments} of ${totalInstallments}`],
+    ["Loan Status:", loan.status.toUpperCase()],
+    ["Approved Date:", loan.approvedAt ? new Date(loan.approvedAt).toLocaleDateString() : "N/A"],
+    ["Final Due Date:", loan.dueDate ? new Date(loan.dueDate).toLocaleDateString() : "N/A"],
+  ];
+
+  loanSummary.forEach(([label, value]) => {
+    doc.fontSize(10)
+       .fillColor("#666")
+       .text(label, 50, doc.y, { continued: true, width: 150 })
+       .fillColor("#000")
+       .text(value, { width: 350 });
+    doc.moveDown(0.5);
+  });
 
   doc.moveDown(2);
 
