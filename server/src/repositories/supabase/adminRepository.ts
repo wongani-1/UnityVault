@@ -56,6 +56,39 @@ export const adminRepository: AdminRepository = {
     if (error) throw new Error(error.message);
     return data ? fromAdminRow(data) : undefined;
   },
+  async findByEmail(email) {
+    const supabase = requireSupabase();
+    const normalizedEmail = email.trim().toLowerCase();
+    const { data, error } = await supabase
+      .from("admins")
+      .select("*")
+      .ilike("email", normalizedEmail)
+      .maybeSingle();
+
+    if (!error) {
+      return data ? fromAdminRow(data) : undefined;
+    }
+
+    if (!isMultipleRowsError(error.code, error.message)) {
+      throw new Error(error.message);
+    }
+
+    const { data: manyRows, error: manyError } = await supabase
+      .from("admins")
+      .select("*")
+      .ilike("email", normalizedEmail)
+      .order("created_at", { ascending: false })
+      .limit(20);
+
+    if (manyError) throw new Error(manyError.message);
+
+    const rows = manyRows || [];
+    if (rows.length === 0) return undefined;
+
+    const exactMatch = rows.find((row) => (row.email || "").trim().toLowerCase() === normalizedEmail);
+
+    return exactMatch ? fromAdminRow(exactMatch) : fromAdminRow(rows[0]);
+  },
   async findByGroupAndIdentifier(groupId, identifier) {
     const supabase = requireSupabase();
     const idValue = toFilterValue(identifier);

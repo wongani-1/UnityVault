@@ -111,7 +111,7 @@ export class EmailService {
               </div>
               
               <div class="warning">
-                <strong>Important:</strong> This invitation expires on <strong>${expiryDate}</strong>
+                <strong>Important:</strong> Your activation link and OTP expire in <strong>5 minutes</strong> (at <strong>${expiryDate}</strong>).
               </div>
               
               <p><strong>Registration Steps:</strong></p>
@@ -121,6 +121,8 @@ export class EmailService {
                 <li>Set your password</li>
                 <li>Start contributing!</li>
               </ol>
+
+              <p style="color: #b45309; font-weight: 600;">After 5 minutes, both the activation link and OTP will expire and you'll need a new invitation.</p>
               
               <p>If the button doesn't work, copy and paste this link into your browser:</p>
               <p style="word-break: break-all; color: #4F46E5;">${params.link}</p>

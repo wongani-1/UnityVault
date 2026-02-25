@@ -10,6 +10,11 @@ export const adminRepository: AdminRepository = {
   async getById(id: string) {
     return store.admins.get(id);
   },
+  async findByEmail(email: string) {
+    const normalized = email.trim().toLowerCase();
+    const admins = Array.from(store.admins.values());
+    return admins.find((admin) => (admin.email || "").trim().toLowerCase() === normalized);
+  },
   async findByGroupAndIdentifier(groupId: string, identifier: string) {
     const admins = Array.from(store.admins.values());
     return admins.find(

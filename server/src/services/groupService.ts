@@ -28,6 +28,10 @@ export class GroupService {
     }
   }
 
+  private normalizeEmail(email: string) {
+    return email.trim().toLowerCase();
+  }
+
   async createGroup(params: {
     name: string;
     settings: GroupSettings;
@@ -36,6 +40,12 @@ export class GroupService {
     if (!params.name) throw new ApiError("Group name is required");
     if (!params.admin.email || !params.admin.username || !params.admin.password) {
       throw new ApiError("Admin credentials are required");
+    }
+
+    const normalizedEmail = this.normalizeEmail(params.admin.email);
+    const existingAdmin = await this.adminRepository.findByEmail(normalizedEmail);
+    if (existingAdmin) {
+      throw new ApiError("This email is already used to create a group", 409);
     }
 
     const group: Group = {
@@ -53,7 +63,7 @@ export class GroupService {
       groupId: group.id,
       first_name: params.admin.first_name,
       last_name: params.admin.last_name,
-      email: params.admin.email,
+      email: normalizedEmail,
       phone: params.admin.phone,
       username: params.admin.username,
       passwordHash: await hashPassword(params.admin.password),

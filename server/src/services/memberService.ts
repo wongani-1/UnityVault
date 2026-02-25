@@ -12,6 +12,8 @@ import { NotificationService } from "./notificationService";
 import { EmailService } from "./emailService";
 
 export class MemberService {
+  private static readonly INVITE_EXPIRY_MINUTES = 5;
+
   constructor(
     private memberRepository: MemberRepository,
     private groupRepository: GroupRepository,
@@ -194,7 +196,9 @@ export class MemberService {
 
     const otp = generateOtp(6);
     const inviteToken = createId("invite");
-    const inviteExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+    const inviteExpiresAt = new Date(
+      Date.now() + MemberService.INVITE_EXPIRY_MINUTES * 60 * 1000
+    ).toISOString();
     const inviteOtpHash = await hashPassword(otp);
 
     const member: Member = {
@@ -284,11 +288,13 @@ export class MemberService {
   async verifyInvite(token: string, otp: string) {
     const member = await this.memberRepository.findByInviteToken(token);
     if (!member) throw new ApiError("Invite not found", 404);
-    if (!member.inviteExpiresAt) throw new ApiError("Invite expired", 400);
+    if (!member.inviteExpiresAt) {
+      throw new ApiError("Activation link and OTP have expired", 400);
+    }
 
     const expiresAt = new Date(member.inviteExpiresAt).getTime();
     if (Number.isNaN(expiresAt) || expiresAt < Date.now()) {
-      throw new ApiError("Invite expired", 400);
+      throw new ApiError("Activation link and OTP have expired", 400);
     }
 
     if (!member.inviteOtpHash) throw new ApiError("Invite invalid", 400);
@@ -301,11 +307,13 @@ export class MemberService {
   async completeInvite(params: { token: string; otp: string; newPassword: string }) {
     const member = await this.memberRepository.findByInviteToken(params.token);
     if (!member) throw new ApiError("Invite not found", 404);
-    if (!member.inviteExpiresAt) throw new ApiError("Invite expired", 400);
+    if (!member.inviteExpiresAt) {
+      throw new ApiError("Activation link and OTP have expired", 400);
+    }
 
     const expiresAt = new Date(member.inviteExpiresAt).getTime();
     if (Number.isNaN(expiresAt) || expiresAt < Date.now()) {
-      throw new ApiError("Invite expired", 400);
+      throw new ApiError("Activation link and OTP have expired", 400);
     }
 
     if (!member.inviteOtpHash) throw new ApiError("Invite invalid", 400);
