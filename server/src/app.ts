@@ -6,6 +6,7 @@ import cookieParser from "cookie-parser";
 import session from "express-session";
 import { env } from "./config/env";
 import { apiRouter } from "./routes";
+import { container } from "./container";
 import { errorHandler, notFoundHandler } from "./middleware/error";
 import { rateLimiter } from "./middleware/rateLimiter";
 
@@ -39,8 +40,13 @@ app.use(
   })
 );
 
-app.get("/health", (_req, res) => {
-  res.json({ status: "ok" });
+app.get("/health", async (_req, res) => {
+  const emailOk = await container.emailService.verify();
+  res.json({
+    status: "ok",
+    email: emailOk ? "connected" : "not configured or failed",
+    gmailUser: env.email.user ? `${env.email.user.substring(0, 3)}***` : "not set",
+  });
 });
 
 app.use("/api", apiRouter);

@@ -11,6 +11,7 @@ export type EmailOptions = {
 
 export class EmailService {
   private transporter: Transporter | null = null;
+  private initialized = false;
 
   constructor() {
     this.initializeTransporter();
@@ -19,46 +20,104 @@ export class EmailService {
   private initializeTransporter() {
     if (!env.email.user || !env.email.pass) {
       console.warn("Email credentials not configured. Email functionality will be disabled.");
+      console.warn("Set GMAIL_USER and GMAIL_PASS environment variables to enable email.");
       return;
     }
 
     try {
+      // Use explicit SMTP config instead of service shorthand for better
+      // compatibility with cloud hosting providers (Render, Railway, etc.)
       this.transporter = nodemailer.createTransport({
-        service: "gmail",
+        host: "smtp.gmail.com",
+        port: 465,
+        secure: true, // SSL
         auth: {
           user: env.email.user,
           pass: env.email.pass,
         },
+        // Increase timeouts for cloud environments
+        connectionTimeout: 10000,
+        greetingTimeout: 10000,
+        socketTimeout: 15000,
+        // Enable debug logging in production to diagnose issues
+        logger: env.isProduction,
+        debug: env.isProduction,
       });
 
-      console.log("Email service initialized successfully");
+      console.log(`Email service initialized (user: ${env.email.user})`);
+
+      // Verify connection asynchronously on startup
+      this.verifyOnStartup();
     } catch (error) {
       console.error("Failed to initialize email service:", error);
       this.transporter = null;
     }
   }
 
+  private async verifyOnStartup() {
+    try {
+      await this.transporter!.verify();
+      this.initialized = true;
+      console.log("✓ Email transporter verified - SMTP connection is working");
+    } catch (error: any) {
+      console.error("✗ Email transporter verification FAILED:", error?.message || error);
+      console.error("  This means emails will NOT be delivered.");
+      console.error("  Check that GMAIL_USER and GMAIL_PASS (App Password) are correct.");
+      console.error("  For Gmail, you must use an App Password, not your regular password.");
+      console.error("  Generate one at: https://myaccount.google.com/apppasswords");
+      // Keep the transporter — it may still work for individual sends even if verify fails
+    }
+  }
+
   async sendEmail(options: EmailOptions): Promise<boolean> {
     if (!this.transporter) {
-      console.warn("Email service not configured. Skipping email send.");
+      console.warn("Email service not configured. Skipping email to:", options.to);
       return false;
     }
 
-    try {
-      const info = await this.transporter.sendMail({
-        from: `"UnityVault" <${env.email.user}>`,
-        to: options.to,
-        subject: options.subject,
-        html: options.html,
-        text: options.text || options.html.replace(/<[^>]*>/g, ""),
-      });
+    const maxRetries = 2;
+    let lastError: any = null;
 
-      console.log("Email sent successfully:", info.messageId);
-      return true;
-    } catch (error) {
-      console.error("Failed to send email:", error);
-      return false;
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        console.log(`Sending email (attempt ${attempt}/${maxRetries}): to=${options.to}, subject="${options.subject}"`);
+
+        const info = await this.transporter.sendMail({
+          from: `"UnityVault" <${env.email.user}>`,
+          to: options.to,
+          subject: options.subject,
+          html: options.html,
+          text: options.text || options.html.replace(/<[^>]*>/g, ""),
+        });
+
+        console.log(`Email sent successfully: messageId=${info.messageId}, to=${options.to}`);
+        return true;
+      } catch (error: any) {
+        lastError = error;
+        console.error(`Email send attempt ${attempt} failed:`, {
+          to: options.to,
+          error: error?.message || error,
+          code: error?.code,
+          command: error?.command,
+          responseCode: error?.responseCode,
+          response: error?.response,
+        });
+
+        // Don't retry on auth errors — they won't resolve
+        if (error?.responseCode === 535 || error?.code === "EAUTH") {
+          console.error("Authentication failed. Check GMAIL_USER and GMAIL_PASS env vars.");
+          break;
+        }
+
+        // Wait before retry
+        if (attempt < maxRetries) {
+          await new Promise(resolve => setTimeout(resolve, 2000));
+        }
+      }
     }
+
+    console.error(`All ${maxRetries} email send attempts failed for ${options.to}:`, lastError?.message);
+    return false;
   }
 
   async sendMemberInvite(params: {
