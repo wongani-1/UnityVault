@@ -22,7 +22,7 @@ export const useOfflineStatus = () => {
 export const useOfflineCache = <T,>(key: string, ttl: number = 3600000) => {
   const get = (): T | null => {
     try {
-      const item = localStorage.getItem(`offline_${key}`);
+      const item = sessionStorage.getItem(`offline_${key}`);
       if (!item) return null;
 
       const { data, timestamp } = JSON.parse(item);
@@ -30,7 +30,7 @@ export const useOfflineCache = <T,>(key: string, ttl: number = 3600000) => {
 
       // Check if cache is expired
       if (now - timestamp > ttl) {
-        localStorage.removeItem(`offline_${key}`);
+        sessionStorage.removeItem(`offline_${key}`);
         return null;
       }
 
@@ -42,7 +42,7 @@ export const useOfflineCache = <T,>(key: string, ttl: number = 3600000) => {
 
   const set = (data: T) => {
     try {
-      localStorage.setItem(`offline_${key}`, JSON.stringify({
+      sessionStorage.setItem(`offline_${key}`, JSON.stringify({
         data,
         timestamp: Date.now()
       }));
@@ -52,7 +52,7 @@ export const useOfflineCache = <T,>(key: string, ttl: number = 3600000) => {
   };
 
   const remove = () => {
-    localStorage.removeItem(`offline_${key}`);
+    sessionStorage.removeItem(`offline_${key}`);
   };
 
   return { get, set, remove };

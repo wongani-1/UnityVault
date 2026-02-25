@@ -50,7 +50,7 @@ const Register = () => {
     }
 
     try {
-      const rawRules = localStorage.getItem("unityvault:groupRules");
+      const rawRules = sessionStorage.getItem("unityvault:groupRules");
       const rules = rawRules
         ? (JSON.parse(rawRules) as {
             monthlyContribution?: string;
@@ -107,12 +107,12 @@ const Register = () => {
       );
 
       if (auth.token) {
-        localStorage.setItem("unityvault:token", auth.token);
+        sessionStorage.setItem("unityvault:token", auth.token);
       }
-      localStorage.setItem("unityvault:role", "group_admin");
+      sessionStorage.setItem("unityvault:role", "group_admin");
 
       const adminName = `${form.adminFirstName} ${form.adminSurname}`.trim();
-      localStorage.setItem(
+      sessionStorage.setItem(
         "unityvault:adminGroup",
         JSON.stringify({
           groupId: result.group.id,

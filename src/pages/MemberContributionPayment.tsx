@@ -167,7 +167,7 @@ const MemberContributionPayment = () => {
       const response = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:4000/api"}${url}`, {
         method: "GET",
         headers: {
-          Authorization: `Bearer ${localStorage.getItem("unityvault:token")}`,
+          Authorization: `Bearer ${sessionStorage.getItem("unityvault:token")}`,
         },
       });
 

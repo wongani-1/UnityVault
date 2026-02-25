@@ -49,35 +49,38 @@ export const notificationRepository: NotificationRepository = {
   },
   async markAllAsReadForAdmin(adminId) {
     const supabase = requireSupabase();
-    console.log("[markAllAsReadForAdmin] Starting for adminId:", adminId);
-    
-   // Admin notifications have admin_id as null, so we need to filter by group
+
     // First get the admin's group
     const { data: adminData, error: adminError } = await supabase
       .from("admins")
       .select("group_id")
       .eq("id", adminId)
       .single();
-    
+
     if (adminError) {
-      console.error("[markAllAsReadForAdmin] Error fetching admin:", adminError);
       throw new Error(adminError.message);
     }
-    
-    console.log("[markAllAsReadForAdmin] Admin group_id:", adminData.group_id);
-    
-    // Mark all notifications for this group where admin_id is null as read
-    const { error } = await supabase
+
+    // Mark group-wide notifications (admin_id null) as read
+    const { error: groupWideError } = await supabase
       .from("notifications")
       .update({ is_read: true, read_at: new Date().toISOString() })
       .eq("group_id", adminData.group_id)
       .is("admin_id", null);
-    
-    if (error) {
-      console.error("[markAllAsReadForAdmin] Error updating notifications:", error);
-      throw new Error(error.message);
+
+    if (groupWideError) {
+      throw new Error(groupWideError.message);
     }
-    
-    console.log("[markAllAsReadForAdmin] Successfully marked notifications as read");
+
+    // Mark admin-targeted notifications as read
+    const { error: adminTargetedError } = await supabase
+      .from("notifications")
+      .update({ is_read: true, read_at: new Date().toISOString() })
+      .eq("group_id", adminData.group_id)
+      .eq("admin_id", adminId);
+
+    if (adminTargetedError) {
+      throw new Error(adminTargetedError.message);
+    }
   },
 };

@@ -1,4 +1,8 @@
-import type { AdminRepository, MemberRepository } from "../repositories/interfaces";
+import type {
+  AdminRepository,
+  MemberRepository,
+  NotificationRepository,
+} from "../repositories/interfaces";
 import type { PaymentRepository } from "../repositories/interfaces/paymentRepository";
 import { ApiError } from "../utils/apiError";
 import { hashPassword, verifyPassword } from "../utils/password";
@@ -11,11 +15,18 @@ import {
 
 export class AdminService {
   private static readonly STARTER_TRIAL_DAYS = 14;
+  private static readonly TRIAL_WARNING_DAYS_BEFORE_END = 2;
+  private static readonly PLAN_RANK: Record<SubscriptionPlanId, number> = {
+    starter: 1,
+    professional: 2,
+    enterprise: 3,
+  };
 
   constructor(
     private adminRepository: AdminRepository,
     private memberRepository: MemberRepository,
-    private paymentRepository: PaymentRepository
+    private paymentRepository: PaymentRepository,
+    private notificationRepository: NotificationRepository
   ) {}
 
   private getStarterTrialEnd(createdAt?: string): string | undefined {
@@ -36,6 +47,43 @@ export class AdminService {
     return Math.ceil(remainingMs / (1000 * 60 * 60 * 24));
   }
 
+  private async ensureTrialEndingSoonNotification(params: {
+    adminId: string;
+    groupId: string;
+    trialEndsAt: string;
+    trialDaysRemaining: number;
+  }) {
+    if (params.trialDaysRemaining !== AdminService.TRIAL_WARNING_DAYS_BEFORE_END) {
+      return;
+    }
+
+    const existing = await this.notificationRepository.listByGroup(params.groupId);
+    const alreadySent = existing.some(
+      (item) =>
+        item.type === "trial_ending_soon" &&
+        item.adminId === params.adminId &&
+        item.message.includes(params.trialEndsAt.slice(0, 10))
+    );
+
+    if (alreadySent) {
+      return;
+    }
+
+    await this.notificationRepository.create({
+      id: createId("note"),
+      groupId: params.groupId,
+      adminId: params.adminId,
+      type: "trial_ending_soon",
+      message:
+        "Your 14-day Starter trial ends in 2 days. Please subscribe before " +
+        new Date(params.trialEndsAt).toLocaleDateString() +
+        " to keep access to all system features.",
+      status: "pending",
+      isRead: false,
+      createdAt: new Date().toISOString(),
+    });
+  }
+
   private resolvePlanFromPaymentReference(reference?: string): SubscriptionPlan | undefined {
     if (!reference?.startsWith("subscription:")) return undefined;
     const planId = reference.replace("subscription:", "") as SubscriptionPlanId;
@@ -46,6 +94,12 @@ export class AdminService {
     if (amount === 15000) return getSubscriptionPlan("starter");
     if (amount === 45000) return getSubscriptionPlan("professional");
     return undefined;
+  }
+
+  private isHigherPlan(currentPlanId: SubscriptionPlanId, requestedPlanId: SubscriptionPlanId) {
+    return (
+      AdminService.PLAN_RANK[requestedPlanId] > AdminService.PLAN_RANK[currentPlanId]
+    );
   }
 
   private async getLatestSubscriptionPlan(adminId: string): Promise<SubscriptionPlan | undefined> {
@@ -101,11 +155,58 @@ export class AdminService {
       throw new ApiError("Invalid subscription plan selected", 400);
     }
 
-    if (selectedPlan.id === "enterprise" || selectedPlan.monthlyPrice === null) {
+    const latestPlan = await this.getLatestSubscriptionPlan(adminId);
+    const currentPlan = latestPlan || getSubscriptionPlan("starter");
+
+    if (!currentPlan) {
+      throw new ApiError("Unable to determine current subscription plan", 500);
+    }
+
+    const isUpgrade = this.isHigherPlan(currentPlan.id, selectedPlan.id);
+    const isSamePlan = currentPlan.id === selectedPlan.id;
+
+    if (!isUpgrade && !isSamePlan) {
       throw new ApiError(
-        "Enterprise plan uses custom pricing. Please contact support to activate it.",
+        `Downgrade is not allowed. Your current plan is ${currentPlan.name}. Choose a higher plan to upgrade.`,
         400
       );
+    }
+
+    if (selectedPlan.id === "enterprise" || selectedPlan.monthlyPrice === null) {
+      if (!isUpgrade) {
+        throw new ApiError("You are already on the highest available plan.", 400);
+      }
+
+      const existing = await this.notificationRepository.listByGroup(admin.groupId);
+      const pendingEnterpriseRequest = existing.some(
+        (item) =>
+          item.type === "subscription_upgrade_request" &&
+          item.adminId === admin.id &&
+          item.message.toLowerCase().includes("enterprise")
+      );
+
+      if (!pendingEnterpriseRequest) {
+        await this.notificationRepository.create({
+          id: createId("note"),
+          groupId: admin.groupId,
+          adminId: admin.id,
+          type: "subscription_upgrade_request",
+          message:
+            `Upgrade request submitted: ${currentPlan.name} → Enterprise. Our team will contact you for custom pricing and activation.`,
+          status: "pending",
+          isRead: false,
+          createdAt: new Date().toISOString(),
+        });
+      }
+
+      return {
+        ...admin,
+        passwordHash: "",
+        upgradeRequested: true,
+        requestedPlanId: "enterprise",
+        message:
+          "Enterprise upgrade request submitted successfully. Our team will contact you for custom pricing and activation.",
+      };
     }
 
     const now = new Date();
@@ -180,10 +281,21 @@ export class AdminService {
     const trialDaysRemaining = isTrialActive ? this.getTrialDaysRemaining(trialEndsAt) : 0;
     const isActive = paidSubscriptionActive || isTrialActive;
 
+    if (isTrialActive && trialEndsAt) {
+      await this.ensureTrialEndingSoonNotification({
+        adminId: admin.id,
+        groupId: admin.groupId,
+        trialEndsAt,
+        trialDaysRemaining,
+      });
+    }
+
     const members = await this.memberRepository.listByGroup(admin.groupId);
     const memberCount = members.length;
     const memberLimit = effectivePlan?.memberLimit ?? null;
     const canAddMembers = isActive && (memberLimit === null || memberCount < memberLimit);
+    const availableUpgradePlanIds = (Object.keys(AdminService.PLAN_RANK) as SubscriptionPlanId[])
+      .filter((planId) => this.isHigherPlan(effectivePlan?.id || "starter", planId));
 
     return {
       subscriptionPaid: admin.subscriptionPaid,
@@ -200,6 +312,8 @@ export class AdminService {
       trialEndsAt,
       trialDaysRemaining,
       trialDurationDays: AdminService.STARTER_TRIAL_DAYS,
+      currentPlanId: effectivePlan?.id || "starter",
+      availableUpgradePlanIds,
     };
   }
 

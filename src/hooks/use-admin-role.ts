@@ -10,8 +10,8 @@ export const useAdminRole = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const role = localStorage.getItem("unityvault:role");
-    const token = localStorage.getItem("unityvault:token");
+    const role = sessionStorage.getItem("unityvault:role");
+    const token = sessionStorage.getItem("unityvault:token");
     
     if (!token) {
       navigate("/login");

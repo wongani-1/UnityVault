@@ -6,7 +6,7 @@ type ApiOptions = {
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:4000/api";
 
-const getToken = () => localStorage.getItem("unityvault:token") || "";
+const getToken = () => sessionStorage.getItem("unityvault:token") || "";
 
 export const apiRequest = async <T>(path: string, options: ApiOptions = {}) => {
   const token = options.token || getToken();

@@ -88,7 +88,7 @@ const MemberDashboard = () => {
   const navigate = useNavigate();
   const storedProfile = useMemo(() => {
     try {
-      const raw = localStorage.getItem("unityvault:memberProfile");
+      const raw = sessionStorage.getItem("unityvault:memberProfile");
       return raw
         ? (JSON.parse(raw) as { fullName?: string; groupId?: string; groupName?: string })
         : {};
@@ -179,7 +179,7 @@ const MemberDashboard = () => {
     }
 
     // Store shares in localStorage and navigate to payment page
-    localStorage.setItem("unityvault:pendingShares", sharesToPurchase.toString());
+    sessionStorage.setItem("unityvault:pendingShares", sharesToPurchase.toString());
     setSharePurchaseDialogOpen(false);
     navigate(`/member/share-purchase?shares=${sharesToPurchase}`);
   };
@@ -201,7 +201,7 @@ const MemberDashboard = () => {
         setProfile(next);
         setMemberProfile(member);
         setGroupSettings(group.settings || {});
-        localStorage.setItem("unityvault:memberProfile", JSON.stringify(next));
+        sessionStorage.setItem("unityvault:memberProfile", JSON.stringify(next));
       } catch (error) {
         const message = error instanceof Error ? error.message : "Failed to load profile";
         toast.error(message);

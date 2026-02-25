@@ -41,8 +41,8 @@ const AdminGroupSetup = () => {
     setFormError(hasEmpty ? "All fields are required." : null);
     if (hasEmpty) return;
 
-    localStorage.setItem("unityvault:groupRules", JSON.stringify(form));
-    const token = localStorage.getItem("unityvault:token");
+    sessionStorage.setItem("unityvault:groupRules", JSON.stringify(form));
+    const token = sessionStorage.getItem("unityvault:token");
     navigate(token ? "/admin" : "/login");
   };
 

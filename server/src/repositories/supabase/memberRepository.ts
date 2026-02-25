@@ -2,6 +2,11 @@ import type { MemberRepository } from "../interfaces/memberRepository";
 import { requireSupabase } from "../../db/supabaseClient";
 import { fromMemberRow, toMemberPatch, toMemberRow } from "./mappers";
 
+const toFilterValue = (value: string) => {
+  const escaped = value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+  return `"${escaped}"`;
+};
+
 export const memberRepository: MemberRepository = {
   async create(member) {
     const supabase = requireSupabase();
@@ -35,10 +40,12 @@ export const memberRepository: MemberRepository = {
   },
   async findByIdentifier(identifier) {
     const supabase = requireSupabase();
+    const idValue = toFilterValue(identifier);
+    const filter = `username.eq.${idValue},email.eq.${idValue},phone.eq.${idValue}`;
     const { data, error } = await supabase
       .from("members")
       .select("*")
-      .or(`username.eq.${identifier},email.eq.${identifier},phone.eq.${identifier}`)
+      .or(filter)
       .maybeSingle();
 
     if (!error) {
@@ -56,7 +63,7 @@ export const memberRepository: MemberRepository = {
     const { data: manyRows, error: manyError } = await supabase
       .from("members")
       .select("*")
-      .or(`username.eq.${identifier},email.eq.${identifier},phone.eq.${identifier}`)
+      .or(filter)
       .order("created_at", { ascending: false })
       .limit(20);
 

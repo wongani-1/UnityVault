@@ -87,7 +87,7 @@ export const usePushNotifications = () => {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('unityvault:token')}`
+            'Authorization': `Bearer ${sessionStorage.getItem('unityvault:token')}`
           },
           body: JSON.stringify(subData)
         });
@@ -115,7 +115,7 @@ export const usePushNotifications = () => {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('unityvault:token')}`
+            'Authorization': `Bearer ${sessionStorage.getItem('unityvault:token')}`
           },
           body: JSON.stringify({ endpoint: sub.endpoint })
         });

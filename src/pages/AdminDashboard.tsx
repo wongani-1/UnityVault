@@ -28,9 +28,6 @@ import {
   Download,
   FileText,
   AlertTriangle,
-  LinkIcon,
-  Copy,
-  Check,
   Shield,
   Eye,
   Calendar,
@@ -135,6 +132,14 @@ interface DistributionStatusItem {
   distributedAt?: string;
 }
 
+interface SubscriptionStatusData {
+  subscriptionPaid: boolean;
+  isActive: boolean;
+  isTrialActive?: boolean;
+  trialEndsAt?: string;
+  trialDaysRemaining?: number;
+}
+
 const MONTH_PATTERN = /^\d{4}-(0[1-9]|1[0-2])$/;
 
 const addOneMonth = (month: string) => {
@@ -150,7 +155,6 @@ const addOneMonth = (month: string) => {
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const isAdmin = useAdminRole();
-  const [copiedLink, setCopiedLink] = useState(false);
   const [members, setMembers] = useState<DisplayMember[]>([]);
   const [loanRequests, setLoanRequests] = useState<DisplayLoan[]>([]);
   const [missedPayments, setMissedPayments] = useState<DisplayPenalty[]>([]);
@@ -170,6 +174,7 @@ const AdminDashboard = () => {
   const [groupTreasury, setGroupTreasury] = useState("MWK 0");
   const [treasuryBreakdown, setTreasuryBreakdown] = useState("Contributions + Penalties");
   const [cycleLockedAt, setCycleLockedAt] = useState<string | null>(null);
+  const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatusData | null>(null);
   const [generateDialogOpen, setGenerateDialogOpen] = useState(false);
   const [generatingContributions, setGeneratingContributions] = useState(false);
   const [contributionForm, setContributionForm] = useState({
@@ -214,6 +219,21 @@ const AdminDashboard = () => {
 
   const loadDashboardData = async () => {
     try {
+      const subscription = await apiRequest<SubscriptionStatusData>("/admins/me/subscription-status");
+      setSubscriptionStatus(subscription);
+
+      if (!subscription.isActive) {
+        const hasStarterTrialExpired =
+          !subscription.subscriptionPaid && Boolean(subscription.trialEndsAt);
+        toast.error(
+          hasStarterTrialExpired
+            ? "Your 14-day Starter trial has ended. Please subscribe to continue."
+            : "Subscription required. Please pay or renew to continue."
+        );
+        navigate("/admin/subscription-fee");
+        return;
+      }
+
       // Load group settings
       const settings = await apiRequest<{
         contributionAmount: number;
@@ -369,6 +389,13 @@ const AdminDashboard = () => {
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to load dashboard data";
       toast.error(message);
+      if (
+        typeof message === "string" &&
+        (message.toLowerCase().includes("trial has ended") ||
+          message.toLowerCase().includes("subscription required"))
+      ) {
+        navigate("/admin/subscription-fee");
+      }
     } finally {
       setLoading(false);
     }
@@ -392,7 +419,7 @@ const AdminDashboard = () => {
 
   const storedGroup = useMemo(() => {
     try {
-      const raw = localStorage.getItem("unityvault:adminGroup");
+      const raw = sessionStorage.getItem("unityvault:adminGroup");
       return raw
         ? (JSON.parse(raw) as { groupId?: string; groupName?: string; adminName?: string })
         : {};
@@ -403,7 +430,7 @@ const AdminDashboard = () => {
 
   const storedRules = useMemo(() => {
     try {
-      const raw = localStorage.getItem("unityvault:groupRules");
+      const raw = sessionStorage.getItem("unityvault:groupRules");
       return raw
         ? (JSON.parse(raw) as {
             shareFee?: string;
@@ -421,14 +448,7 @@ const AdminDashboard = () => {
   }, []);
 
   const groupName = storedGroup.groupName || "Your Group";
-  const groupId = storedGroup.groupId || "GB-XXXXXX";
   const adminName = storedGroup.adminName || "Group Admin";
-
-  const handleCopyInvite = () => {
-    navigator.clipboard.writeText(`https://unityvault.app/join/${groupId}`);
-    setCopiedLink(true);
-    setTimeout(() => setCopiedLink(false), 2000);
-  };
 
   const handleGenerateContributions = async () => {
     if (!isAdmin) {
@@ -494,7 +514,6 @@ const AdminDashboard = () => {
       title="Group Admin"
       subtitle={`Manage ${groupName}`}
       isAdmin
-      groupId={groupId}
       groupName={groupName}
       userName={adminName}
     >
@@ -506,18 +525,26 @@ const AdminDashboard = () => {
           </div>
           <div>
             <p className="text-sm font-semibold text-foreground">{groupName}</p>
-            <p className="font-mono text-xs tracking-wider text-muted-foreground">{groupId}</p>
           </div>
         </div>
-        <Button variant="outline" size="sm" onClick={handleCopyInvite}>
-          {copiedLink ? (
-            <Check className="mr-2 h-3.5 w-3.5 text-success" />
-          ) : (
-            <LinkIcon className="mr-2 h-3.5 w-3.5" />
-          )}
-          {copiedLink ? "Copied!" : "Copy Invite Link"}
+        <Button variant="hero" size="sm" onClick={() => navigate("/admin/subscription-fee")}>
+          Upgrade Plan
         </Button>
       </div>
+
+      {subscriptionStatus?.isTrialActive && subscriptionStatus.trialEndsAt && (
+        <div className="mb-6 rounded-xl border border-warning/30 bg-warning/10 p-4">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="mt-0.5 h-5 w-5 text-warning" />
+            <div>
+              <p className="text-sm font-semibold text-foreground">You are on a 14-day Starter trial</p>
+              <p className="text-xs text-muted-foreground">
+                Trial ends on {new Date(subscriptionStatus.trialEndsAt).toLocaleDateString()} ({subscriptionStatus.trialDaysRemaining || 0} day{(subscriptionStatus.trialDaysRemaining || 0) === 1 ? "" : "s"} remaining).
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {cycleLockedAt && (
         <div className="mb-6 rounded-xl border border-warning/30 bg-warning/10 p-4">
@@ -587,10 +614,6 @@ const AdminDashboard = () => {
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-lg">Member Management</CardTitle>
               <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={handleCopyInvite}>
-                  <LinkIcon className="mr-2 h-4 w-4" />
-                  Invite Link
-                </Button>
                 <Button variant="hero" size="sm" onClick={() => navigate("/admin/members")}>
                   <UserPlus className="mr-2 h-4 w-4" />
                   Add Member

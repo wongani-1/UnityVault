@@ -120,7 +120,7 @@ const AdminSettings = () => {
           compulsoryInterestRate: 0.2,
         },
       });
-      localStorage.setItem("unityvault:groupRules", JSON.stringify(form));
+      sessionStorage.setItem("unityvault:groupRules", JSON.stringify(form));
       setStatus("saved");
       toast.success("Settings saved");
     } catch (error) {
@@ -175,7 +175,7 @@ const AdminSettings = () => {
       const response = await fetch(
         `${import.meta.env.VITE_API_URL || "http://localhost:4000/api"}/export/group-data`,
         {
-          headers: { Authorization: `Bearer ${localStorage.getItem("unityvault:token")}` },
+          headers: { Authorization: `Bearer ${sessionStorage.getItem("unityvault:token")}` },
         }
       );
       const blob = await response.blob();
@@ -196,7 +196,7 @@ const AdminSettings = () => {
       const response = await fetch(
         `${import.meta.env.VITE_API_URL || "http://localhost:4000/api"}/export/members`,
         {
-          headers: { Authorization: `Bearer ${localStorage.getItem("unityvault:token")}` },
+          headers: { Authorization: `Bearer ${sessionStorage.getItem("unityvault:token")}` },
         }
       );
       const blob = await response.blob();

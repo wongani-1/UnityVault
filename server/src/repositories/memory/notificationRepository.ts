@@ -47,9 +47,9 @@ export const notificationRepository: NotificationRepository = {
     const admin = Array.from(store.admins.values()).find(a => a.id === adminId);
     if (!admin) return;
     
-    // Admin notifications have adminId as undefined, so filter by groupId and undefined adminId
+    // Mark group-wide and admin-targeted notifications
     const notifications = Array.from(store.notifications.values()).filter(
-      (n) => n.groupId === admin.groupId && n.adminId === undefined
+      (n) => n.groupId === admin.groupId && (n.adminId === undefined || n.adminId === adminId)
     );
     notifications.forEach((n) => {
       store.notifications.set(n.id, {

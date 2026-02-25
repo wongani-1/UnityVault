@@ -115,7 +115,7 @@ const MemberSeedPayment = () => {
       });
 
       // Clear cached profile to force refresh on dashboard
-      localStorage.removeItem("unityvault:memberProfile");
+      sessionStorage.removeItem("unityvault:memberProfile");
 
       toast.success(
         `Seed deposit payment successful (MWK ${totalSeedDeposit.toLocaleString()})! You can now make contributions and apply for loans.`
