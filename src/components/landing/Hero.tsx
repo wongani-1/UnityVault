@@ -1,6 +1,5 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import heroIllustration from "@/assets/hero-illustration.png";
 
 const Hero = () => {
   return (
@@ -43,7 +42,7 @@ const Hero = () => {
             <div className="relative mx-auto max-w-lg lg:max-w-none">
               <div className="absolute -inset-4 rounded-3xl bg-gradient-to-br from-primary/5 to-accent/10 blur-2xl" />
               <img
-                src={heroIllustration}
+                src="/hero-illustration.png"
                 alt="Group savings network illustration showing connected community members"
                 className="relative w-full rounded-2xl"
                 loading="eager"

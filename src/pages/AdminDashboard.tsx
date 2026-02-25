@@ -347,22 +347,13 @@ const AdminDashboard = () => {
       const loansTotal = activeLoansList.reduce((sum: number, l) => sum + (l.balance || 0), 0);
 
       // Calculate treasury from ledger cash flow (source of truth):
-      // includes contributions, seed deposits, penalties, loan repayments (incl. interest), and deductions.
+      // includes all money currently held by the group.
       const ledgerItems = (ledgerData.items || []) as LedgerEntryData[];
       let ledgerTreasuryTotal = 0;
-      let contributionCash = 0;
-      let seedCash = 0;
-      let penaltiesCash = 0;
-      let loanRepaymentCash = 0;
 
       for (const entry of ledgerItems) {
         const cashChange = entry.groupCashChange || 0;
         ledgerTreasuryTotal += cashChange;
-
-        if (entry.type === "contribution") contributionCash += cashChange;
-        if (entry.type === "seed_deposit") seedCash += cashChange;
-        if (entry.type === "penalty_payment") penaltiesCash += cashChange;
-        if (entry.type === "loan_repayment") loanRepaymentCash += cashChange;
       }
 
       const treasuryTotal = Number(Math.max(0, ledgerTreasuryTotal).toFixed(2));
@@ -371,9 +362,7 @@ const AdminDashboard = () => {
       setTotalContributions(`MWK ${contribTotal.toLocaleString()}`);
       setActiveLoans(`MWK ${loansTotal.toLocaleString()}`);
       setGroupTreasury(`MWK ${treasuryTotal.toLocaleString()}`);
-      setTreasuryBreakdown(
-        `Includes contributions (MWK ${contributionCash.toLocaleString()}), seed (MWK ${seedCash.toLocaleString()}), penalties (MWK ${penaltiesCash.toLocaleString()}), and loan repayments/interest (MWK ${loanRepaymentCash.toLocaleString()})`
-      );
+      setTreasuryBreakdown("Includes all the money that the group has");
 
       // Calculate collection rate
       const paidContributions = contributionData.items.filter(c => c.status === "paid").length;
