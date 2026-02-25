@@ -305,7 +305,7 @@ const AdminMembers = () => {
       )}
 
       <Card className="border-0 shadow-card">
-        <CardHeader className="flex flex-wrap items-center justify-between gap-3">
+        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 space-y-0">
           <CardTitle className="text-lg">Member Directory</CardTitle>
           <Button variant="hero" size="sm" onClick={handleAddMemberClick} disabled={cycleLocked}>
             <UserPlus className="mr-2 h-4 w-4" />
