@@ -1,5 +1,6 @@
 import nodemailer from "nodemailer";
 import type { Transporter } from "nodemailer";
+import dns from "dns";
 import { env } from "../config/env";
 
 export type EmailOptions = {
@@ -35,6 +36,18 @@ export class EmailService {
           user: env.email.user,
           pass: env.email.pass,
         },
+        // Force IPv4 – many cloud providers (Render, Railway) lack IPv6
+        // connectivity, causing ENETUNREACH on Gmail's IPv6 addresses.
+        tls: {
+          servername: "smtp.gmail.com",
+        },
+        // Force DNS to resolve IPv4 addresses only
+        dnsLookup: (hostname: string, options: any, callback: any) => {
+          dns.resolve4(hostname, (err, addresses) => {
+            if (err) return callback(err);
+            callback(null, addresses[0], 4);
+          });
+        },
         // Increase timeouts for cloud environments
         connectionTimeout: 10000,
         greetingTimeout: 10000,
@@ -42,7 +55,7 @@ export class EmailService {
         // Enable debug logging in production to diagnose issues
         logger: env.isProduction,
         debug: env.isProduction,
-      });
+      } as any);
 
       console.log(`Email service initialized (user: ${env.email.user})`);
 
