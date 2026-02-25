@@ -15,10 +15,6 @@ import {
   ChevronRight,
   Menu,
   X,
-  Hash,
-  Copy,
-  Check,
-  LinkIcon,
   ShieldCheck,
   AlertTriangle,
   TrendingUp,
@@ -66,13 +62,12 @@ const DashboardLayout = ({
   const navigate = useNavigate();
   const nav = isAdmin ? adminNav : memberNav;
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [copiedId, setCopiedId] = useState(false);
   const { count: notificationCount } = useNotificationCount(5000); // Poll every 5 seconds
 
   const storedGroup = useMemo(() => {
     if (isAdmin) {
       try {
-        const raw = localStorage.getItem("unityvault:adminGroup");
+        const raw = sessionStorage.getItem("unityvault:adminGroup");
         return raw
           ? (JSON.parse(raw) as { groupId?: string; groupName?: string; adminName?: string })
           : {};
@@ -82,7 +77,7 @@ const DashboardLayout = ({
     }
 
     try {
-      const raw = localStorage.getItem("unityvault:memberProfile");
+      const raw = sessionStorage.getItem("unityvault:memberProfile");
       return raw
         ? (JSON.parse(raw) as { groupId?: string; groupName?: string; fullName?: string })
         : {};
@@ -91,7 +86,6 @@ const DashboardLayout = ({
     }
   }, [isAdmin]);
 
-  const resolvedGroupId = groupId || storedGroup.groupId || "";
   const resolvedGroupName = groupName || storedGroup.groupName || "";
   const resolvedUserName =
     userName || (isAdmin ? (storedGroup as { adminName?: string }).adminName : (storedGroup as { fullName?: string }).fullName);
@@ -104,17 +98,11 @@ const DashboardLayout = ({
     .map((part) => part[0]?.toUpperCase())
     .join("") || "?";
 
-  const handleCopyGroupId = () => {
-    navigator.clipboard.writeText(resolvedGroupId);
-    setCopiedId(true);
-    setTimeout(() => setCopiedId(false), 2000);
-  };
-
   const handleSignOut = () => {
-    localStorage.removeItem("unityvault:token");
-    localStorage.removeItem("unityvault:role");
-    localStorage.removeItem("unityvault:adminGroup");
-    localStorage.removeItem("unityvault:memberProfile");
+    sessionStorage.removeItem("unityvault:token");
+    sessionStorage.removeItem("unityvault:role");
+    sessionStorage.removeItem("unityvault:adminGroup");
+    sessionStorage.removeItem("unityvault:memberProfile");
     navigate("/");
   };
 
@@ -135,19 +123,6 @@ const DashboardLayout = ({
         <div className="rounded-lg bg-secondary/70 p-3">
           <p className="text-xs font-medium text-muted-foreground">Group</p>
           <p className="truncate text-sm font-semibold text-foreground">{resolvedGroupName}</p>
-          {isAdmin && (
-            <div className="mt-1.5 flex items-center gap-1.5">
-              <Hash className="h-3 w-3 text-muted-foreground" />
-              <span className="font-mono text-xs tracking-wider text-muted-foreground">{resolvedGroupId}</span>
-              <button
-                onClick={handleCopyGroupId}
-                className="ml-auto text-muted-foreground hover:text-foreground transition-colors"
-                title="Copy Group ID"
-              >
-                {copiedId ? <Check className="h-3 w-3 text-success" /> : <Copy className="h-3 w-3" />}
-              </button>
-            </div>
-          )}
         </div>
       </div>
 
@@ -173,16 +148,6 @@ const DashboardLayout = ({
           );
         })}
       </nav>
-
-      {/* Invite Link (Admin only) */}
-      {isAdmin && (
-        <div className="border-t px-4 py-3">
-          <Button variant="outline" size="sm" className="w-full justify-start text-xs">
-            <LinkIcon className="mr-2 h-3.5 w-3.5" />
-            Copy Invite Link
-          </Button>
-        </div>
-      )}
 
       {/* User */}
       <div className="border-t p-4">

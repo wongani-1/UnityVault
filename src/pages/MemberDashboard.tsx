@@ -88,7 +88,7 @@ const MemberDashboard = () => {
   const navigate = useNavigate();
   const storedProfile = useMemo(() => {
     try {
-      const raw = localStorage.getItem("unityvault:memberProfile");
+      const raw = sessionStorage.getItem("unityvault:memberProfile");
       return raw
         ? (JSON.parse(raw) as { fullName?: string; groupId?: string; groupName?: string })
         : {};
@@ -179,7 +179,7 @@ const MemberDashboard = () => {
     }
 
     // Store shares in localStorage and navigate to payment page
-    localStorage.setItem("unityvault:pendingShares", sharesToPurchase.toString());
+    sessionStorage.setItem("unityvault:pendingShares", sharesToPurchase.toString());
     setSharePurchaseDialogOpen(false);
     navigate(`/member/share-purchase?shares=${sharesToPurchase}`);
   };
@@ -201,7 +201,7 @@ const MemberDashboard = () => {
         setProfile(next);
         setMemberProfile(member);
         setGroupSettings(group.settings || {});
-        localStorage.setItem("unityvault:memberProfile", JSON.stringify(next));
+        sessionStorage.setItem("unityvault:memberProfile", JSON.stringify(next));
       } catch (error) {
         const message = error instanceof Error ? error.message : "Failed to load profile";
         toast.error(message);
@@ -591,7 +591,7 @@ const MemberDashboard = () => {
         </Card>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid gap-4 sm:gap-6 lg:grid-cols-3">
         {/* Contribution History */}
         <Card className="border-0 shadow-card lg:col-span-2">
           <CardHeader>
@@ -695,8 +695,8 @@ const MemberDashboard = () => {
               <TableRow>
                 <TableHead>Loan ID</TableHead>
                 <TableHead>Amount</TableHead>
-                <TableHead>Balance</TableHead>
-                <TableHead>Progress</TableHead>
+                <TableHead className="hidden sm:table-cell">Balance</TableHead>
+                <TableHead className="hidden sm:table-cell">Progress</TableHead>
                 <TableHead>Due Date</TableHead>
                 <TableHead>Status</TableHead>
               </TableRow>
@@ -713,8 +713,8 @@ const MemberDashboard = () => {
                   <TableRow key={l.id}>
                     <TableCell className="font-medium">{l.id}</TableCell>
                     <TableCell>{l.amount}</TableCell>
-                    <TableCell>{l.balance}</TableCell>
-                    <TableCell>
+                    <TableCell className="hidden sm:table-cell">{l.balance}</TableCell>
+                    <TableCell className="hidden sm:table-cell">
                       <div className="flex items-center gap-2">
                         <Progress value={l.repaid} className="h-1.5 w-16" />
                         <span className="text-xs text-muted-foreground">{l.repaid}%</span>

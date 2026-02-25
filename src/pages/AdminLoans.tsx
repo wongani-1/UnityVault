@@ -145,10 +145,10 @@ const AdminLoans = () => {
                 <TableRow>
                   <TableHead>Member</TableHead>
                   <TableHead>Amount</TableHead>
-                  <TableHead>Balance</TableHead>
-                  <TableHead>Total Due</TableHead>
-                  <TableHead>Purpose</TableHead>
-                  <TableHead>Date</TableHead>
+                  <TableHead className="hidden sm:table-cell">Balance</TableHead>
+                  <TableHead className="hidden sm:table-cell">Total Due</TableHead>
+                  <TableHead className="hidden sm:table-cell">Purpose</TableHead>
+                  <TableHead className="hidden sm:table-cell">Date</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -165,10 +165,10 @@ const AdminLoans = () => {
                   <TableRow key={loan.id}>
                     <TableCell className="font-medium">{loan.member}</TableCell>
                     <TableCell>{loan.amount}</TableCell>
-                    <TableCell>{loan.balance}</TableCell>
-                    <TableCell>{loan.totalDue}</TableCell>
-                    <TableCell className="text-muted-foreground">{loan.purpose}</TableCell>
-                    <TableCell className="text-muted-foreground">{loan.date}</TableCell>
+                    <TableCell className="hidden sm:table-cell">{loan.balance}</TableCell>
+                    <TableCell className="hidden sm:table-cell">{loan.totalDue}</TableCell>
+                    <TableCell className="hidden sm:table-cell text-muted-foreground">{loan.purpose}</TableCell>
+                    <TableCell className="hidden sm:table-cell text-muted-foreground">{loan.date}</TableCell>
                     <TableCell>
                       <Badge
                         className={

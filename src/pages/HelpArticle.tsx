@@ -362,7 +362,7 @@ const HelpArticle = () => {
   if (!article) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
-        <h1 className="mb-4 text-2xl font-bold text-foreground">Article Not Found</h1>
+        <h1 className="mb-4 text-xl font-bold text-foreground sm:text-2xl">Article Not Found</h1>
         <Link to="/help" className="text-primary hover:underline">
           Return to Help Center
         </Link>

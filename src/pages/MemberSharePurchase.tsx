@@ -43,7 +43,7 @@ const MemberSharePurchase = () => {
         
         // Get shares from URL or localStorage
         const sharesParam = searchParams.get("shares");
-        const shares = sharesParam ? parseInt(sharesParam) : parseInt(localStorage.getItem("unityvault:pendingShares") || "1");
+        const shares = sharesParam ? parseInt(sharesParam) : parseInt(sessionStorage.getItem("unityvault:pendingShares") || "1");
         setSharesToPurchase(Math.max(1, shares));
 
         // Fetch member profile and group settings
@@ -61,7 +61,7 @@ const MemberSharePurchase = () => {
         setShareFee(0);
       } finally {
         setLoading(false);
-        localStorage.removeItem("unityvault:pendingShares");
+        sessionStorage.removeItem("unityvault:pendingShares");
       }
     };
 
@@ -123,7 +123,7 @@ const MemberSharePurchase = () => {
       });
 
       // Clear cached profile to force refresh on dashboard
-      localStorage.removeItem("unityvault:memberProfile");
+      sessionStorage.removeItem("unityvault:memberProfile");
 
       if (isRegistrationFlow) {
         toast.success("Share purchase successful. Continue to seed deposit payment.");
@@ -170,7 +170,7 @@ const MemberSharePurchase = () => {
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-success/10">
               <Share2 className="h-8 w-8 text-success" />
             </div>
-            <CardTitle className="text-2xl">Purchase Shares</CardTitle>
+            <CardTitle className="text-xl sm:text-2xl">Purchase Shares</CardTitle>
             <CardDescription>
               Increase your loan eligibility by purchasing more shares
             </CardDescription>

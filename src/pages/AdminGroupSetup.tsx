@@ -41,8 +41,8 @@ const AdminGroupSetup = () => {
     setFormError(hasEmpty ? "All fields are required." : null);
     if (hasEmpty) return;
 
-    localStorage.setItem("unityvault:groupRules", JSON.stringify(form));
-    const token = localStorage.getItem("unityvault:token");
+    sessionStorage.setItem("unityvault:groupRules", JSON.stringify(form));
+    const token = sessionStorage.getItem("unityvault:token");
     navigate(token ? "/admin" : "/login");
   };
 
@@ -64,16 +64,16 @@ const AdminGroupSetup = () => {
             <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
               <ShieldCheck className="h-6 w-6 text-primary" />
             </div>
-            <CardTitle className="text-2xl">Group Rules & Fees</CardTitle>
+            <CardTitle className="text-xl sm:text-2xl">Group Rules & Fees</CardTitle>
             <CardDescription>
               Define your group’s contribution rules, loan terms, and penalties.
             </CardDescription>
           </CardHeader>
 
           <CardContent className="space-y-6">
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-2">
 
-              <div className="space-y-2 md:col-span-2">
+              <div className="space-y-2 sm:col-span-2">
                 <Label htmlFor="seed-amount">Initial Seed Amount (MWK)</Label>
                 <Input
                   id="seed-amount"

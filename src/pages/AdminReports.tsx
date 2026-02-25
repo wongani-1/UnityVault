@@ -19,7 +19,7 @@ const AdminReports = () => {
 
   const storedGroup = useMemo(() => {
     try {
-      const raw = localStorage.getItem("unityvault:adminGroup");
+      const raw = sessionStorage.getItem("unityvault:adminGroup");
       return raw
         ? (JSON.parse(raw) as { groupId?: string; groupName?: string; adminName?: string })
         : {};

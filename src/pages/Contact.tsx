@@ -165,7 +165,7 @@ const Contact = () => {
                 </CardHeader>
                 <CardContent>
                   <form onSubmit={handleSubmit} className="space-y-6">
-                    <div className="grid gap-6 sm:grid-cols-2">
+                    <div className="grid gap-4 sm:gap-6 sm:grid-cols-2">
                       <div className="space-y-2">
                         <Label htmlFor="name">Your Name</Label>
                         <Input

@@ -394,11 +394,11 @@ const AdminAudit = () => {
                   <TableHead>Date</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead>Member</TableHead>
-                  <TableHead>Description</TableHead>
+                  <TableHead className="hidden sm:table-cell">Description</TableHead>
                   <TableHead className="text-right">Amount</TableHead>
                   <TableHead className="text-right">Cash Δ</TableHead>
-                  <TableHead className="text-right">Savings Δ</TableHead>
-                  <TableHead className="text-right">Income Δ</TableHead>
+                  <TableHead className="hidden sm:table-cell text-right">Savings Δ</TableHead>
+                  <TableHead className="hidden sm:table-cell text-right">Income Δ</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -411,15 +411,15 @@ const AdminAudit = () => {
                       </Badge>
                     </TableCell>
                     <TableCell>{memberNameById.get(item.memberId) || item.memberId}</TableCell>
-                    <TableCell className="max-w-[260px] truncate">{item.description}</TableCell>
+                    <TableCell className="max-w-[260px] truncate hidden sm:table-cell">{item.description}</TableCell>
                     <TableCell className="text-right font-medium">{formatCurrency(item.amount)}</TableCell>
                     <TableCell className={`text-right ${item.groupCashChange >= 0 ? "text-success" : "text-destructive"}`}>
                       {formatCurrency(item.groupCashChange)}
                     </TableCell>
-                    <TableCell className={`text-right ${item.memberSavingsChange >= 0 ? "text-success" : "text-destructive"}`}>
+                    <TableCell className={`hidden sm:table-cell text-right ${item.memberSavingsChange >= 0 ? "text-success" : "text-destructive"}`}>
                       {formatCurrency(item.memberSavingsChange)}
                     </TableCell>
-                    <TableCell className={`text-right ${item.groupIncomeChange >= 0 ? "text-success" : "text-destructive"}`}>
+                    <TableCell className={`hidden sm:table-cell text-right ${item.groupIncomeChange >= 0 ? "text-success" : "text-destructive"}`}>
                       {formatCurrency(item.groupIncomeChange)}
                     </TableCell>
                   </TableRow>

@@ -26,7 +26,8 @@ const auditService = new AuditService(repositories.auditRepository);
 const adminService = new AdminService(
   repositories.adminRepository,
   repositories.memberRepository,
-  repositories.paymentRepository
+  repositories.paymentRepository,
+  repositories.notificationRepository
 );
 const notificationService = new NotificationService(repositories.notificationRepository);
 const penaltyService = new PenaltyService(

@@ -28,9 +28,6 @@ import {
   Download,
   FileText,
   AlertTriangle,
-  LinkIcon,
-  Copy,
-  Check,
   Shield,
   Eye,
   Calendar,
@@ -135,6 +132,14 @@ interface DistributionStatusItem {
   distributedAt?: string;
 }
 
+interface SubscriptionStatusData {
+  subscriptionPaid: boolean;
+  isActive: boolean;
+  isTrialActive?: boolean;
+  trialEndsAt?: string;
+  trialDaysRemaining?: number;
+}
+
 const MONTH_PATTERN = /^\d{4}-(0[1-9]|1[0-2])$/;
 
 const addOneMonth = (month: string) => {
@@ -150,7 +155,6 @@ const addOneMonth = (month: string) => {
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const isAdmin = useAdminRole();
-  const [copiedLink, setCopiedLink] = useState(false);
   const [members, setMembers] = useState<DisplayMember[]>([]);
   const [loanRequests, setLoanRequests] = useState<DisplayLoan[]>([]);
   const [missedPayments, setMissedPayments] = useState<DisplayPenalty[]>([]);
@@ -170,6 +174,7 @@ const AdminDashboard = () => {
   const [groupTreasury, setGroupTreasury] = useState("MWK 0");
   const [treasuryBreakdown, setTreasuryBreakdown] = useState("Contributions + Penalties");
   const [cycleLockedAt, setCycleLockedAt] = useState<string | null>(null);
+  const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatusData | null>(null);
   const [generateDialogOpen, setGenerateDialogOpen] = useState(false);
   const [generatingContributions, setGeneratingContributions] = useState(false);
   const [contributionForm, setContributionForm] = useState({
@@ -214,6 +219,21 @@ const AdminDashboard = () => {
 
   const loadDashboardData = async () => {
     try {
+      const subscription = await apiRequest<SubscriptionStatusData>("/admins/me/subscription-status");
+      setSubscriptionStatus(subscription);
+
+      if (!subscription.isActive) {
+        const hasStarterTrialExpired =
+          !subscription.subscriptionPaid && Boolean(subscription.trialEndsAt);
+        toast.error(
+          hasStarterTrialExpired
+            ? "Your 14-day Starter trial has ended. Please subscribe to continue."
+            : "Subscription required. Please pay or renew to continue."
+        );
+        navigate("/admin/subscription-fee");
+        return;
+      }
+
       // Load group settings
       const settings = await apiRequest<{
         contributionAmount: number;
@@ -369,6 +389,13 @@ const AdminDashboard = () => {
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to load dashboard data";
       toast.error(message);
+      if (
+        typeof message === "string" &&
+        (message.toLowerCase().includes("trial has ended") ||
+          message.toLowerCase().includes("subscription required"))
+      ) {
+        navigate("/admin/subscription-fee");
+      }
     } finally {
       setLoading(false);
     }
@@ -392,7 +419,7 @@ const AdminDashboard = () => {
 
   const storedGroup = useMemo(() => {
     try {
-      const raw = localStorage.getItem("unityvault:adminGroup");
+      const raw = sessionStorage.getItem("unityvault:adminGroup");
       return raw
         ? (JSON.parse(raw) as { groupId?: string; groupName?: string; adminName?: string })
         : {};
@@ -403,7 +430,7 @@ const AdminDashboard = () => {
 
   const storedRules = useMemo(() => {
     try {
-      const raw = localStorage.getItem("unityvault:groupRules");
+      const raw = sessionStorage.getItem("unityvault:groupRules");
       return raw
         ? (JSON.parse(raw) as {
             shareFee?: string;
@@ -421,14 +448,7 @@ const AdminDashboard = () => {
   }, []);
 
   const groupName = storedGroup.groupName || "Your Group";
-  const groupId = storedGroup.groupId || "GB-XXXXXX";
   const adminName = storedGroup.adminName || "Group Admin";
-
-  const handleCopyInvite = () => {
-    navigator.clipboard.writeText(`https://unityvault.app/join/${groupId}`);
-    setCopiedLink(true);
-    setTimeout(() => setCopiedLink(false), 2000);
-  };
 
   const handleGenerateContributions = async () => {
     if (!isAdmin) {
@@ -494,7 +514,6 @@ const AdminDashboard = () => {
       title="Group Admin"
       subtitle={`Manage ${groupName}`}
       isAdmin
-      groupId={groupId}
       groupName={groupName}
       userName={adminName}
     >
@@ -506,18 +525,26 @@ const AdminDashboard = () => {
           </div>
           <div>
             <p className="text-sm font-semibold text-foreground">{groupName}</p>
-            <p className="font-mono text-xs tracking-wider text-muted-foreground">{groupId}</p>
           </div>
         </div>
-        <Button variant="outline" size="sm" onClick={handleCopyInvite}>
-          {copiedLink ? (
-            <Check className="mr-2 h-3.5 w-3.5 text-success" />
-          ) : (
-            <LinkIcon className="mr-2 h-3.5 w-3.5" />
-          )}
-          {copiedLink ? "Copied!" : "Copy Invite Link"}
+        <Button variant="hero" size="sm" onClick={() => navigate("/admin/subscription-fee")}>
+          Upgrade Plan
         </Button>
       </div>
+
+      {subscriptionStatus?.isTrialActive && subscriptionStatus.trialEndsAt && (
+        <div className="mb-6 rounded-xl border border-warning/30 bg-warning/10 p-4">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="mt-0.5 h-5 w-5 text-warning" />
+            <div>
+              <p className="text-sm font-semibold text-foreground">You are on a 14-day Starter trial</p>
+              <p className="text-xs text-muted-foreground">
+                Trial ends on {new Date(subscriptionStatus.trialEndsAt).toLocaleDateString()} ({subscriptionStatus.trialDaysRemaining || 0} day{(subscriptionStatus.trialDaysRemaining || 0) === 1 ? "" : "s"} remaining).
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {cycleLockedAt && (
         <div className="mb-6 rounded-xl border border-warning/30 bg-warning/10 p-4">
@@ -606,10 +633,10 @@ const AdminDashboard = () => {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Name</TableHead>
-                      <TableHead>Phone</TableHead>
+                      <TableHead className="hidden sm:table-cell">Phone</TableHead>
                       <TableHead>Contributions</TableHead>
-                      <TableHead>Outstanding Loans</TableHead>
-                      <TableHead>Joined</TableHead>
+                      <TableHead className="hidden sm:table-cell">Outstanding Loans</TableHead>
+                      <TableHead className="hidden sm:table-cell">Joined</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
@@ -618,10 +645,10 @@ const AdminDashboard = () => {
                     {members.slice(0, 5).map((m) => (
                     <TableRow key={m.name}>
                       <TableCell className="font-medium">{m.name}</TableCell>
-                      <TableCell className="text-muted-foreground">{m.phone}</TableCell>
+                      <TableCell className="hidden sm:table-cell text-muted-foreground">{m.phone}</TableCell>
                       <TableCell>{m.contributions}</TableCell>
-                      <TableCell>{m.loans}</TableCell>
-                      <TableCell className="text-muted-foreground">{m.joined}</TableCell>
+                      <TableCell className="hidden sm:table-cell">{m.loans}</TableCell>
+                      <TableCell className="hidden sm:table-cell text-muted-foreground">{m.joined}</TableCell>
                       <TableCell>
                         <Badge
                           className={
@@ -787,16 +814,16 @@ const AdminDashboard = () => {
                 <CardTitle className="text-lg">Recent Contributions</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="rounded-md border">
+                <div className="overflow-hidden rounded-md border">
                   <Table>
                     <TableHeader>
                       <TableRow>
                         <TableHead>Member</TableHead>
                         <TableHead>Month</TableHead>
                         <TableHead>Amount</TableHead>
-                        <TableHead>Due Date</TableHead>
+                        <TableHead className="hidden sm:table-cell">Due Date</TableHead>
                         <TableHead>Status</TableHead>
-                        <TableHead>Paid Date</TableHead>
+                        <TableHead className="hidden sm:table-cell">Paid Date</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -819,13 +846,13 @@ const AdminDashboard = () => {
                               <TableCell className="font-medium">{member?.name || "Unknown"}</TableCell>
                               <TableCell>{contrib.month}</TableCell>
                               <TableCell>MWK {contrib.amount.toLocaleString()}</TableCell>
-                              <TableCell>{new Date(contrib.dueDate).toLocaleDateString()}</TableCell>
+                              <TableCell className="hidden sm:table-cell">{new Date(contrib.dueDate).toLocaleDateString()}</TableCell>
                               <TableCell>
                                 <Badge className={statusColor}>
                                   {contrib.status === "paid" ? "Paid" : contrib.status === "overdue" ? "Overdue" : "Unpaid"}
                                 </Badge>
                               </TableCell>
-                              <TableCell>
+                              <TableCell className="hidden sm:table-cell">
                                 {contrib.paidAt ? new Date(contrib.paidAt).toLocaleDateString() : "—"}
                               </TableCell>
                             </TableRow>
@@ -886,10 +913,10 @@ const AdminDashboard = () => {
                     <TableRow>
                       <TableHead>Member</TableHead>
                       <TableHead>Amount</TableHead>
-                      <TableHead>Balance</TableHead>
-                      <TableHead>Total Due</TableHead>
-                      <TableHead>Purpose</TableHead>
-                      <TableHead>Date</TableHead>
+                      <TableHead className="hidden sm:table-cell">Balance</TableHead>
+                      <TableHead className="hidden sm:table-cell">Total Due</TableHead>
+                      <TableHead className="hidden sm:table-cell">Purpose</TableHead>
+                      <TableHead className="hidden sm:table-cell">Date</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
@@ -906,10 +933,10 @@ const AdminDashboard = () => {
                         <TableRow key={l.id}>
                           <TableCell className="font-medium">{l.member}</TableCell>
                           <TableCell>{l.amount}</TableCell>
-                          <TableCell>{l.balance}</TableCell>
-                          <TableCell>{l.totalDue}</TableCell>
-                          <TableCell className="text-muted-foreground">{l.purpose}</TableCell>
-                          <TableCell className="text-muted-foreground">{l.date}</TableCell>
+                          <TableCell className="hidden sm:table-cell">{l.balance}</TableCell>
+                          <TableCell className="hidden sm:table-cell">{l.totalDue}</TableCell>
+                          <TableCell className="hidden sm:table-cell text-muted-foreground">{l.purpose}</TableCell>
+                          <TableCell className="hidden sm:table-cell text-muted-foreground">{l.date}</TableCell>
                           <TableCell>
                             <Badge
                               className={
@@ -979,9 +1006,9 @@ const AdminDashboard = () => {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Member</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Amount Due</TableHead>
-                      <TableHead>Due Date</TableHead>
+                      <TableHead className="hidden sm:table-cell">Type</TableHead>
+                      <TableHead className="hidden sm:table-cell">Amount Due</TableHead>
+                      <TableHead className="hidden sm:table-cell">Due Date</TableHead>
                       <TableHead>Penalty</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
@@ -998,9 +1025,9 @@ const AdminDashboard = () => {
                       missedPayments.slice(0, 5).map((p) => (
                         <TableRow key={p.id}>
                           <TableCell className="font-medium">{p.member}</TableCell>
-                          <TableCell>{p.type}</TableCell>
-                          <TableCell>{p.amount}</TableCell>
-                          <TableCell className="text-muted-foreground">{p.dueDate}</TableCell>
+                          <TableCell className="hidden sm:table-cell">{p.type}</TableCell>
+                          <TableCell className="hidden sm:table-cell">{p.amount}</TableCell>
+                          <TableCell className="hidden sm:table-cell text-muted-foreground">{p.dueDate}</TableCell>
                           <TableCell>
                             <span className="font-medium text-destructive">{p.penalty}</span>
                           </TableCell>

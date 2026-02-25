@@ -167,7 +167,7 @@ const MemberContributionPayment = () => {
       const response = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:4000/api"}${url}`, {
         method: "GET",
         headers: {
-          Authorization: `Bearer ${localStorage.getItem("unityvault:token")}`,
+          Authorization: `Bearer ${sessionStorage.getItem("unityvault:token")}`,
         },
       });
 
@@ -369,7 +369,7 @@ const MemberContributionPayment = () => {
 
         <Card className="border-0 shadow-elevated">
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl">{paymentInfo.title}</CardTitle>
+            <CardTitle className="text-xl sm:text-2xl">{paymentInfo.title}</CardTitle>
             <CardDescription>{paymentInfo.description}</CardDescription>
           </CardHeader>
 

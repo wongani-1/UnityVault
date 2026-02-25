@@ -163,7 +163,7 @@ const ForgotPassword = () => {
               alt="UnityVault"
               className="mx-auto mb-2 h-12 w-12 rounded-lg"
             />
-            <CardTitle className="text-2xl">
+            <CardTitle className="text-xl sm:text-2xl">
               {validatingToken && "Validating Reset Link"}
               {!validatingToken && step === "verify" && "Reset Password"}
               {!validatingToken && step === "reset" && "Create New Password"}

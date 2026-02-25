@@ -83,10 +83,10 @@ const MemberProfile = () => {
         }
       );
 
-      const stored = localStorage.getItem("unityvault:memberProfile");
+      const stored = sessionStorage.getItem("unityvault:memberProfile");
       if (stored) {
         const parsed = JSON.parse(stored) as { groupId?: string; groupName?: string };
-        localStorage.setItem(
+        sessionStorage.setItem(
           "unityvault:memberProfile",
           JSON.stringify({
             ...parsed,
@@ -192,7 +192,7 @@ const MemberProfile = () => {
   const handleExportData = async () => {
     try {
       const response = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:4000/api"}/export/member-data`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("unityvault:token")}` },
+        headers: { Authorization: `Bearer ${sessionStorage.getItem("unityvault:token")}` },
       });
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);

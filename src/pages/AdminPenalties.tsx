@@ -137,9 +137,9 @@ const AdminPenalties = () => {
             <TableHeader>
               <TableRow>
                 <TableHead>Member</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Amount Due</TableHead>
-                <TableHead>Due Date</TableHead>
+                <TableHead className="hidden sm:table-cell">Type</TableHead>
+                <TableHead className="hidden sm:table-cell">Amount Due</TableHead>
+                <TableHead className="hidden sm:table-cell">Due Date</TableHead>
                 <TableHead>Penalty</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
@@ -156,9 +156,9 @@ const AdminPenalties = () => {
                 penalties.map((item) => (
                   <TableRow key={item.id}>
                     <TableCell className="font-medium">{item.member}</TableCell>
-                    <TableCell>{item.type}</TableCell>
-                    <TableCell>{item.amount}</TableCell>
-                    <TableCell className="text-muted-foreground">{item.dueDate}</TableCell>
+                    <TableCell className="hidden sm:table-cell">{item.type}</TableCell>
+                    <TableCell className="hidden sm:table-cell">{item.amount}</TableCell>
+                    <TableCell className="hidden sm:table-cell text-muted-foreground">{item.dueDate}</TableCell>
                     <TableCell className="font-medium text-destructive">{item.penalty}</TableCell>
                     <TableCell>
                       <Badge

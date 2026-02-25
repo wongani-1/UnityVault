@@ -115,7 +115,7 @@ const MemberSeedPayment = () => {
       });
 
       // Clear cached profile to force refresh on dashboard
-      localStorage.removeItem("unityvault:memberProfile");
+      sessionStorage.removeItem("unityvault:memberProfile");
 
       toast.success(
         `Seed deposit payment successful (MWK ${totalSeedDeposit.toLocaleString()})! You can now make contributions and apply for loans.`
@@ -156,7 +156,7 @@ const MemberSeedPayment = () => {
 
         <Card className="border-0 shadow-elevated">
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl">Seed Deposit Payment</CardTitle>
+            <CardTitle className="text-xl sm:text-2xl">Seed Deposit Payment</CardTitle>
             <CardDescription>
               Pay your one-time initial deposit based on shares purchased.
             </CardDescription>

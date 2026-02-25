@@ -12,7 +12,7 @@ const DEFAULT_GET_CACHE_TTL_MS = 15_000;
 const inFlightGetRequests = new Map<string, Promise<unknown>>();
 const getResponseCache = new Map<string, { data: unknown; expiresAt: number }>();
 
-const getToken = () => localStorage.getItem("unityvault:token") || "";
+const getToken = () => sessionStorage.getItem("unityvault:token") || "";
 
 export const apiRequest = async <T>(path: string, options: ApiOptions = {}) => {
   const method = (options.method || "GET").toUpperCase();

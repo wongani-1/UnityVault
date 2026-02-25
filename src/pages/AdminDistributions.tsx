@@ -274,10 +274,10 @@ const AdminDistributions = () => {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Year</TableHead>
-                      <TableHead>Members</TableHead>
+                      <TableHead className="hidden sm:table-cell">Members</TableHead>
                       <TableHead>Total Contributions</TableHead>
-                      <TableHead>Profit Pool</TableHead>
-                      <TableHead>Profit/Member</TableHead>
+                      <TableHead className="hidden sm:table-cell">Profit Pool</TableHead>
+                      <TableHead className="hidden sm:table-cell">Profit/Member</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Actions</TableHead>
                     </TableRow>
@@ -286,12 +286,12 @@ const AdminDistributions = () => {
                     {distributions.map((dist) => (
                       <TableRow key={dist.id}>
                         <TableCell className="font-medium">{dist.year}</TableCell>
-                        <TableCell>{dist.numberOfMembers}</TableCell>
+                        <TableCell className="hidden sm:table-cell">{dist.numberOfMembers}</TableCell>
                         <TableCell>MWK {dist.totalContributions.toLocaleString()}</TableCell>
-                        <TableCell className="text-success">
+                        <TableCell className="hidden sm:table-cell text-success">
                           MWK {dist.totalProfitPool.toLocaleString()}
                         </TableCell>
-                        <TableCell className="text-success">
+                        <TableCell className="hidden sm:table-cell text-success">
                           MWK {dist.profitPerMember.toLocaleString()}
                         </TableCell>
                         <TableCell>
@@ -340,11 +340,11 @@ const AdminDistributions = () => {
                     <TableHead>Member</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Contributions</TableHead>
-                    <TableHead>Expected</TableHead>
-                    <TableHead>Shortfall</TableHead>
+                    <TableHead className="hidden sm:table-cell">Expected</TableHead>
+                    <TableHead className="hidden sm:table-cell">Shortfall</TableHead>
                     <TableHead>Loan Balance</TableHead>
-                    <TableHead>Pending Penalties</TableHead>
-                    <TableHead>Base Share</TableHead>
+                    <TableHead className="hidden sm:table-cell">Pending Penalties</TableHead>
+                    <TableHead className="hidden sm:table-cell">Base Share</TableHead>
                     <TableHead>Total Payout</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -354,11 +354,11 @@ const AdminDistributions = () => {
                       <TableCell className="font-medium">{member.memberName}</TableCell>
                       <TableCell className="capitalize">{member.complianceStatus || "—"}</TableCell>
                       <TableCell>MWK {member.totalContributions.toLocaleString()}</TableCell>
-                      <TableCell>MWK {(member.expectedContribution || 0).toLocaleString()}</TableCell>
-                      <TableCell>MWK {(member.contributionShortfall || 0).toLocaleString()}</TableCell>
+                      <TableCell className="hidden sm:table-cell">MWK {(member.expectedContribution || 0).toLocaleString()}</TableCell>
+                      <TableCell className="hidden sm:table-cell">MWK {(member.contributionShortfall || 0).toLocaleString()}</TableCell>
                       <TableCell>MWK {(member.outstandingLoan || 0).toLocaleString()}</TableCell>
-                      <TableCell>MWK {(member.pendingPenalties || 0).toLocaleString()}</TableCell>
-                      <TableCell className="text-success">
+                      <TableCell className="hidden sm:table-cell">MWK {(member.pendingPenalties || 0).toLocaleString()}</TableCell>
+                      <TableCell className="hidden sm:table-cell text-success">
                         MWK {member.profitShare.toLocaleString()}
                       </TableCell>
                       <TableCell className="font-semibold">

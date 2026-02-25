@@ -320,11 +320,11 @@ const AdminMembers = () => {
             <TableHeader>
               <TableRow>
                 <TableHead>Name</TableHead>
-                <TableHead>Phone</TableHead>
+                <TableHead className="hidden sm:table-cell">Phone</TableHead>
                 <TableHead>Contributions</TableHead>
                 <TableHead>Outstanding Loans</TableHead>
-                <TableHead>Penalties</TableHead>
-                <TableHead>Joined</TableHead>
+                <TableHead className="hidden sm:table-cell">Penalties</TableHead>
+                <TableHead className="hidden sm:table-cell">Joined</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
@@ -333,11 +333,11 @@ const AdminMembers = () => {
               {members.map((member) => (
                 <TableRow key={member.id}>
                   <TableCell className="font-medium">{member.first_name} {member.last_name}</TableCell>
-                  <TableCell className="text-muted-foreground">{member.phone || "-"}</TableCell>
+                  <TableCell className="hidden sm:table-cell text-muted-foreground">{member.phone || "-"}</TableCell>
                   <TableCell>MWK {(member.balance || 0).toLocaleString()}</TableCell>
                   <TableCell>MWK {getOutstandingLoans(member.id).toLocaleString()}</TableCell>
-                  <TableCell>MWK {(member.penaltiesTotal || 0).toLocaleString()}</TableCell>
-                  <TableCell className="text-muted-foreground">
+                  <TableCell className="hidden sm:table-cell">MWK {(member.penaltiesTotal || 0).toLocaleString()}</TableCell>
+                  <TableCell className="hidden sm:table-cell text-muted-foreground">
                     {member.createdAt.slice(0, 10)}
                   </TableCell>
                   <TableCell>

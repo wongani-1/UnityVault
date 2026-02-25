@@ -53,7 +53,7 @@ const MemberRegistrationDetails = () => {
     try {
       // Get group ID from URL params or localStorage
       const urlParams = new URLSearchParams(window.location.search);
-      const groupId = urlParams.get("groupId") || localStorage.getItem("unityvault:pendingGroupId");
+      const groupId = urlParams.get("groupId") || sessionStorage.getItem("unityvault:pendingGroupId");
 
       if (!groupId) {
         toast.error("Group information not found. Please use the registration link provided.");
@@ -87,10 +87,10 @@ const MemberRegistrationDetails = () => {
       );
 
       if (auth.token) {
-        localStorage.setItem("unityvault:token", auth.token);
+        sessionStorage.setItem("unityvault:token", auth.token);
       }
-      localStorage.setItem("unityvault:role", "member");
-      localStorage.setItem(
+      sessionStorage.setItem("unityvault:role", "member");
+      sessionStorage.setItem(
         "unityvault:memberProfile",
         JSON.stringify({
           firstName: form.first_name,
@@ -100,7 +100,7 @@ const MemberRegistrationDetails = () => {
       );
       
       // Clear pending group ID
-      localStorage.removeItem("unityvault:pendingGroupId");
+      sessionStorage.removeItem("unityvault:pendingGroupId");
 
       toast.success("Registration successful. Buy your shares to continue setup.");
       navigate("/member/share-purchase?shares=1&registration=1");
@@ -119,7 +119,7 @@ const MemberRegistrationDetails = () => {
       <div className="relative w-full max-w-lg">
         <Card className="border-0 shadow-elevated">
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl">Complete Your Registration</CardTitle>
+            <CardTitle className="text-xl sm:text-2xl">Complete Your Registration</CardTitle>
             <CardDescription>
               Provide your personal details to complete your member registration.
             </CardDescription>

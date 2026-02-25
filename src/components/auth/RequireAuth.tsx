@@ -9,8 +9,8 @@ type RequireAuthProps = {
 
 const RequireAuth = ({ children, role }: RequireAuthProps) => {
   const location = useLocation();
-  const token = localStorage.getItem("unityvault:token");
-  const storedRole = localStorage.getItem("unityvault:role");
+  const token = sessionStorage.getItem("unityvault:token");
+  const storedRole = sessionStorage.getItem("unityvault:role");
 
   if (!token) {
     return <Navigate to="/login" state={{ from: location }} replace />;

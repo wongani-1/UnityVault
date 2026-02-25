@@ -15,6 +15,14 @@ const removeMissingColumn = (payload: Record<string, unknown>, column: string) =
   return false;
 };
 
+const isMultipleRowsError = (code: string | undefined, message: string | undefined) =>
+  code === "PGRST116" || /multiple|more than 1 row/i.test(message || "");
+
+const toFilterValue = (value: string) => {
+  const escaped = value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+  return `"${escaped}"`;
+};
+
 export const adminRepository: AdminRepository = {
   async create(admin) {
     const supabase = requireSupabase();
@@ -50,24 +58,78 @@ export const adminRepository: AdminRepository = {
   },
   async findByGroupAndIdentifier(groupId, identifier) {
     const supabase = requireSupabase();
+    const idValue = toFilterValue(identifier);
+    const filter = `email.eq.${idValue},username.eq.${idValue}`;
     const { data, error } = await supabase
       .from("admins")
       .select("*")
       .eq("group_id", groupId)
-      .or(`email.eq.${identifier},username.eq.${identifier}`)
+      .or(filter)
       .maybeSingle();
-    if (error) throw new Error(error.message);
-    return data ? fromAdminRow(data) : undefined;
+
+    if (!error) {
+      return data ? fromAdminRow(data) : undefined;
+    }
+
+    if (!isMultipleRowsError(error.code, error.message)) {
+      throw new Error(error.message);
+    }
+
+    const { data: manyRows, error: manyError } = await supabase
+      .from("admins")
+      .select("*")
+      .eq("group_id", groupId)
+      .or(filter)
+      .order("created_at", { ascending: false })
+      .limit(20);
+
+    if (manyError) throw new Error(manyError.message);
+
+    const rows = manyRows || [];
+    if (rows.length === 0) return undefined;
+
+    const exactMatch = rows.find(
+      (row) => row.username === identifier || row.email === identifier
+    );
+
+    return exactMatch ? fromAdminRow(exactMatch) : fromAdminRow(rows[0]);
   },
   async findByIdentifier(identifier) {
     const supabase = requireSupabase();
+    const idValue = toFilterValue(identifier);
+    const filter = `email.eq.${idValue},username.eq.${idValue},phone.eq.${idValue}`;
     const { data, error } = await supabase
       .from("admins")
       .select("*")
-      .or(`email.eq.${identifier},username.eq.${identifier},phone.eq.${identifier}`)
+      .or(filter)
       .maybeSingle();
-    if (error) throw new Error(error.message);
-    return data ? fromAdminRow(data) : undefined;
+
+    if (!error) {
+      return data ? fromAdminRow(data) : undefined;
+    }
+
+    if (!isMultipleRowsError(error.code, error.message)) {
+      throw new Error(error.message);
+    }
+
+    const { data: manyRows, error: manyError } = await supabase
+      .from("admins")
+      .select("*")
+      .or(filter)
+      .order("created_at", { ascending: false })
+      .limit(20);
+
+    if (manyError) throw new Error(manyError.message);
+
+    const rows = manyRows || [];
+    if (rows.length === 0) return undefined;
+
+    const exactMatch = rows.find(
+      (row) =>
+        row.username === identifier || row.email === identifier || row.phone === identifier
+    );
+
+    return exactMatch ? fromAdminRow(exactMatch) : fromAdminRow(rows[0]);
   },
   async listByGroup(groupId) {
     const supabase = requireSupabase();

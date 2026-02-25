@@ -41,15 +41,15 @@ const Login = () => {
       );
 
       if (auth.token) {
-        localStorage.setItem("unityvault:token", auth.token);
+        sessionStorage.setItem("unityvault:token", auth.token);
       }
-      localStorage.setItem("unityvault:role", "member");
+      sessionStorage.setItem("unityvault:role", "member");
 
       const profile = await apiRequest<{ id: string; first_name: string; last_name: string; groupId: string }>(
         "/members/me"
       );
       const group = await apiRequest<{ name: string }>("/groups/me");
-      localStorage.setItem(
+      sessionStorage.setItem(
         "unityvault:memberProfile",
         JSON.stringify({
           fullName: `${profile.first_name} ${profile.last_name}`,
@@ -103,9 +103,9 @@ const Login = () => {
       );
 
       if (auth.token) {
-        localStorage.setItem("unityvault:token", auth.token);
+        sessionStorage.setItem("unityvault:token", auth.token);
       }
-      localStorage.setItem("unityvault:role", "group_admin");
+      sessionStorage.setItem("unityvault:role", "group_admin");
 
       const group = await apiRequest<{ id: string; name: string }>(
         `/groups/${auth.user.groupId}`
@@ -113,7 +113,7 @@ const Login = () => {
       const adminProfile = await apiRequest<{ first_name?: string; last_name?: string; email: string; phone?: string; username: string }>(
         "/admins/me"
       );
-      localStorage.setItem(
+      sessionStorage.setItem(
         "unityvault:adminGroup",
         JSON.stringify({
           groupId: group.id,
@@ -155,7 +155,7 @@ const Login = () => {
               alt="UnityVault"
               className="mx-auto mb-2 h-12 w-12 rounded-lg"
             />
-            <CardTitle className="text-2xl">Welcome...</CardTitle>
+            <CardTitle className="text-xl sm:text-2xl">Welcome...</CardTitle>
             <CardDescription>Sign in to your UnityVault account</CardDescription>
           </CardHeader>
           <CardContent>

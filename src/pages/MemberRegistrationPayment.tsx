@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -45,6 +45,12 @@ const subscriptionPlans: Array<{
   },
 ];
 
+const planRank: Record<SubscriptionPlanId, number> = {
+  starter: 1,
+  professional: 2,
+  enterprise: 3,
+};
+
 const MemberRegistrationPayment = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -54,6 +60,7 @@ const MemberRegistrationPayment = () => {
   const [formError, setFormError] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [selectedPlanId, setSelectedPlanId] = useState<SubscriptionPlanId>("professional");
+  const [currentPlanId, setCurrentPlanId] = useState<SubscriptionPlanId | null>(null);
   const [form, setForm] = useState({
     mobileNumber: "",
     payerName: "",
@@ -74,6 +81,12 @@ const MemberRegistrationPayment = () => {
     [selectedPlanId]
   );
 
+  const selectedPlanRank = planRank[selectedPlanId];
+  const currentPlanRank = currentPlanId ? planRank[currentPlanId] : 0;
+  const isUpgradeSelection = Boolean(currentPlanId && selectedPlanRank > currentPlanRank);
+  const isDowngradeSelection = Boolean(currentPlanId && selectedPlanRank < currentPlanRank);
+  const isSamePlanSelection = Boolean(currentPlanId && selectedPlanRank === currentPlanRank);
+
   const paymentAmount = isAdminSubscription ? selectedPlan.price : 5000;
   const paymentTitle = isAdminSubscription ? "UnityVault Subscription" : "Registration Fee";
   const paymentDescription = isAdminSubscription 
@@ -84,6 +97,34 @@ const MemberRegistrationPayment = () => {
       ? "Custom pricing and onboarding"
       : `Monthly subscription fee (renews every 30 days)`
     : "Member registration fee (one-time, non-refundable)";
+
+  useEffect(() => {
+    if (!isAdminSubscription) return;
+
+    void (async () => {
+      try {
+        const status = await apiRequest<{
+          currentPlanId?: SubscriptionPlanId;
+          availableUpgradePlanIds?: SubscriptionPlanId[];
+        }>("/admins/me/subscription-status");
+
+        const current = status.currentPlanId || "starter";
+        setCurrentPlanId(current);
+
+        const upgrades = status.availableUpgradePlanIds || [];
+        if (upgrades.length > 0) {
+          const preferred = upgrades.includes("professional")
+            ? "professional"
+            : upgrades[0];
+          setSelectedPlanId(preferred);
+        } else {
+          setSelectedPlanId(current);
+        }
+      } catch {
+        setCurrentPlanId("starter");
+      }
+    })();
+  }, [isAdminSubscription]);
 
   const updateField = (field: keyof typeof form, value: string) =>
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -126,8 +167,8 @@ const MemberRegistrationPayment = () => {
     setIsProcessing(true);
 
     try {
-      if (isAdminSubscription && selectedPlan.price === null) {
-        toast.info("Enterprise uses custom pricing. Please contact support for setup.");
+      if (isAdminSubscription && isDowngradeSelection) {
+        setFormError("Downgrade is not allowed. Please choose a higher plan.");
         setIsProcessing(false);
         return;
       }
@@ -137,19 +178,28 @@ const MemberRegistrationPayment = () => {
 
       if (isAdminSubscription) {
         // Admin subscription payment
-        await apiRequest("/admins/me/subscription-payment", {
+        const result = await apiRequest<{ message?: string }>("/admins/me/subscription-payment", {
           method: "POST",
           body: {
             planId: selectedPlan.id,
           },
         });
 
-        toast.success(`${selectedPlan.name} subscription activated successfully!`);
+        if (selectedPlan.id === "enterprise") {
+          toast.success(
+            result.message ||
+              "Enterprise upgrade request submitted. Our team will contact you for activation."
+          );
+        } else if (isUpgradeSelection) {
+          toast.success(`Successfully upgraded to ${selectedPlan.name}!`);
+        } else {
+          toast.success(`${selectedPlan.name} subscription renewed successfully!`);
+        }
         navigate("/admin/members");
       } else {
         // Member registration payment
-        const token = localStorage.getItem("unityvault:token");
-        const role = localStorage.getItem("unityvault:role");
+        const token = sessionStorage.getItem("unityvault:token");
+        const role = sessionStorage.getItem("unityvault:role");
 
         if (token && role === "member") {
           // For logged-in member, record registration fee payment
@@ -162,7 +212,7 @@ const MemberRegistrationPayment = () => {
         } else {
           // For new member activation flow, continue to registration details
           const urlParams = new URLSearchParams(window.location.search);
-          const groupId = urlParams.get("groupId") || localStorage.getItem("unityvault:pendingGroupId");
+          const groupId = urlParams.get("groupId") || sessionStorage.getItem("unityvault:pendingGroupId");
 
           toast.success("Payment successful!");
           
@@ -197,7 +247,7 @@ const MemberRegistrationPayment = () => {
 
         <Card className="border-0 shadow-elevated">
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl">{paymentTitle}</CardTitle>
+            <CardTitle className="text-xl sm:text-2xl">{paymentTitle}</CardTitle>
             <CardDescription>{paymentDescription}</CardDescription>
           </CardHeader>
 
@@ -205,14 +255,28 @@ const MemberRegistrationPayment = () => {
               {isAdminSubscription && (
                 <div className="space-y-3">
                   <h3 className="text-sm font-semibold text-foreground">Select subscription plan</h3>
+                  {currentPlanId && (
+                    <p className="text-xs text-muted-foreground">
+                      Current plan: {subscriptionPlans.find((plan) => plan.id === currentPlanId)?.name || "Starter"}
+                    </p>
+                  )}
                   <div className="grid gap-3">
                     {subscriptionPlans.map((plan) => {
                       const isSelected = selectedPlanId === plan.id;
+                      const isDowngrade = currentPlanId
+                        ? planRank[plan.id] < planRank[currentPlanId]
+                        : false;
+                      const isCurrent = currentPlanId ? plan.id === currentPlanId : false;
                       return (
                         <button
                           key={plan.id}
                           type="button"
-                          onClick={() => setSelectedPlanId(plan.id)}
+                          onClick={() => {
+                            if (!isDowngrade) {
+                              setSelectedPlanId(plan.id);
+                            }
+                          }}
+                          disabled={isDowngrade}
                           className={`rounded-lg border p-4 text-left transition-all ${
                             isSelected ? "border-primary ring-2 ring-primary/30" : "border-border"
                           }`}
@@ -223,6 +287,12 @@ const MemberRegistrationPayment = () => {
                               <p className="text-xs text-muted-foreground">{plan.subtitle}</p>
                               {plan.popularLabel && (
                                 <p className="mt-1 text-xs font-medium text-primary">{plan.popularLabel}</p>
+                              )}
+                              {isCurrent && (
+                                <p className="mt-1 text-xs font-medium text-info">Current Plan</p>
+                              )}
+                              {isDowngrade && (
+                                <p className="mt-1 text-xs font-medium text-muted-foreground">Downgrade not allowed</p>
                               )}
                             </div>
                             <div className="text-right">
@@ -423,7 +493,11 @@ const MemberRegistrationPayment = () => {
                 {isProcessing
                   ? "Processing Payment..."
                   : paymentAmount === null
-                  ? "Contact Sales for Enterprise"
+                  ? "Request Enterprise Upgrade"
+                  : isAdminSubscription && isUpgradeSelection
+                  ? `Upgrade to ${selectedPlan.name} (MWK ${paymentAmount.toLocaleString()})`
+                  : isAdminSubscription && isSamePlanSelection
+                  ? `Renew ${selectedPlan.name} (MWK ${paymentAmount.toLocaleString()})`
                   : `Pay MWK ${paymentAmount.toLocaleString()}`}
               </Button>
               <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
