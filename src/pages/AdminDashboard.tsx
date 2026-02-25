@@ -1,4 +1,4 @@
-﻿import { useMemo, useState, useEffect } from "react";
+﻿import { useMemo, useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAdminRole } from "@/hooks/use-admin-role";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
@@ -217,7 +217,7 @@ const AdminDashboard = () => {
     }));
   }, [generateDialogOpen, expectedNextContributionMonth]);
 
-  const loadDashboardData = async () => {
+  const loadDashboardData = useCallback(async () => {
     try {
       const subscription = await apiRequest<SubscriptionStatusData>("/admins/me/subscription-status");
       setSubscriptionStatus(subscription);
@@ -399,13 +399,13 @@ const AdminDashboard = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [navigate]);
 
   useEffect(() => {
     if (isAdmin) {
       loadDashboardData();
     }
-  }, [isAdmin]);
+  }, [isAdmin, loadDashboardData]);
 
   // Update contribution form when group settings are loaded
   useEffect(() => {
@@ -614,11 +614,6 @@ const AdminDashboard = () => {
             <CardHeader className="flex flex-wrap items-center justify-between gap-3">
               <CardTitle className="text-lg">Member Management</CardTitle>
               <div className="flex flex-wrap gap-2">
-                <Button variant="outline" size="sm" onClick={handleCopyInvite}>
-                  <LinkIcon className="mr-2 h-4 w-4" />
-                  <span className="hidden sm:inline">Invite Link</span>
-                  <span className="sm:hidden">Invite</span>
-                </Button>
                 <Button variant="hero" size="sm" onClick={() => navigate("/admin/members")}>
                   <UserPlus className="mr-2 h-4 w-4" />
                   <span className="hidden sm:inline">Add Member</span>
