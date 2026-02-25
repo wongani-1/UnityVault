@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { Users, UserPlus, TrendingUp, BarChart3 } from "lucide-react";
 
-const STEP_DELAYS = ["delay-0", "delay-[120ms]", "delay-[240ms]", "delay-[360ms]"] as const;
+const STEP_DELAYS = ["delay-0", "delay-100", "delay-200", "delay-300"] as const;
 
 const steps = [
   {

@@ -603,14 +603,16 @@ const AdminDashboard = () => {
       </div>
 
       <Tabs defaultValue="members" className="space-y-6">
-        <TabsList className="flex-wrap">
-          <TabsTrigger value="members">Members</TabsTrigger>
-          <TabsTrigger value="contributions">Contributions</TabsTrigger>
-          <TabsTrigger value="loans">Loan Requests</TabsTrigger>
-          <TabsTrigger value="penalties">Penalties</TabsTrigger>
-          <TabsTrigger value="reports">Reports</TabsTrigger>
-          <TabsTrigger value="settings">Rules & Settings</TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto -mx-1 px-1">
+          <TabsList className="inline-flex w-auto min-w-full sm:w-full">
+            <TabsTrigger value="members">Members</TabsTrigger>
+            <TabsTrigger value="contributions">Contributions</TabsTrigger>
+            <TabsTrigger value="loans">Loans</TabsTrigger>
+            <TabsTrigger value="penalties">Penalties</TabsTrigger>
+            <TabsTrigger value="reports">Reports</TabsTrigger>
+            <TabsTrigger value="settings">Settings</TabsTrigger>
+          </TabsList>
+        </div>
 
         {/* Members Tab */}
         <TabsContent value="members">
@@ -628,6 +630,7 @@ const AdminDashboard = () => {
             <CardContent>
               {loading && <p className="text-sm text-muted-foreground">Loading members...</p>}
               {!loading && (
+                <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -674,6 +677,7 @@ const AdminDashboard = () => {
                   ))}
                   </TableBody>
                 </Table>
+                </div>
               )}
             </CardContent>
           </Card>
@@ -907,6 +911,7 @@ const AdminDashboard = () => {
             <CardContent>
               {loading && <p className="text-sm text-muted-foreground">Loading loans...</p>}
               {!loading && (
+                <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -983,6 +988,7 @@ const AdminDashboard = () => {
                     )))}
                   </TableBody>
                 </Table>
+                </div>
               )}
             </CardContent>
           </Card>
@@ -1001,6 +1007,7 @@ const AdminDashboard = () => {
             <CardContent>
               {loading && <p className="text-sm text-muted-foreground">Loading penalties...</p>}
               {!loading && (
+                <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -1056,6 +1063,7 @@ const AdminDashboard = () => {
                     )}
                   </TableBody>
                 </Table>
+                </div>
               )}
             </CardContent>
           </Card>

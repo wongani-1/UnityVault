@@ -598,6 +598,7 @@ const MemberDashboard = () => {
             <CardTitle className="text-lg">Contribution History</CardTitle>
           </CardHeader>
           <CardContent>
+            <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -639,6 +640,7 @@ const MemberDashboard = () => {
                 )}
               </TableBody>
             </Table>
+            </div>
           </CardContent>
         </Card>
 
@@ -690,6 +692,7 @@ const MemberDashboard = () => {
           <CardTitle className="text-lg">Loan History</CardTitle>
         </CardHeader>
         <CardContent>
+          <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -743,6 +746,7 @@ const MemberDashboard = () => {
               )}
             </TableBody>
           </Table>
+          </div>
         </CardContent>
       </Card>
     </DashboardLayout>
