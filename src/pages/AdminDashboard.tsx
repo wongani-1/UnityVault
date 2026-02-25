@@ -617,7 +617,7 @@ const AdminDashboard = () => {
         {/* Members Tab */}
         <TabsContent value="members">
           <Card className="border-0 shadow-card">
-            <CardHeader className="flex flex-wrap items-center justify-between gap-3">
+            <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 space-y-0">
               <CardTitle className="text-lg">Member Management</CardTitle>
               <div className="flex flex-wrap gap-2">
                 <Button variant="hero" size="sm" onClick={() => navigate("/admin/members")}>
