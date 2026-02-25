@@ -151,14 +151,13 @@ export const exportReport = asyncHandler(async (req: Request, res: Response) => 
     };
     reportData.items = items;
   } else if (type === "loan-portfolio") {
-    // Active loans and repayment status
+    // All loans and repayment status
     const members = await container.memberService.listByGroup(groupId);
     const loans = await container.loanService.listByGroup(groupId);
 
-    const activeLoans = loans.filter(l => l.status === "active");
     const memberMap = new Map(members.map(m => [m.id, m]));
 
-    const items = activeLoans.map(loan => {
+    const items = loans.map(loan => {
       const member = memberMap.get(loan.memberId);
       const paidInstallments = loan.installments.filter(i => i.status === "paid").length;
       const totalInstallments = loan.installments.length;
@@ -175,11 +174,19 @@ export const exportReport = asyncHandler(async (req: Request, res: Response) => 
       };
     });
 
+    const activeLoans = loans.filter(l => l.status === "active");
+    const completedLoans = loans.filter(l => l.status === "completed");
+    const pendingLoans = loans.filter(l => l.status === "pending");
+
     reportData.summary = {
+      totalLoans: loans.length,
       activeLoans: activeLoans.length,
-      totalDisbursed: activeLoans.reduce((sum, l) => sum + l.principal, 0),
+      completedLoans: completedLoans.length,
+      pendingLoans: pendingLoans.length,
+      totalDisbursed: loans.filter(l => ["active", "completed"].includes(l.status)).reduce((sum, l) => sum + l.principal, 0),
       totalOutstanding: activeLoans.reduce((sum, l) => sum + l.balance, 0),
       totalExpectedInterest: activeLoans.reduce((sum, l) => sum + l.totalInterest, 0),
+      totalRepaid: completedLoans.reduce((sum, l) => sum + l.totalDue, 0),
     };
     reportData.items = items;
   }

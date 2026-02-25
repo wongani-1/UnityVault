@@ -106,7 +106,7 @@ export const generateReportPDF = async (
           "expectedamount", "totaldisbursed", "totaloutstanding", 
           "totalexpectedinterest", "totalunpaidpenalties", "totalloansdisbursed",
           "totalloansoutstanding", "yearlycontributions", "yearlyloans",
-          "yearlypenalties", "netgrowth"
+          "yearlypenalties", "netgrowth", "totalrepaid"
         ];
         
         if (currencyFields.includes(key.toLowerCase().replace(/\s+/g, ""))) {
@@ -228,13 +228,14 @@ export const generateReportPDF = async (
           doc.rect(margin, yPosition, pageWidth - margin * 2, 8, "F");
           doc.setTextColor(0, 0, 0);
           doc.setFont("helvetica", "bold");
-          doc.setFontSize(8.5);
+          doc.setFontSize(8);
           doc.text("#", margin + 2, yPosition + 5.5);
           doc.text("Member Name", margin + 10, yPosition + 5.5);
-          doc.text("Principal", margin + 60, yPosition + 5.5);
-          doc.text("Balance", margin + 95, yPosition + 5.5);
-          doc.text("Rate", margin + 128, yPosition + 5.5);
-          doc.text("Installments", margin + 143, yPosition + 5.5);
+          doc.text("Principal", margin + 55, yPosition + 5.5);
+          doc.text("Balance", margin + 85, yPosition + 5.5);
+          doc.text("Rate", margin + 115, yPosition + 5.5);
+          doc.text("Paid", margin + 130, yPosition + 5.5);
+          doc.text("Status", margin + 152, yPosition + 5.5);
           yPosition += 10;
           doc.setFont("helvetica", "normal");
         };
@@ -253,15 +254,28 @@ export const generateReportPDF = async (
             doc.rect(margin, yPosition - 1, pageWidth - margin * 2, 7, "F");
           }
 
+          doc.setFontSize(8);
           doc.setTextColor(0, 0, 0);
-          doc.setFontSize(8.5);
           doc.text(String(index + 1), margin + 2, yPosition + 4);
           doc.text(item.memberName, margin + 10, yPosition + 4);
-          doc.text(`MWK ${item.principal.toLocaleString()}`, margin + 60, yPosition + 4);
-          doc.text(`MWK ${item.balance.toLocaleString()}`, margin + 95, yPosition + 4);
+          doc.text(`MWK ${item.principal.toLocaleString()}`, margin + 55, yPosition + 4);
+          doc.text(`MWK ${item.balance.toLocaleString()}`, margin + 85, yPosition + 4);
           doc.setTextColor(80, 80, 80);
-          doc.text(item.interestRate || "N/A", margin + 128, yPosition + 4);
-          doc.text(item.installmentsPaid, margin + 143, yPosition + 4);
+          doc.text(item.interestRate || "N/A", margin + 115, yPosition + 4);
+          doc.text(item.installmentsPaid, margin + 130, yPosition + 4);
+          
+          // Color-code loan status
+          if (item.status === "active") {
+            doc.setTextColor(0, 100, 200);
+          } else if (item.status === "completed") {
+            doc.setTextColor(0, 150, 0);
+          } else if (item.status === "pending") {
+            doc.setTextColor(200, 150, 0);
+          } else {
+            doc.setTextColor(200, 0, 0);
+          }
+          const statusLabel = (item.status || "N/A").charAt(0).toUpperCase() + (item.status || "n/a").slice(1);
+          doc.text(statusLabel, margin + 152, yPosition + 4);
           
           yPosition += 7;
         });
@@ -274,11 +288,11 @@ export const generateReportPDF = async (
         doc.rect(margin, yPosition - 1, pageWidth - margin * 2, 8, "F");
         doc.setFont("helvetica", "bold");
         doc.setTextColor(0, 0, 0);
-        doc.setFontSize(8.5);
+        doc.setFontSize(8);
         doc.text("TOTAL", margin + 10, yPosition + 5);
-        doc.text(`MWK ${totalPrincipal.toLocaleString()}`, margin + 60, yPosition + 5);
-        doc.text(`MWK ${totalBalance.toLocaleString()}`, margin + 95, yPosition + 5);
-        doc.text(`${reportData.items.length} loans`, margin + 143, yPosition + 5);
+        doc.text(`MWK ${totalPrincipal.toLocaleString()}`, margin + 55, yPosition + 5);
+        doc.text(`MWK ${totalBalance.toLocaleString()}`, margin + 85, yPosition + 5);
+        doc.text(`${reportData.items.length} loans`, margin + 130, yPosition + 5);
         doc.setFont("helvetica", "normal");
         yPosition += 10;
       }
