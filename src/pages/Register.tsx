@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, Users, User, Mail, Phone, Lock, Eye, EyeOff } from "lucide-react";
+import { ArrowLeft, Users, User, Mail, Phone, Lock, Eye, EyeOff, Loader2 } from "lucide-react";
 import { apiRequest } from "../lib/api";
 import { toast } from "@/components/ui/sonner";
 
@@ -21,6 +21,7 @@ const Register = () => {
   const [formError, setFormError] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [confirmError, setConfirmError] = useState<string | null>(null);
+  const [isCreatingGroup, setIsCreatingGroup] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const navigate = useNavigate();
@@ -32,6 +33,8 @@ const Register = () => {
     /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/.test(value);
 
   const handleCreateGroup = async () => {
+    if (isCreatingGroup) return;
+
     const values = Object.values(form).map((value) => value.trim());
     const hasEmpty = values.some((value) => value.length === 0);
     const passwordStrong = isStrongPassword(form.adminPassword);
@@ -48,6 +51,8 @@ const Register = () => {
     if (hasEmpty || !passwordStrong || !passwordsMatch) {
       return;
     }
+
+    setIsCreatingGroup(true);
 
     try {
       const rawRules = sessionStorage.getItem("unityvault:groupRules");
@@ -132,6 +137,8 @@ const Register = () => {
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to create group";
       toast.error(message);
+    } finally {
+      setIsCreatingGroup(false);
     }
   };
 
@@ -305,8 +312,21 @@ const Register = () => {
               <p className="text-center text-sm text-destructive">{formError}</p>
             )}
 
-            <Button variant="hero" className="w-full" size="lg" onClick={handleCreateGroup}>
-              Create Group & Admin Account
+            <Button
+              variant="hero"
+              className="w-full"
+              size="lg"
+              onClick={handleCreateGroup}
+              disabled={isCreatingGroup}
+            >
+              {isCreatingGroup ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  creating group...
+                </>
+              ) : (
+                "Create Group & Admin Account"
+              )}
             </Button>
 
             <p className="text-center text-sm text-muted-foreground">
