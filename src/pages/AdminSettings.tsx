@@ -139,8 +139,8 @@ const AdminSettings = () => {
   const loadSessions = async () => {
     setLoadingSessions(true);
     try {
-      const data = await apiRequest<Session[]>("/sessions");
-      setSessions(data);
+      const data = await apiRequest<{ items: Session[] } | Session[]>("/sessions");
+      setSessions(Array.isArray(data) ? data : data.items ?? []);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to load sessions";
       toast.error(message);
