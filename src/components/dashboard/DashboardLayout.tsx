@@ -176,7 +176,7 @@ const DashboardLayout = ({
   );
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="flex min-h-screen overflow-x-hidden bg-background">
       {/* Desktop Sidebar */}
       <aside className="sticky top-0 hidden h-screen w-64 flex-shrink-0 border-r bg-card lg:block">
         <div className="flex h-full flex-col overflow-hidden">
@@ -200,7 +200,7 @@ const DashboardLayout = ({
       )}
 
       {/* Main Content */}
-      <div className="flex flex-1 flex-col">
+      <div className="flex min-w-0 flex-1 flex-col overflow-x-hidden">
         {/* Top bar */}
         <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b bg-card/80 px-4 backdrop-blur-md lg:px-6">
           <div className="flex items-center gap-3">

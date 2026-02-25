@@ -570,7 +570,6 @@ const AdminDashboard = () => {
         <SummaryCard
           title="Group Treasury"
           value={groupTreasury}
-          subtitle={treasuryBreakdown}
           tooltip="(Paid Contributions + Paid Penalties) - Loan Principal Disbursed + Loan Repayments (including interest)"
           icon={PiggyBank}
           variant="primary"
