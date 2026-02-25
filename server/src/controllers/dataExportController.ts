@@ -258,7 +258,7 @@ const generateGroupPDF = (
   addSectionHeader(doc, "Members Directory");
   
   const memberHeaders = ["Name", "Username", "Status", "Balance"];
-  const memberRows = members.slice(0, 20).map(m => [
+  const memberRows = members.map(m => [
     m.last_name.substring(0, 25),
     m.username,
     m.status,
@@ -266,11 +266,6 @@ const generateGroupPDF = (
   ]);
 
   drawTable(doc, memberHeaders, memberRows, [120, 100, 80, 100]);
-
-  if (members.length > 20) {
-    doc.moveDown(0.5);
-    doc.fontSize(9).fillColor("#666").text(`Showing first 20 of ${members.length} members`);
-  }
 
   // Administrators
   doc.addPage();

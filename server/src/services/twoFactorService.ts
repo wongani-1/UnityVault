@@ -19,9 +19,13 @@ export class TwoFactorService {
     const secret = generateTOTPSecret();
     const backupCodes = generateBackupCodes(10);
 
+    let userEmail = "user";
+
     if (role === "group_admin") {
       const user = await this.adminRepository.getById(userId);
       if (!user) throw new ApiError("User not found", 404);
+
+      userEmail = user.email || user.username || userId;
 
       await this.adminRepository.update(userId, {
         ...user,
@@ -32,6 +36,8 @@ export class TwoFactorService {
     } else {
       const user = await this.memberRepository.getById(userId);
       if (!user) throw new ApiError("User not found", 404);
+
+      userEmail = user.email || userId;
 
       await this.memberRepository.update(userId, {
         ...user,
@@ -44,7 +50,7 @@ export class TwoFactorService {
     return {
       secret,
       backupCodes,
-      qrCode: generateQRCode(secret, "user@example.com"),
+      qrCode: generateQRCode(secret, userEmail),
     };
   }
 

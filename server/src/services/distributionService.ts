@@ -402,6 +402,18 @@ export class DistributionService {
 
     let totalPayoutAmount = 0;
 
+    // Pre-calculate total to verify group has enough cash
+    for (const memberDist of memberDistributions) {
+      totalPayoutAmount += memberDist.totalPayout;
+    }
+
+    if (totalPayoutAmount > group.cash) {
+      throw new ApiError(
+        `Insufficient group funds. Treasury has MWK ${group.cash.toLocaleString()} but distribution requires MWK ${totalPayoutAmount.toLocaleString()}.`,
+        400
+      );
+    }
+
     // Update member balances (optional - or just record distribution)
     for (const memberDist of memberDistributions) {
       const member = await this.memberRepository.getById(memberDist.memberId);

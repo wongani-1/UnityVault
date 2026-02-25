@@ -117,7 +117,7 @@ export class LoanService {
 
     // 3. Check for unpaid penalties
     const penalties = await this.penaltyRepository.listByMember(params.memberId);
-    const unpaidPenalties = penalties.filter((p) => !p.isPaid);
+    const unpaidPenalties = penalties.filter((p) => p.status !== "paid" && !p.isPaid);
     if (unpaidPenalties.length > 0) {
       isEligible = false;
       reasons.push(`You have ${unpaidPenalties.length} unpaid penalties`);

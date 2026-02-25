@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { toast } from '@/components/ui/sonner';
+import { apiRequest } from '@/lib/api';
 
 interface PushSubscription {
   endpoint: string;
@@ -83,13 +84,9 @@ export const usePushNotifications = () => {
         setSubscription(subData);
 
         // Send subscription to backend
-        await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000/api'}/notifications/subscribe`, {
+        await apiRequest('/notifications/subscribe', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${sessionStorage.getItem('unityvault:token')}`
-          },
-          body: JSON.stringify(subData)
+          body: subData,
         });
 
         toast.success('Successfully subscribed to notifications!');
@@ -111,13 +108,9 @@ export const usePushNotifications = () => {
         await sub.unsubscribe();
         
         // Notify backend
-        await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000/api'}/notifications/unsubscribe`, {
+        await apiRequest('/notifications/unsubscribe', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${sessionStorage.getItem('unityvault:token')}`
-          },
-          body: JSON.stringify({ endpoint: sub.endpoint })
+          body: { endpoint: sub.endpoint },
         });
 
         setSubscription(null);

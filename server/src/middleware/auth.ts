@@ -30,6 +30,9 @@ export const requireAuth = (req: Request, _res: Response, next: NextFunction) =>
   return next();
 };
 
+// Simple in-memory subscription status cache (TTL: 60s)
+const subscriptionCache = new Map<string, { status: { isActive: boolean; subscriptionPaid?: boolean; planId?: string; trialEndsAt?: string }; expiresAt: number }>();
+
 export const requireRole = (roles: Role[]) => {
   return async (req: Request, _res: Response, next: NextFunction) => {
     try {
@@ -45,7 +48,16 @@ export const requireRole = (roles: Role[]) => {
           (method === "POST" && requestPath === "/api/admins/me/subscription-payment"));
 
       if (user.role === "group_admin" && !isSubscriptionExemptRoute) {
-        const subscription = await container.adminService.getSubscriptionStatus(user.userId);
+        // Check cached subscription status first
+        const cached = subscriptionCache.get(user.userId);
+        let subscription: { isActive: boolean; subscriptionPaid?: boolean; planId?: string; trialEndsAt?: string };
+        if (cached && cached.expiresAt > Date.now()) {
+          subscription = cached.status;
+        } else {
+          subscription = await container.adminService.getSubscriptionStatus(user.userId);
+          subscriptionCache.set(user.userId, { status: subscription, expiresAt: Date.now() + 60_000 });
+        }
+
         if (!subscription.isActive) {
           if (!subscription.subscriptionPaid && subscription.planId === "starter" && subscription.trialEndsAt) {
             return next(

@@ -115,6 +115,7 @@ const AdminLoans = () => {
   };
 
   const handleReject = async (loanId: string) => {
+    if (!window.confirm("Are you sure you want to reject this loan? This action cannot be undone.")) return;
     setActionLoading(loanId);
     try {
       await apiRequest(`/loans/${loanId}/reject`, {

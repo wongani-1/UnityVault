@@ -1,5 +1,7 @@
+import crypto from "crypto";
+
 export const createId = (prefix: string) => {
-  const rand = Math.random().toString(36).slice(2, 10);
+  const rand = crypto.randomBytes(6).toString("hex");
   const time = Date.now().toString(36);
   return `${prefix}_${time}_${rand}`;
 };
@@ -9,7 +11,7 @@ export const createGroupId = () => {
   const length = 5;
   let code = "";
   for (let i = 0; i < length; i += 1) {
-    code += alphabet[Math.floor(Math.random() * alphabet.length)];
+    code += alphabet[crypto.randomInt(alphabet.length)];
   }
   return `GB-${code}`;
 };

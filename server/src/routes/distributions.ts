@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { requireAuth } from "../middleware/auth";
+import { requireAuth, requireRole } from "../middleware/auth";
 import * as distributionController from "../controllers/distributionController";
 
 export const distributionRoutes = Router();
@@ -7,14 +7,14 @@ export const distributionRoutes = Router();
 // All distribution routes require authentication
 distributionRoutes.use(requireAuth);
 
-// Calculate distribution for a year
-distributionRoutes.post("/calculate", distributionController.calculateDistribution);
+// Calculate distribution for a year (admin only)
+distributionRoutes.post("/calculate", requireRole(["group_admin"]), distributionController.calculateDistribution);
 
 // Get distribution breakdown per member
 distributionRoutes.get("/breakdown", distributionController.getDistributionBreakdown);
 
 // Execute distribution (admin only)
-distributionRoutes.post("/execute", distributionController.executeDistribution);
+distributionRoutes.post("/execute", requireRole(["group_admin"]), distributionController.executeDistribution);
 
 // List all distributions
 distributionRoutes.get("/", distributionController.listDistributions);

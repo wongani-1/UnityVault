@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { apiRequest } from "../lib/api";
+import { apiRequest, apiDownload } from "../lib/api";
 import { toast } from "@/components/ui/sonner";
 import { Monitor, Smartphone, LogOut, Download, AlertCircle } from "lucide-react";
 
@@ -160,6 +160,7 @@ const AdminSettings = () => {
   };
 
   const handleRevokeAllSessions = async () => {
+    if (!window.confirm("Are you sure you want to log out all other devices?")) return;
     try {
       await apiRequest("/sessions/revoke-all", { method: "POST" });
       toast.success("All other sessions logged out");
@@ -172,13 +173,7 @@ const AdminSettings = () => {
 
   const handleExportGroupData = async () => {
     try {
-      const response = await fetch(
-        `${import.meta.env.VITE_API_URL || "http://localhost:4000/api"}/export/group-data`,
-        {
-          headers: { Authorization: `Bearer ${sessionStorage.getItem("unityvault:token")}` },
-        }
-      );
-      const blob = await response.blob();
+      const blob = await apiDownload("/export/group-data");
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -193,13 +188,7 @@ const AdminSettings = () => {
 
   const handleExportMembers = async () => {
     try {
-      const response = await fetch(
-        `${import.meta.env.VITE_API_URL || "http://localhost:4000/api"}/export/members`,
-        {
-          headers: { Authorization: `Bearer ${sessionStorage.getItem("unityvault:token")}` },
-        }
-      );
-      const blob = await response.blob();
+      const blob = await apiDownload("/export/members");
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;

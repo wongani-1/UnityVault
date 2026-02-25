@@ -15,10 +15,13 @@ import {
   checkRegistrationFeeStatus,
 } from "../controllers/memberController";
 import { requireRole } from "../middleware/auth";
+import { rateLimiter } from "../middleware/rateLimiter";
+
+const registerLimiter = rateLimiter({ windowMs: 60 * 60_000, max: 10 });
 
 export const membersRouter = Router();
 
-membersRouter.post("/register", registerMember);
+membersRouter.post("/register", registerLimiter, registerMember);
 membersRouter.post("/invite", requireRole(["group_admin"]), inviteMember);
 membersRouter.post("/activate/verify", verifyMemberInvite);
 membersRouter.post("/activate/complete", completeMemberInvite);

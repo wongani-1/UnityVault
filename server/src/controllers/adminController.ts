@@ -42,6 +42,10 @@ export const changeAdminPassword = asyncHandler(async (req: Request, res: Respon
     throw new ApiError("Missing required fields", 400);
   }
 
+  if (newPassword.length < 8) {
+    throw new ApiError("Password must be at least 8 characters", 400);
+  }
+
   const result = await container.adminService.changePassword(
     req.user.userId,
     currentPassword,

@@ -18,11 +18,9 @@ export const requestPasswordReset = asyncHandler(async (req: Request, res: Respo
     role,
   });
 
-  // In production, send email with reset link
-  // For now, just return the token (frontend should handle this appropriately)
+  // Token is sent via email — never exposed in the response
   res.json({
-    message: "Password reset email sent",
-    token, // ONLY for development/testing - remove in production
+    message: "If your account exists, a password reset email has been sent.",
   });
 });
 

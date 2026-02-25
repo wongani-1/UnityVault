@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { apiRequest } from "../lib/api";
+import { apiRequest, apiDownload } from "../lib/api";
 import { toast } from "@/components/ui/sonner";
 import { Shield, Download, Key, Copy, Eye, EyeOff } from "lucide-react";
 
@@ -191,10 +191,7 @@ const MemberProfile = () => {
 
   const handleExportData = async () => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:4000/api"}/export/member-data`, {
-        headers: { Authorization: `Bearer ${sessionStorage.getItem("unityvault:token")}` },
-      });
-      const blob = await response.blob();
+      const blob = await apiDownload("/export/member-data");
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;

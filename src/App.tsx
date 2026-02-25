@@ -84,13 +84,13 @@ const App = () => (
             <Route path="/contact" element={<Contact />} />
             <Route path="/help" element={<HelpCenter />} />
             <Route path="/help/:articleId" element={<HelpArticle />} />
-            <Route path="/admin/group-rules" element={<AdminGroupSetup />} />
-            <Route path="/admin/subscription-fee" element={<MemberRegistrationPayment />} />
-            <Route path="/member/registration-fee" element={<MemberRegistrationPayment />} />
-            <Route path="/member/registration-details" element={<MemberRegistrationDetails />} />
-            <Route path="/member/seed-payment" element={<MemberSeedPayment />} />
-            <Route path="/member/share-purchase" element={<MemberSharePurchase />} />
-            <Route path="/member/pay-contribution" element={<MemberContributionPayment />} />
+            <Route path="/admin/group-rules" element={<RequireAuth role="group_admin"><AdminGroupSetup /></RequireAuth>} />
+            <Route path="/admin/subscription-fee" element={<RequireAuth role="group_admin"><MemberRegistrationPayment /></RequireAuth>} />
+            <Route path="/member/registration-fee" element={<RequireAuth role="member"><MemberRegistrationPayment /></RequireAuth>} />
+            <Route path="/member/registration-details" element={<RequireAuth role="member"><MemberRegistrationDetails /></RequireAuth>} />
+            <Route path="/member/seed-payment" element={<RequireAuth role="member"><MemberSeedPayment /></RequireAuth>} />
+            <Route path="/member/share-purchase" element={<RequireAuth role="member"><MemberSharePurchase /></RequireAuth>} />
+            <Route path="/member/pay-contribution" element={<RequireAuth role="member"><MemberContributionPayment /></RequireAuth>} />
             <Route path="/member/activate" element={<MemberActivate />} />
             <Route
               path="/dashboard"

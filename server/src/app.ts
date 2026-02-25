@@ -7,6 +7,7 @@ import session from "express-session";
 import { env } from "./config/env";
 import { apiRouter } from "./routes";
 import { errorHandler, notFoundHandler } from "./middleware/error";
+import { rateLimiter } from "./middleware/rateLimiter";
 
 const app = express();
 
@@ -20,6 +21,9 @@ app.use(
 app.use(morgan("dev"));
 app.use(express.json({ limit: "1mb" }));
 app.use(cookieParser());
+
+// Global rate limiter: 100 requests per minute per IP
+app.use(rateLimiter({ windowMs: 60_000, max: 100 }));
 
 app.use(
   session({

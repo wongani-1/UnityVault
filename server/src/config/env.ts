@@ -23,8 +23,18 @@ const dataStore =
     ? "supabase"
     : "memory");
 
+const isProduction = process.env.NODE_ENV === "production";
+
+if (isProduction && !process.env.JWT_SECRET) {
+  throw new Error("JWT_SECRET environment variable is required in production");
+}
+if (isProduction && !process.env.SESSION_SECRET) {
+  throw new Error("SESSION_SECRET environment variable is required in production");
+}
+
 export const env = {
   port: Number(process.env.PORT || 4000),
+  isProduction,
   jwtSecret: process.env.JWT_SECRET || "dev_jwt_secret",
   sessionSecret: process.env.SESSION_SECRET || "dev_session_secret",
   corsOrigin,

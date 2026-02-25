@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { ArrowLeft, CreditCard, Smartphone, ShieldCheck, Loader2, Download, CheckCircle } from "lucide-react";
-import { apiRequest } from "@/lib/api";
+import { apiRequest, apiDownload } from "@/lib/api";
 import { toast } from "@/components/ui/sonner";
 import {
   Dialog,
@@ -164,18 +164,7 @@ const MemberContributionPayment = () => {
       }
 
       // Download the PDF
-      const response = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:4000/api"}${url}`, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${sessionStorage.getItem("unityvault:token")}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to download receipt");
-      }
-
-      const blob = await response.blob();
+      const blob = await apiDownload(url);
       const downloadUrl = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = downloadUrl;

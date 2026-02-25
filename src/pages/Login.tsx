@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,6 +18,13 @@ const Login = () => {
   const [loading, setLoading] = useState<"member" | "admin" | null>(null);
   const [showMemberPassword, setShowMemberPassword] = useState(false);
   const [showAdminPassword, setShowAdminPassword] = useState(false);
+  const redirectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (redirectTimer.current) clearTimeout(redirectTimer.current);
+    };
+  }, []);
 
   const handleMemberLogin = async () => {
     const hasEmpty = [memberLogin.identifier, memberLogin.password].some(
@@ -65,10 +72,10 @@ const Login = () => {
 
       if (!feeStatus.registrationFeePaid) {
         // Show notification and redirect after 10 seconds
-        toast.warning("Registration fee payment required. Redirecting to payment page in 10 seconds...");
-        setTimeout(() => {
+        toast.warning("Registration fee payment required. Redirecting to payment page...");
+        redirectTimer.current = setTimeout(() => {
           navigate("/member/registration-fee");
-        }, 10000);
+        }, 3000);
       } else {
         navigate("/dashboard");
       }
@@ -173,6 +180,7 @@ const Login = () => {
 
               {/* Member Login — simple credentials, auto-mapped to group */}
               <TabsContent value="member" className="space-y-4">
+                <form onSubmit={(e) => { e.preventDefault(); handleMemberLogin(); }} className="space-y-4">
                 <div className="rounded-lg bg-secondary/50 p-3">
                   <p className="text-xs text-muted-foreground">
                     Sign in with your email or phone number. You'll be automatically directed to your group.
@@ -239,16 +247,17 @@ const Login = () => {
                   variant="hero"
                   className="w-full"
                   size="lg"
-                  onClick={handleMemberLogin}
+                  type="submit"
                   disabled={loading === "member"}
                 >
                   {loading === "member" ? "Signing In..." : "Sign In"}
                 </Button>
-
+                </form>
               </TabsContent>
 
               {/* Admin Login — sign in with email, username, or phone */}
               <TabsContent value="admin" className="space-y-4">
+                <form onSubmit={(e) => { e.preventDefault(); handleAdminLogin(); }} className="space-y-4">
                 <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
                   <p className="flex items-center gap-2 text-xs font-medium text-primary">
                     <Shield className="h-3.5 w-3.5" />
@@ -319,11 +328,12 @@ const Login = () => {
                   variant="hero"
                   className="w-full"
                   size="lg"
-                  onClick={handleAdminLogin}
+                  type="submit"
                   disabled={loading === "admin"}
                 >
                   {loading === "admin" ? "Signing In..." : "Sign In as Admin"}
                 </Button>
+                </form>
               </TabsContent>
             </Tabs>
 

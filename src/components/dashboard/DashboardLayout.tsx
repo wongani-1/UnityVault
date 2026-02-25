@@ -62,7 +62,7 @@ const DashboardLayout = ({
   const navigate = useNavigate();
   const nav = isAdmin ? adminNav : memberNav;
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { count: notificationCount } = useNotificationCount(5000); // Poll every 5 seconds
+  const { count: notificationCount } = useNotificationCount(30000); // Poll every 30 seconds
 
   const storedGroup = useMemo(() => {
     if (isAdmin) {
@@ -99,6 +99,7 @@ const DashboardLayout = ({
     .join("") || "?";
 
   const handleSignOut = () => {
+    if (!window.confirm("Are you sure you want to sign out?")) return;
     sessionStorage.removeItem("unityvault:token");
     sessionStorage.removeItem("unityvault:role");
     sessionStorage.removeItem("unityvault:adminGroup");

@@ -64,6 +64,19 @@ export const apiRequest = async <T>(path: string, options: ApiOptions = {}) => {
       } catch {
         // ignore
       }
+
+      // On 401/403 clear session and redirect to login
+      if (response.status === 401 || response.status === 403) {
+        sessionStorage.removeItem("unityvault:token");
+        sessionStorage.removeItem("unityvault:role");
+        sessionStorage.removeItem("unityvault:adminGroup");
+        sessionStorage.removeItem("unityvault:memberProfile");
+        getResponseCache.clear();
+        if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
+          window.location.href = "/login";
+        }
+      }
+
       throw new Error(message);
     }
 
@@ -92,4 +105,47 @@ export const apiRequest = async <T>(path: string, options: ApiOptions = {}) => {
   }
 
   return executeRequest();
+};
+
+/** Download a file (blob) from the API with proper auth and 401/403 handling. */
+export const apiDownload = async (path: string, options: { method?: string; body?: unknown } = {}): Promise<Blob> => {
+  const method = (options.method || "GET").toUpperCase();
+  const token = getToken();
+  const headers: Record<string, string> = {};
+
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  if (options.body) {
+    headers["Content-Type"] = "application/json";
+  }
+
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE}${path}`, {
+      method,
+      headers,
+      credentials: "include",
+      body: options.body ? JSON.stringify(options.body) : undefined,
+    });
+  } catch {
+    throw new Error("Network error. Please check your connection and try again.");
+  }
+
+  if (!response.ok) {
+    if (response.status === 401 || response.status === 403) {
+      sessionStorage.removeItem("unityvault:token");
+      sessionStorage.removeItem("unityvault:role");
+      sessionStorage.removeItem("unityvault:adminGroup");
+      sessionStorage.removeItem("unityvault:memberProfile");
+      getResponseCache.clear();
+      if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
+        window.location.href = "/login";
+      }
+    }
+    throw new Error("Failed to download file");
+  }
+
+  return response.blob();
 };

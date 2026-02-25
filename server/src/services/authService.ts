@@ -16,10 +16,13 @@ export class AuthService {
     const ok = await verifyPassword(params.password, admin.passwordHash);
     if (!ok) throw new ApiError("Invalid credentials", 401);
 
+    const requires2FA = !!(admin as Record<string, unknown>).twoFactorEnabled;
+
     return {
       userId: admin.id,
       groupId: admin.groupId,
       role: admin.role,
+      requires2FA,
     };
   }
 
@@ -31,10 +34,13 @@ export class AuthService {
     const ok = await verifyPassword(params.password, member.passwordHash);
     if (!ok) throw new ApiError("Invalid credentials", 401);
 
+    const requires2FA = !!(member as Record<string, unknown>).twoFactorEnabled;
+
     return {
       userId: member.id,
       groupId: member.groupId,
       role: "member" as const,
+      requires2FA,
     };
   }
 }

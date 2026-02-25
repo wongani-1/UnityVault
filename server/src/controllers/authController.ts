@@ -16,6 +16,16 @@ export const adminLogin = asyncHandler(async (req: Request, res: Response) => {
     password,
   });
 
+  // If 2FA is enabled, don't issue a full token — return a partial response
+  if (user.requires2FA) {
+    res.json({
+      requires2FA: true,
+      userId: user.userId,
+      message: "2FA verification required",
+    });
+    return;
+  }
+
   if (mode === "session" || mode === "both") {
     req.session.user = user;
   }
@@ -34,6 +44,16 @@ export const memberLogin = asyncHandler(async (req: Request, res: Response) => {
 
   const user = await container.authService.memberLogin({ identifier, password });
 
+  // If 2FA is enabled, don't issue a full token — return a partial response
+  if (user.requires2FA) {
+    res.json({
+      requires2FA: true,
+      userId: user.userId,
+      message: "2FA verification required",
+    });
+    return;
+  }
+
   if (mode === "session" || mode === "both") {
     req.session.user = user;
   }
@@ -45,7 +65,10 @@ export const memberLogin = asyncHandler(async (req: Request, res: Response) => {
 
 export const logout = asyncHandler(async (req: Request, res: Response) => {
   if (!req.session) throw new ApiError("No session", 400);
-  req.session.destroy(() => {
+  req.session.destroy((err) => {
+    if (err) {
+      console.error("Session destroy error:", err);
+    }
     res.json({ status: "ok" });
   });
 });

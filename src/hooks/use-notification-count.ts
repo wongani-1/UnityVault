@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { apiRequest } from "@/lib/api";
 
-export const useNotificationCount = (pollInterval: number = 5000) => {
+export const useNotificationCount = (pollInterval: number = 30000) => {
   const [count, setCount] = useState(0);
   const [loading, setLoading] = useState(true);
 

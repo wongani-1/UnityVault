@@ -20,6 +20,17 @@ export const listPenalties = asyncHandler(async (req: Request, res: Response) =>
 export const payPenalty = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) throw new ApiError("Unauthorized", 401);
   const { id } = req.params;
-  const penalty = await container.penaltyService.payPenalty(id, req.user.userId, req.user.userId);
+  
+  // Admins may pay on behalf of a member — look up the penalty's actual owner  
+  const existing = await container.penaltyService.getById(id);
+  if (!existing) throw new ApiError("Penalty not found", 404);
+
+  // Members can only pay their own; admins can pay for any member in their group
+  const memberId = req.user.role === "group_admin" ? existing.memberId : req.user.userId;
+  if (req.user.role === "member" && existing.memberId !== req.user.userId) {
+    throw new ApiError("Unauthorized to pay this penalty", 403);
+  }
+
+  const penalty = await container.penaltyService.payPenalty(id, memberId, req.user.userId);
   res.json({ penalty });
 });

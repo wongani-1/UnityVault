@@ -1,13 +1,15 @@
 import { Router } from "express";
-import { requireAuth } from "../middleware/auth";
 import {
   requestPasswordReset,
   validateResetToken,
   resetPassword,
 } from "../controllers/passwordResetController";
+import { rateLimiter } from "../middleware/rateLimiter";
+
+const resetLimiter = rateLimiter({ windowMs: 15 * 60_000, max: 5 });
 
 export const passwordResetRouter = Router();
 
-passwordResetRouter.post("/request", requestPasswordReset);
-passwordResetRouter.post("/validate", validateResetToken);
-passwordResetRouter.post("/confirm", resetPassword);
+passwordResetRouter.post("/request", resetLimiter, requestPasswordReset);
+passwordResetRouter.post("/validate", resetLimiter, validateResetToken);
+passwordResetRouter.post("/confirm", resetLimiter, resetPassword);

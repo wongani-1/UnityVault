@@ -182,7 +182,24 @@ export const getPaymentHistory = asyncHandler(async (req: Request, res: Response
 });
 
 export const handlePaymentCallback = asyncHandler(async (req: Request, res: Response) => {
-  // This endpoint will be called by PayChangu when payment status changes
+  // Validate callback authenticity via PayChangu signature header
+  const signature = req.headers["x-paychangu-signature"] as string | undefined;
+  const apiToken = (await import("../config/env")).env.paychangu.apiToken;
+  if (apiToken && signature) {
+    const crypto = await import("crypto");
+    const expectedSig = crypto
+      .createHmac("sha256", apiToken)
+      .update(JSON.stringify(req.body))
+      .digest("hex");
+    if (signature !== expectedSig) {
+      throw new ApiError("Invalid callback signature", 403);
+    }
+  } else if (!apiToken) {
+    // In mock/dev mode without API token, allow callbacks
+  } else {
+    throw new ApiError("Missing callback signature", 403);
+  }
+
   const { tx_ref, status } = req.body;
 
   if (!tx_ref) {
