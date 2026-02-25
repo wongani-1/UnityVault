@@ -166,7 +166,8 @@ const Register = () => {
             </CardDescription>
           </CardHeader>
 
-          <CardContent className="space-y-6">
+          <CardContent>
+            <form onSubmit={(e) => { e.preventDefault(); handleCreateGroup(); }} className="space-y-6">
             {/* Group Name */}
             <div className="space-y-2">
               <Label htmlFor="groupName">Group Name</Label>
@@ -266,8 +267,8 @@ const Register = () => {
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
                   >
-                    {showPassword ? (
                       <EyeOff className="h-4 w-4" />
                     ) : (
                       <Eye className="h-4 w-4" />
@@ -294,8 +295,8 @@ const Register = () => {
                     type="button"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    aria-label={showConfirmPassword ? "Hide password" : "Show password"}
                   >
-                    {showConfirmPassword ? (
                       <EyeOff className="h-4 w-4" />
                     ) : (
                       <Eye className="h-4 w-4" />
@@ -316,7 +317,7 @@ const Register = () => {
               variant="hero"
               className="w-full"
               size="lg"
-              onClick={handleCreateGroup}
+              type="submit"
               disabled={isCreatingGroup}
             >
               {isCreatingGroup ? (
@@ -335,6 +336,7 @@ const Register = () => {
                 Sign in
               </Link>
             </p>
+            </form>
           </CardContent>
         </Card>
       </div>

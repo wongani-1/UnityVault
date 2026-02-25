@@ -256,7 +256,7 @@ const MemberLoans = () => {
             <TableBody>
               {loans.length > 0 ? loans.map((loan) => (
                 <TableRow key={loan.id}>
-                  <TableCell className="font-medium">{loan.id}</TableCell>
+                  <TableCell className="font-medium" title={loan.id}>{loan.id.length > 8 ? `${loan.id.slice(0, 8)}…` : loan.id}</TableCell>
                   <TableCell>{loan.amount}</TableCell>
                   <TableCell>
                     <Badge

@@ -566,7 +566,7 @@ const MemberDashboard = () => {
                   <div key={l.id} className="space-y-2">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm font-medium text-foreground">{l.id}</p>
+                        <p className="text-sm font-medium text-foreground" title={l.id}>{l.id.length > 8 ? `${l.id.slice(0, 8)}…` : l.id}</p>
                         <p className="text-xs text-muted-foreground">
                           {l.amount} borrowed · Due {l.dueDate}
                         </p>
@@ -714,7 +714,7 @@ const MemberDashboard = () => {
               ) : loanHistory.length > 0 ? (
                 loanHistory.map((l) => (
                   <TableRow key={l.id}>
-                    <TableCell className="font-medium">{l.id}</TableCell>
+                    <TableCell className="font-medium" title={l.id}>{l.id.length > 8 ? `${l.id.slice(0, 8)}…` : l.id}</TableCell>
                     <TableCell>{l.amount}</TableCell>
                     <TableCell className="hidden sm:table-cell">{l.balance}</TableCell>
                     <TableCell className="hidden sm:table-cell">

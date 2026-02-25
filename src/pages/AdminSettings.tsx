@@ -82,6 +82,7 @@ const AdminSettings = () => {
     };
 
     load();
+    loadSessions();
     return () => {
       active = false;
     };

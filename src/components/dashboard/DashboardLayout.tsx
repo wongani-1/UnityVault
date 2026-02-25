@@ -1,4 +1,4 @@
-import { ReactNode, useMemo, useState } from "react";
+import { ReactNode, useCallback, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useNotificationCount } from "@/hooks/use-notification-count";
@@ -98,16 +98,18 @@ const DashboardLayout = ({
     .map((part) => part[0]?.toUpperCase())
     .join("") || "?";
 
-  const handleSignOut = () => {
+  const handleSignOut = useCallback(() => {
     if (!window.confirm("Are you sure you want to sign out?")) return;
     sessionStorage.removeItem("unityvault:token");
     sessionStorage.removeItem("unityvault:role");
     sessionStorage.removeItem("unityvault:adminGroup");
     sessionStorage.removeItem("unityvault:memberProfile");
     navigate("/");
-  };
+  }, [navigate]);
 
-  const SidebarContent = () => (
+  const closeMobile = useCallback(() => setMobileOpen(false), []);
+
+  const sidebarContent = useMemo(() => (
     <>
       {/* Logo */}
       <div className="flex h-16 items-center gap-2 border-b px-6">
@@ -135,7 +137,7 @@ const DashboardLayout = ({
             <Link
               key={item.label}
               to={item.href}
-              onClick={() => setMobileOpen(false)}
+              onClick={closeMobile}
               className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
                 isActive
                   ? "bg-primary/10 text-primary"
@@ -174,14 +176,14 @@ const DashboardLayout = ({
         </Button>
       </div>
     </>
-  );
+  ), [nav, location.pathname, resolvedGroupName, displayName, initials, isAdmin, handleSignOut, closeMobile]);
 
   return (
     <div className="flex min-h-screen overflow-x-hidden bg-background">
       {/* Desktop Sidebar */}
       <aside className="sticky top-0 hidden h-screen w-64 flex-shrink-0 border-r bg-card lg:block">
         <div className="flex h-full flex-col overflow-hidden">
-          <SidebarContent />
+          {sidebarContent}
         </div>
       </aside>
 
@@ -194,7 +196,7 @@ const DashboardLayout = ({
           />
           <aside className="relative h-full w-72 bg-card shadow-elevated animate-slide-in-right">
             <div className="flex h-full flex-col overflow-hidden">
-              <SidebarContent />
+              {sidebarContent}
             </div>
           </aside>
         </div>

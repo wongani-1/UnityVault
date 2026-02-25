@@ -229,8 +229,8 @@ const Login = () => {
                       type="button"
                       onClick={() => setShowMemberPassword(!showMemberPassword)}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      aria-label={showMemberPassword ? "Hide password" : "Show password"}
                     >
-                      {showMemberPassword ? (
                         <EyeOff className="h-4 w-4" />
                       ) : (
                         <Eye className="h-4 w-4" />
@@ -310,8 +310,8 @@ const Login = () => {
                       type="button"
                       onClick={() => setShowAdminPassword(!showAdminPassword)}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      aria-label={showAdminPassword ? "Hide password" : "Show password"}
                     >
-                      {showAdminPassword ? (
                         <EyeOff className="h-4 w-4" />
                       ) : (
                         <Eye className="h-4 w-4" />
