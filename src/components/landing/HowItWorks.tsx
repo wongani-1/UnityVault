@@ -1,6 +1,8 @@
 import { useEffect } from "react";
 import { Users, UserPlus, TrendingUp, BarChart3 } from "lucide-react";
 
+const STEP_DELAYS = ["delay-0", "delay-[120ms]", "delay-[240ms]", "delay-[360ms]"] as const;
+
 const steps = [
   {
     icon: Users,
@@ -71,10 +73,9 @@ const HowItWorks = () => {
               <div
                 key={step.step}
                 data-reveal
-                className={`reveal reveal-up relative flex items-start gap-6 lg:gap-12 ${
+                className={`reveal reveal-up relative flex items-start gap-6 lg:gap-12 ${STEP_DELAYS[i]} ${
                   i % 2 === 1 ? "lg:flex-row-reverse lg:text-right" : ""
                 }`}
-                style={{ transitionDelay: `${i * 120}ms` }}
               >
                 {/* Step indicator */}
                 <div className="relative z-10 flex-shrink-0 lg:absolute lg:left-1/2 lg:-translate-x-1/2">

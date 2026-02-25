@@ -206,6 +206,7 @@ const AdminAudit = () => {
     loadMembers();
     loadLedger();
     loadAuditLogs();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleFilterChange = (key: keyof typeof filters, value: string) => {
@@ -298,6 +299,7 @@ const AdminAudit = () => {
                 <Label htmlFor="memberFilter">Member</Label>
                 <select
                   id="memberFilter"
+                  title="Member"
                   className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
                   value={filters.memberId}
                   onChange={(e) => handleFilterChange("memberId", e.target.value)}
@@ -314,6 +316,7 @@ const AdminAudit = () => {
                 <Label htmlFor="typeFilter">Transaction Type</Label>
                 <select
                   id="typeFilter"
+                  title="Transaction Type"
                   className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
                   value={filters.type}
                   onChange={(e) => handleFilterChange("type", e.target.value)}

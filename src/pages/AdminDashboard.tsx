@@ -34,6 +34,7 @@ import {
   RefreshCw,
   Plus,
   PiggyBank,
+  Link as LinkIcon,
 } from "lucide-react";
 import { apiRequest } from "@/lib/api";
 import { toast } from "@/components/ui/sonner";
@@ -427,6 +428,21 @@ const AdminDashboard = () => {
       return {};
     }
   }, []);
+
+  const handleCopyInvite = async () => {
+    const groupId = storedGroup.groupId;
+    if (!groupId) {
+      toast.error("Group ID not found");
+      return;
+    }
+    const link = `${window.location.origin}/member/activate?group=${groupId}`;
+    try {
+      await navigator.clipboard.writeText(link);
+      toast.success("Invite link copied to clipboard");
+    } catch {
+      toast.error("Failed to copy link");
+    }
+  };
 
   const storedRules = useMemo(() => {
     try {
