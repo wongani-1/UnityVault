@@ -584,16 +584,18 @@ const AdminDashboard = () => {
         {/* Members Tab */}
         <TabsContent value="members">
           <Card className="border-0 shadow-card">
-            <CardHeader className="flex flex-row items-center justify-between">
+            <CardHeader className="flex flex-wrap items-center justify-between gap-3">
               <CardTitle className="text-lg">Member Management</CardTitle>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <Button variant="outline" size="sm" onClick={handleCopyInvite}>
                   <LinkIcon className="mr-2 h-4 w-4" />
-                  Invite Link
+                  <span className="hidden sm:inline">Invite Link</span>
+                  <span className="sm:hidden">Invite</span>
                 </Button>
                 <Button variant="hero" size="sm" onClick={() => navigate("/admin/members")}>
                   <UserPlus className="mr-2 h-4 w-4" />
-                  Add Member
+                  <span className="hidden sm:inline">Add Member</span>
+                  <span className="sm:hidden">Add</span>
                 </Button>
               </div>
             </CardHeader>
@@ -655,9 +657,9 @@ const AdminDashboard = () => {
         <TabsContent value="contributions">
           <div className="space-y-6">
             {/* Quick Actions */}
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-4">
               <Card className="border-0 shadow-card">
-                <CardContent className="p-6">
+                <CardContent className="p-4 sm:p-6">
                   <div className="flex items-start gap-4">
                     <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
                       <Calendar className="h-6 w-6 text-primary" />
@@ -1035,7 +1037,7 @@ const AdminDashboard = () => {
 
         {/* Reports Tab */}
         <TabsContent value="reports">
-          <div className="grid gap-6 md:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-2">
             {[
               { title: "Monthly Report", desc: "Current month financial summary" },
               { title: "Yearly Report", desc: "Annual audit report" },
@@ -1043,7 +1045,7 @@ const AdminDashboard = () => {
               { title: "Loan Portfolio", desc: "Active loans & repayment status" },
             ].map((report) => (
               <Card key={report.title} className="border-0 shadow-card">
-                <CardContent className="flex items-center gap-4 p-6">
+                <CardContent className="flex items-center gap-3 p-4 sm:gap-4 sm:p-6">
                   <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-secondary text-primary">
                     <FileText className="h-6 w-6" />
                   </div>
@@ -1051,7 +1053,7 @@ const AdminDashboard = () => {
                     <h3 className="font-semibold text-foreground">{report.title}</h3>
                     <p className="text-sm text-muted-foreground">{report.desc}</p>
                   </div>
-                  <Button variant="outline" size="sm" onClick={() => navigate("/admin/reports")}>
+                  <Button variant="outline" size="sm" className="w-full sm:w-auto" onClick={() => navigate("/admin/reports")}>
                     <Download className="mr-2 h-4 w-4" />
                     Export PDF
                   </Button>
@@ -1063,7 +1065,7 @@ const AdminDashboard = () => {
 
         {/* Settings Tab */}
         <TabsContent value="settings">
-          <div className="grid gap-6 md:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-2">
             <Card className="border-0 shadow-card">
               <CardHeader>
                 <CardTitle className="text-lg">Contribution Rules</CardTitle>

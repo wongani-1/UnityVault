@@ -35,11 +35,11 @@ const SummaryCard = ({
   variant = "default",
 }: SummaryCardProps) => {
   return (
-    <div className={`rounded-xl border p-5 transition-all hover:shadow-elevated ${variantStyles[variant]}`}>
-      <div className="flex items-start justify-between">
-        <div>
+    <div className={`rounded-xl border p-4 sm:p-5 transition-all hover:shadow-elevated ${variantStyles[variant]}`}>
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1">
-            <p className="text-sm font-medium text-muted-foreground">{title}</p>
+            <p className="text-xs font-medium text-muted-foreground sm:text-sm">{title}</p>
             {tooltip ? (
               <TooltipProvider>
                 <Tooltip>
@@ -59,7 +59,7 @@ const SummaryCard = ({
               </TooltipProvider>
             ) : null}
           </div>
-          <p className="mt-1 text-2xl font-bold text-foreground animate-count-up">{value}</p>
+          <p className="mt-1 text-xl font-bold text-foreground animate-count-up sm:text-2xl">{value}</p>
           {subtitle && (
             <p className="mt-1 text-xs text-muted-foreground">{subtitle}</p>
           )}
@@ -69,8 +69,8 @@ const SummaryCard = ({
             </p>
           )}
         </div>
-        <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${iconStyles[variant]}`}>
-          <Icon className="h-5 w-5" />
+        <div className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl sm:h-10 sm:w-10 ${iconStyles[variant]}`}>
+          <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
         </div>
       </div>
     </div>

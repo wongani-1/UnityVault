@@ -86,7 +86,7 @@ const MemberDistributions = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid gap-4 md:grid-cols-3">
+              <div className="grid gap-4 sm:grid-cols-3">
                 <div>
                   <p className="text-xs text-muted-foreground">Your expected payout</p>
                   <p className="text-xl font-semibold">MWK {estimatedPayout.estimatedPayout.toLocaleString()}</p>
@@ -105,14 +105,14 @@ const MemberDistributions = () => {
         )}
 
         {/* Summary Cards */}
-        <div className="grid gap-6 md:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-3">
           <Card className="border-0 shadow-card">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Profit Earned</CardTitle>
               <TrendingUp className="h-4 w-4 text-success" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-success">
+              <div className="text-xl font-bold text-success sm:text-2xl">
                 MWK {totalEarned.toLocaleString()}
               </div>
               <p className="text-xs text-muted-foreground">
@@ -127,7 +127,7 @@ const MemberDistributions = () => {
               <DollarSign className="h-4 w-4 text-primary" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">MWK {totalReceived.toLocaleString()}</div>
+              <div className="text-xl font-bold sm:text-2xl">MWK {totalReceived.toLocaleString()}</div>
               <p className="text-xs text-muted-foreground">
                 Contributions + Profit
               </p>
@@ -140,7 +140,7 @@ const MemberDistributions = () => {
               <Calendar className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{distributions.length}</div>
+              <div className="text-xl font-bold sm:text-2xl">{distributions.length}</div>
               <p className="text-xs text-muted-foreground">
                 {distributions.filter((d) => d.status === "completed").length} completed
               </p>

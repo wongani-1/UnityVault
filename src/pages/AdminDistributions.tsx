@@ -214,7 +214,7 @@ const AdminDistributions = () => {
                   <AlertCircle className="h-5 w-5 text-primary" />
                   <h3 className="font-semibold text-primary">Distribution Ready</h3>
                 </div>
-                <div className="grid gap-3 text-sm md:grid-cols-3">
+                <div className="grid gap-3 text-sm sm:grid-cols-3">
                   <div>
                     <p className="text-muted-foreground">Total Contributions</p>
                     <p className="text-lg font-semibold">

@@ -240,9 +240,9 @@ const MemberProfile = () => {
         <CardHeader>
           <CardTitle className="text-lg">Member Profile</CardTitle>
         </CardHeader>
-        <CardContent className="grid gap-4 md:grid-cols-2">
+        <CardContent className="grid gap-4 sm:grid-cols-2">
           {loading && (
-            <p className="text-sm text-muted-foreground md:col-span-2">Loading profile...</p>
+            <p className="text-sm text-muted-foreground sm:col-span-2">Loading profile...</p>
           )}
           <div className="space-y-2">
             <Label htmlFor="member-first-name">First name</Label>
@@ -290,7 +290,7 @@ const MemberProfile = () => {
               placeholder="+256 700 000 000"
             />
           </div>
-          <div className="md:col-span-2">
+          <div className="sm:col-span-2">
             <Button variant="hero" onClick={handleSave}>
               Save Changes
             </Button>
@@ -301,7 +301,7 @@ const MemberProfile = () => {
         <CardHeader>
           <CardTitle className="text-lg">Change Password</CardTitle>
         </CardHeader>
-        <CardContent className="grid gap-4 md:grid-cols-2">
+        <CardContent className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
             <Label htmlFor="member-current-password">Current password</Label>
             <div className="relative">
@@ -374,7 +374,7 @@ const MemberProfile = () => {
               </button>
             </div>
           </div>
-          <div className="md:col-span-2">
+          <div className="sm:col-span-2">
             <Button variant="hero" onClick={handlePasswordChange}>
               Update Password
             </Button>

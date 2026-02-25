@@ -246,10 +246,10 @@ const DashboardLayout = ({
             >
               <Menu className="h-5 w-5" />
             </button>
-            <div>
-              <h1 className="text-lg font-semibold text-foreground">{title}</h1>
+            <div className="min-w-0">
+              <h1 className="truncate text-lg font-semibold text-foreground">{title}</h1>
               {subtitle && (
-                <p className="text-sm text-muted-foreground">{subtitle}</p>
+                <p className="truncate text-sm text-muted-foreground">{subtitle}</p>
               )}
             </div>
           </div>
@@ -276,7 +276,7 @@ const DashboardLayout = ({
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 p-4 lg:p-6">{children}</main>
+        <main className="page-shell flex-1">{children}</main>
       </div>
     </div>
   );

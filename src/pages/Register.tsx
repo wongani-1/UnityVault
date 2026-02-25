@@ -142,10 +142,10 @@ const Register = () => {
       <div className="relative w-full max-w-lg">
         <Link
           to="/"
-          className="mb-6 inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+          className="mb-6 inline-flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground sm:px-0 sm:py-0"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to home
+          <span className="hidden sm:inline">Back to home</span>
         </Link>
 
         <Card className="border-0 shadow-elevated">
@@ -185,7 +185,7 @@ const Register = () => {
             </div>
 
             {/* Admin Name */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="adminFirstName">First Name</Label>
                 <div className="relative">
@@ -242,7 +242,7 @@ const Register = () => {
             </div>
 
             {/* Password */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="adminPassword">Password</Label>
                 <div className="relative">

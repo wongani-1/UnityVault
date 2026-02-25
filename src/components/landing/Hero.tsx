@@ -16,15 +16,15 @@ const Hero = () => {
               <span className="h-1.5 w-1.5 rounded-full bg-primary" />
               Trusted by 500+ savings groups
             </div>
-            <h1 className="mb-6 text-4xl font-bold leading-tight text-foreground md:text-5xl lg:text-6xl">
+            <h1 className="mb-6 text-3xl font-bold leading-tight text-foreground sm:text-4xl md:text-5xl lg:text-6xl">
               Smart Savings & Loans Management{" "}
               <span className="text-primary">for Groups</span>
             </h1>
-            <p className="mb-8 text-lg leading-relaxed text-muted-foreground md:text-xl">
+            <p className="mb-8 text-base leading-relaxed text-muted-foreground sm:text-lg md:text-xl">
               Track contributions, loans, penalties, and reports — transparently
               and securely. Your group stays in control of its money.
             </p>
-            <div className="flex flex-wrap gap-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:gap-4">
               <Link to="/register">
                 <Button variant="hero" size="xl">
                   Create a Group

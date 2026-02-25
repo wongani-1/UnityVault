@@ -4,9 +4,9 @@ const Footer = () => {
   return (
     <footer className="border-t bg-card py-12">
       <div className="container mx-auto px-4 lg:px-8">
-        <div className="grid gap-8 md:grid-cols-4">
+        <div className="grid gap-8 grid-cols-2 sm:grid-cols-2 md:grid-cols-4">
           {/* Brand */}
-          <div className="md:col-span-1">
+          <div className="col-span-2 sm:col-span-2 md:col-span-1">
             <Link to="/" className="mb-3 flex items-center gap-2" title="UnityVault">
               <img
                 src="/Unity Vault.png"

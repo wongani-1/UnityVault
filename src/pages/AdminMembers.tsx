@@ -305,7 +305,7 @@ const AdminMembers = () => {
       )}
 
       <Card className="border-0 shadow-card">
-        <CardHeader className="flex flex-row items-center justify-between">
+        <CardHeader className="flex flex-wrap items-center justify-between gap-3">
           <CardTitle className="text-lg">Member Directory</CardTitle>
           <Button variant="hero" size="sm" onClick={handleAddMemberClick} disabled={cycleLocked}>
             <UserPlus className="mr-2 h-4 w-4" />
@@ -460,7 +460,7 @@ const AdminMembers = () => {
           </DialogHeader>
           <div className="space-y-4">
             <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
-              <p className="text-2xl font-bold text-primary">{subscriptionPlanName} Plan</p>
+              <p className="text-xl font-bold text-primary sm:text-2xl">{subscriptionPlanName} Plan</p>
               <p className="text-sm text-muted-foreground">
                 {subscriptionMemberLimit === null
                   ? `${subscriptionMemberCount} members (no limit)`
@@ -509,7 +509,7 @@ const AdminMembers = () => {
           </DialogHeader>
           {selectedMember && (
             <div className="space-y-6">
-              <div className="grid gap-4 md:grid-cols-2">
+              <div className="grid gap-4 sm:grid-cols-2">
                 <div>
                   <p className="text-xs uppercase text-muted-foreground">Name</p>
                   <p className="text-sm font-semibold text-foreground">{selectedMember.first_name} {selectedMember.last_name}</p>

@@ -70,13 +70,13 @@ const Pricing = () => {
           </p>
         </div>
 
-        <div className="mx-auto grid max-w-5xl gap-6 md:grid-cols-3">
+        <div className="mx-auto grid max-w-5xl gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {tiers.map((tier, i) => (
             <Card
               key={tier.name}
               className={`relative flex flex-col border-0 shadow-card transition-all duration-300 hover:shadow-elevated hover:-translate-y-1 animate-fade-in opacity-0 ${
                 tier.popular
-                  ? "ring-2 ring-primary scale-[1.03] shadow-elevated"
+                  ? "ring-2 ring-primary sm:scale-[1.03] shadow-elevated"
                   : ""
               }`}
               style={{ animationDelay: `${i * 120}ms` }}
@@ -93,7 +93,7 @@ const Pricing = () => {
                 <CardDescription className="mt-1">{tier.description}</CardDescription>
                 <div className="mt-4">
                   {tier.price === "Custom" ? (
-                    <span className="text-3xl font-bold text-foreground">Custom</span>
+                    <span className="text-2xl font-bold text-foreground sm:text-3xl">Custom</span>
                   ) : (
                     <div className="flex items-baseline justify-center gap-1">
                       <span className="text-sm text-muted-foreground">MWK</span>

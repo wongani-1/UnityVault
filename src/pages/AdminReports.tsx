@@ -60,18 +60,26 @@ const AdminReports = () => {
 
   return (
     <DashboardLayout title="Reports" subtitle="Export group financial statements" isAdmin>
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-2">
         {reports.map((report) => (
           <Card key={report.title} className="border-0 shadow-card">
-            <CardContent className="flex items-center gap-4 p-6">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-secondary text-primary">
-                <FileText className="h-6 w-6" />
+            <CardContent className="flex flex-col gap-4 p-4 sm:p-5">
+              <div className="flex items-start gap-4">
+                <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-secondary text-primary">
+                  <FileText className="h-5 w-5" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h3 className="truncate font-semibold text-foreground">{report.title}</h3>
+                  <p className="mt-0.5 text-sm text-muted-foreground">{report.desc}</p>
+                </div>
               </div>
-              <div className="flex-1">
-                <h3 className="font-semibold text-foreground">{report.title}</h3>
-                <p className="text-sm text-muted-foreground">{report.desc}</p>
-              </div>
-              <Button variant="outline" size="sm" onClick={() => handleExport(report.title)} disabled={exportingReport !== null}>
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full justify-center sm:w-auto sm:self-end"
+                onClick={() => handleExport(report.title)}
+                disabled={exportingReport !== null}
+              >
                 {exportingReport === report.title.toLowerCase().replace(/\s+/g, "-") ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />

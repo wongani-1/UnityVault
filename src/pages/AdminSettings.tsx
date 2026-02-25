@@ -243,9 +243,9 @@ const AdminSettings = () => {
             </Button>
           </div>
         </CardHeader>
-        <CardContent className="grid gap-4 md:grid-cols-2">
+        <CardContent className="grid gap-4 sm:grid-cols-2">
           {loading && (
-            <p className="text-sm text-muted-foreground md:col-span-2">Loading settings...</p>
+            <p className="text-sm text-muted-foreground sm:col-span-2">Loading settings...</p>
           )}
           <div className="space-y-2">
             <Label htmlFor="share-fee">Share Fee (MWK)</Label>
@@ -331,7 +331,7 @@ const AdminSettings = () => {
             <p className="text-xs text-muted-foreground">Percentage of the missed loan payment amount.</p>
           </div>
 
-          <div className="space-y-2 md:col-span-2">
+          <div className="space-y-2 sm:col-span-2">
             <Label htmlFor="seed-amount">Initial Seed Amount (MWK)</Label>
             <Input
               id="seed-amount"
@@ -346,11 +346,11 @@ const AdminSettings = () => {
           </div>
 
           {error && (
-            <p className="text-sm text-destructive md:col-span-2">{error}</p>
+            <p className="text-sm text-destructive sm:col-span-2">{error}</p>
           )}
 
           {status === "saved" && (
-            <p className="text-sm font-medium text-success md:col-span-2">
+            <p className="text-sm font-medium text-success sm:col-span-2">
               Changes saved.
             </p>
           )}

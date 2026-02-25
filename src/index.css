@@ -103,12 +103,40 @@
 }
 
 @layer base {
+  html,
+  body,
+  #root {
+    width: 100%;
+    min-height: 100%;
+  }
+
   * {
     @apply border-border;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  button,
+  [role="button"],
+  a {
+    touch-action: manipulation;
+  }
+
+  input,
+  textarea,
+  select {
+    font-size: 16px; /* Prevents iOS auto-zoom on focus */
   }
 
   body {
     @apply bg-background text-foreground font-sans antialiased;
+    overflow-x: hidden;
+  }
+
+  img,
+  svg,
+  video,
+  canvas {
+    max-width: 100%;
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -180,6 +208,28 @@
   .reveal.in-view {
     opacity: 1;
     transform: translate3d(0, 0, 0);
+  }
+
+  .page-shell {
+    width: 100%;
+    margin-inline: auto;
+    padding-inline: 1rem;
+    padding-block: 1rem;
+  }
+
+  @media (min-width: 768px) {
+    .page-shell {
+      padding-inline: 1.5rem;
+      padding-block: 1.25rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .page-shell {
+      max-width: 1440px;
+      padding-inline: 2rem;
+      padding-block: 1.5rem;
+    }
   }
 
   @media (prefers-reduced-motion: reduce) {

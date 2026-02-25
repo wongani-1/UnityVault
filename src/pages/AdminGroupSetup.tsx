@@ -53,10 +53,10 @@ const AdminGroupSetup = () => {
       <div className="relative w-full max-w-2xl">
         <Link
           to="/"
-          className="mb-6 inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+          className="mb-6 inline-flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground sm:px-0 sm:py-0"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to home
+          <span className="hidden sm:inline">Back to home</span>
         </Link>
 
         <Card className="border-0 shadow-elevated">

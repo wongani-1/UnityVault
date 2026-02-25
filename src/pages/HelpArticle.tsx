@@ -381,7 +381,7 @@ const HelpArticle = () => {
               alt="UnityVault"
               className="h-8 w-8 rounded-lg"
             />
-            <span className="text-lg font-bold">
+            <span className="hidden text-lg font-bold sm:inline">
               <span className="bg-gradient-to-r from-blue-500 to-green-500 bg-clip-text text-transparent">
                 UnityVault
               </span>
@@ -389,10 +389,10 @@ const HelpArticle = () => {
           </Link>
           <Link
             to="/help"
-            className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+            className="inline-flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground sm:px-0 sm:py-0"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back to Help Center
+            <span className="hidden sm:inline">Back to Help Center</span>
           </Link>
         </div>
       </header>
@@ -419,7 +419,7 @@ const HelpArticle = () => {
         <div className="mx-auto max-w-3xl">
           <Card className="border-0 shadow-elevated">
             <CardHeader>
-              <CardTitle className="text-3xl">{article.title}</CardTitle>
+              <CardTitle className="text-2xl sm:text-3xl">{article.title}</CardTitle>
             </CardHeader>
             <CardContent className="prose prose-slate max-w-none dark:prose-invert">
               {article.content}

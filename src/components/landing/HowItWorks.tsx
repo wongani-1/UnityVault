@@ -84,7 +84,7 @@ const HowItWorks = () => {
                 </div>
 
                 {/* Content */}
-                <div className={`flex-1 rounded-xl bg-card p-6 shadow-card ${
+                <div className={`flex-1 rounded-xl bg-card p-4 shadow-card sm:p-6 ${
                   i % 2 === 1 ? "lg:mr-[calc(50%+2rem)]" : "lg:ml-[calc(50%+2rem)]"
                 }`}>
                   <span className="mb-1 text-sm font-bold text-primary">

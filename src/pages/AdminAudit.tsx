@@ -276,7 +276,7 @@ const AdminAudit = () => {
     <DashboardLayout title="Audit Logs" subtitle="Review activity and financial ledger" isAdmin>
       <div className="space-y-6">
         <Card className="border-0 shadow-card">
-          <CardHeader className="flex flex-row items-center justify-between gap-3">
+          <CardHeader className="flex flex-wrap items-center justify-between gap-3">
             <CardTitle className="flex items-center gap-2 text-lg">
               <ShieldCheck className="h-4 w-4 text-primary" />
               Financial Ledger
@@ -293,7 +293,7 @@ const AdminAudit = () => {
             </div>
           </CardHeader>
           <CardContent className="space-y-5">
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
               <div className="space-y-2">
                 <Label htmlFor="memberFilter">Member</Label>
                 <select
@@ -363,7 +363,7 @@ const AdminAudit = () => {
               </Button>
             </div>
 
-            <div className="grid gap-3 md:grid-cols-4">
+            <div className="grid gap-3 grid-cols-2 sm:grid-cols-4">
               <div className="rounded-lg border bg-card p-3">
                 <p className="text-xs text-muted-foreground">Rows</p>
                 <p className="text-lg font-semibold text-foreground">{entries.length}</p>

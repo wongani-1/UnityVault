@@ -22,12 +22,12 @@ const TrustSection = () => {
   return (
     <section className="bg-background py-20 lg:py-28">
       <div className="container mx-auto px-4 lg:px-8">
-        <div className="mx-auto max-w-4xl rounded-2xl border bg-card p-8 shadow-elevated md:p-12">
+        <div className="mx-auto max-w-4xl rounded-2xl border bg-card p-6 shadow-elevated sm:p-8 md:p-12">
           <div className="mb-10 text-center">
             <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-secondary">
               <ShieldCheck className="h-7 w-7 text-primary" />
             </div>
-            <h2 className="mb-3 text-3xl font-bold text-foreground md:text-4xl">
+            <h2 className="mb-3 text-2xl font-bold text-foreground sm:text-3xl md:text-4xl">
               Trust & Transparency
             </h2>
             <p className="mx-auto max-w-lg text-lg text-muted-foreground">

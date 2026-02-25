@@ -63,7 +63,7 @@ const Contact = () => {
               alt="UnityVault"
               className="h-8 w-8 rounded-lg"
             />
-            <span className="text-lg font-bold">
+            <span className="hidden text-lg font-bold sm:inline">
               <span className="bg-gradient-to-r from-blue-500 to-green-500 bg-clip-text text-transparent">
                 UnityVault
               </span>
@@ -71,10 +71,10 @@ const Contact = () => {
           </Link>
           <Link
             to="/"
-            className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+            className="inline-flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground sm:px-0 sm:py-0"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back to home
+            <span className="hidden sm:inline">Back to home</span>
           </Link>
         </div>
       </header>
@@ -83,7 +83,7 @@ const Contact = () => {
       <div className="container mx-auto px-4 py-12 lg:px-8">
         <div className="mx-auto max-w-5xl">
           <div className="mb-8 text-center">
-            <h1 className="mb-3 text-3xl font-bold text-foreground">Contact Us</h1>
+            <h1 className="mb-3 text-2xl font-bold text-foreground sm:text-3xl">Contact Us</h1>
             <p className="text-muted-foreground">
               Have questions or need assistance? We're here to help!
             </p>
