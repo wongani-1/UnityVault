@@ -1,6 +1,6 @@
 import nodemailer from "nodemailer";
 import type { Transporter } from "nodemailer";
-import dns from "dns";
+import * as dns from "dns";
 import { env } from "../config/env";
 
 export type EmailOptions = {
