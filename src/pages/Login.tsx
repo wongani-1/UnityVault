@@ -183,7 +183,7 @@ const Login = () => {
                     <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
                       id="member-id"
-                      placeholder="member@example.com/+265 888 000 000"
+                      placeholder="member@example.com"
                       className="pl-10"
                       value={memberLogin.identifier}
                       onChange={(e) =>
@@ -265,7 +265,7 @@ const Login = () => {
                     <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
                       id="admin-identifier"
-                      placeholder="admin@example.com / +265 888 000 000 / admin_user"
+                      placeholder="admin@example.com"
                       className="pl-10"
                       value={adminLogin.identifier}
                       onChange={(e) =>
