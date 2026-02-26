@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ArrowLeft, User, Mail, Phone, Lock, Eye, EyeOff } from "lucide-react";
 import { apiRequest } from "../lib/api";
+import { isValidEmail, isValidPhone } from "../lib/contactValidation";
 import { toast } from "@/components/ui/sonner";
 
 const MemberRegistrationDetails = () => {
@@ -34,10 +35,20 @@ const MemberRegistrationDetails = () => {
   const handleSubmit = async () => {
     const values = Object.values(form).map((value) => value.trim());
     const hasEmpty = values.some((value) => value.length === 0);
+    const emailValid = isValidEmail(form.email);
+    const phoneValid = isValidPhone(form.phone);
     const passwordStrong = isStrongPassword(form.password);
     const passwordsMatch = form.password === form.confirmPassword;
 
-    setFormError(hasEmpty ? "All fields are required." : null);
+    setFormError(
+      hasEmpty
+        ? "All fields are required."
+        : !emailValid
+          ? "Please enter a valid email address."
+          : !phoneValid
+            ? "Please enter a valid phone number."
+            : null
+    );
     setPasswordError(
       passwordStrong
         ? null
@@ -45,7 +56,7 @@ const MemberRegistrationDetails = () => {
     );
     setConfirmError(passwordsMatch ? null : "Passwords do not match.");
 
-    if (hasEmpty || !passwordStrong || !passwordsMatch) {
+    if (hasEmpty || !emailValid || !phoneValid || !passwordStrong || !passwordsMatch) {
       return;
     }
 
@@ -70,7 +81,6 @@ const MemberRegistrationDetails = () => {
           email: form.email,
           phone: form.phone,
           password: form.password,
-          username: form.email, // Use email as username
         },
       });
 
@@ -162,6 +172,7 @@ const MemberRegistrationDetails = () => {
                 <Input
                   id="email"
                   type="email"
+                  autoComplete="email"
                   placeholder="e.g. thandiwe@example.com"
                   value={form.email}
                   onChange={(e) => updateField("email", e.target.value)}
@@ -175,6 +186,9 @@ const MemberRegistrationDetails = () => {
                 </Label>
                 <Input
                   id="phone"
+                  type="tel"
+                  inputMode="tel"
+                  autoComplete="tel"
                   placeholder="e.g. 0991 000 000"
                   value={form.phone}
                   onChange={(e) => updateField("phone", e.target.value)}

@@ -53,10 +53,6 @@ export const resetPassword = asyncHandler(async (req: Request, res: Response) =>
     throw new ApiError("token, newPassword, and role are required", 400);
   }
 
-  if (newPassword.length < 8) {
-    throw new ApiError("Password must be at least 8 characters", 400);
-  }
-
   await container.passwordResetService.resetPassword({
     token,
     newPassword,

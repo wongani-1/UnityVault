@@ -5,7 +5,17 @@ import type {
 } from "../repositories/interfaces";
 import type { PaymentRepository } from "../repositories/interfaces/paymentRepository";
 import { ApiError } from "../utils/apiError";
-import { hashPassword, verifyPassword } from "../utils/password";
+import {
+  hashPassword,
+  isStrongPassword,
+  STRONG_PASSWORD_ERROR_MESSAGE,
+  verifyPassword,
+} from "../utils/password";
+import {
+  isValidEmail,
+  isValidPhone,
+  normalizePhone,
+} from "../utils/contactValidation";
 import { createId } from "../utils/id";
 import {
   getSubscriptionPlan,
@@ -127,8 +137,22 @@ export class AdminService {
     return admins.map(admin => ({ ...admin, passwordHash: "" }));
   }
 
-  async updateProfile(adminId: string, patch: { first_name?: string; last_name?: string; email?: string; phone?: string; username?: string }) {
-    const updated = await this.adminRepository.update(adminId, patch);
+  async updateProfile(adminId: string, patch: { first_name?: string; last_name?: string; email?: string; phone?: string }) {
+    const normalizedPatch = {
+      ...patch,
+      email: patch.email !== undefined ? patch.email.trim().toLowerCase() : undefined,
+      phone: patch.phone !== undefined ? normalizePhone(patch.phone) : undefined,
+    };
+
+    if (normalizedPatch.email && !isValidEmail(normalizedPatch.email)) {
+      throw new ApiError("Please provide a valid email address", 400);
+    }
+
+    if (normalizedPatch.phone && !isValidPhone(normalizedPatch.phone)) {
+      throw new ApiError("Please provide a valid phone number", 400);
+    }
+
+    const updated = await this.adminRepository.update(adminId, normalizedPatch);
     if (!updated) throw new ApiError("Admin not found", 404);
     return { ...updated, passwordHash: "" };
   }
@@ -139,6 +163,10 @@ export class AdminService {
 
     const ok = await verifyPassword(currentPassword, admin.passwordHash);
     if (!ok) throw new ApiError("Current password is incorrect", 400);
+
+    if (!isStrongPassword(newPassword)) {
+      throw new ApiError(STRONG_PASSWORD_ERROR_MESSAGE, 400);
+    }
 
     const passwordHash = await hashPassword(newPassword);
     const updated = await this.adminRepository.update(adminId, { passwordHash });

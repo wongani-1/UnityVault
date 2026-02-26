@@ -119,7 +119,6 @@ const generateMemberPDF = (
 
   const memberData = [
     ["Full Name:", `${member.first_name} ${member.last_name}`],
-    ["Username:", member.username],
     ["Email:", member.email || "N/A"],
     ["Phone:", member.phone || "N/A"],
     ["Status:", member.status.toUpperCase()],
@@ -335,10 +334,10 @@ const generateGroupPDF = (
   doc.addPage();
   addSectionHeader(doc, "Members Directory");
   
-  const memberHeaders = ["Name", "Username", "Status", "Shares", "Balance", "Penalties"];
+  const memberHeaders = ["Name", "Email", "Status", "Shares", "Balance", "Penalties"];
   const memberRows = members.map(m => [
     `${m.first_name} ${m.last_name}`.substring(0, 25),
-    m.username,
+    m.email || "N/A",
     m.status.toUpperCase(),
     String(m.sharesOwned || 0),
     `MWK ${m.balance.toLocaleString()}`,
@@ -351,11 +350,11 @@ const generateGroupPDF = (
   doc.addPage();
   addSectionHeader(doc, "Administrators");
   
-  const adminHeaders = ["Name", "Email", "Username"];
+  const adminHeaders = ["Name", "Email", "Phone"];
   const adminRows = admins.map(a => [
     a.first_name && a.last_name ? `${a.first_name} ${a.last_name}` : "N/A",
     a.email,
-    a.username,
+    a.phone || "N/A",
   ]);
 
   drawTable(doc, adminHeaders, adminRows, [150, 180, 120]);
@@ -383,10 +382,9 @@ const generateMembersListPDF = (
   doc.moveDown(2);
 
   // Table
-  const headers = ["Full Name", "Username", "Email", "Phone", "Status", "Shares", "Balance", "Penalties", "Joined"];
+  const headers = ["Full Name", "Email", "Phone", "Status", "Shares", "Balance", "Penalties", "Joined"];
   const rows = members.map(m => [
     `${m.first_name} ${m.last_name}`.substring(0, 22),
-    m.username.substring(0, 15),
     (m.email || "N/A").substring(0, 22),
     (m.phone || "N/A").substring(0, 13),
     m.status.toUpperCase(),
@@ -396,7 +394,7 @@ const generateMembersListPDF = (
     new Date(m.createdAt).toLocaleDateString(),
   ]);
 
-  drawTable(doc, headers, rows, [90, 65, 105, 75, 55, 40, 75, 75, 65], 7.5);
+  drawTable(doc, headers, rows, [100, 105, 75, 55, 40, 75, 75, 65], 7.5);
 
   // Footer
   doc.fontSize(7).fillColor("#999").text(

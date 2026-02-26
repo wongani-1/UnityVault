@@ -29,7 +29,6 @@ export type AdminRow = {
   last_name?: string | null;
   email: string;
   phone: string | null;
-  username: string;
   password_hash: string;
   role: "group_admin";
   created_at: string;
@@ -51,7 +50,6 @@ export type MemberRow = {
   last_name?: string;
   email: string | null;
   phone: string | null;
-  username: string;
   password_hash: string;
   status: string;
   created_at: string;
@@ -214,7 +212,6 @@ export const toAdminRow = (admin: Admin): Record<string, unknown> => ({
   last_name: admin.last_name || null,
   email: admin.email,
   phone: admin.phone || null,
-  username: admin.username,
   password_hash: admin.passwordHash,
   role: admin.role,
   created_at: admin.createdAt,
@@ -233,7 +230,6 @@ export const toAdminPatch = (patch: Partial<Admin>): Record<string, unknown> => 
   
   if (patch.email !== undefined) result.email = patch.email;
   if (patch.phone !== undefined) result.phone = patch.phone || null;
-  if (patch.username !== undefined) result.username = patch.username;
   if (patch.passwordHash !== undefined) result.password_hash = patch.passwordHash;
   if (patch.role !== undefined) result.role = patch.role;
   if (patch.createdAt !== undefined) result.created_at = patch.createdAt;
@@ -256,7 +252,6 @@ export const fromAdminRow = (row: AdminRow): Admin => {
     last_name: lastName,
     email: row.email,
     phone: row.phone || undefined,
-    username: row.username,
     passwordHash: row.password_hash,
     role: row.role,
     createdAt: row.created_at,
@@ -279,7 +274,6 @@ export const toMemberRow = (member: Member): Record<string, unknown> => ({
   last_name: member.last_name,
   email: member.email || null,
   phone: member.phone || null,
-  username: member.username,
   password_hash: member.passwordHash,
   status: member.status,
   created_at: member.createdAt,
@@ -305,7 +299,6 @@ export const toMemberPatch = (patch: Partial<Member>): Record<string, unknown> =
   
   if (patch.email !== undefined) result.email = patch.email || null;
   if (patch.phone !== undefined) result.phone = patch.phone || null;
-  if (patch.username !== undefined) result.username = patch.username;
   if (patch.passwordHash !== undefined) result.password_hash = patch.passwordHash;
   if (patch.status !== undefined) result.status = patch.status;
   if (patch.createdAt !== undefined) result.created_at = patch.createdAt;
@@ -325,7 +318,7 @@ export const toMemberPatch = (patch: Partial<Member>): Record<string, unknown> =
 };
 
 export const fromMemberRow = (row: MemberRow): Member => {
-  const firstName = row.first_name || row.username;
+  const firstName = row.first_name || "";
   const lastName = row.last_name || "";
 
   return {
@@ -335,7 +328,6 @@ export const fromMemberRow = (row: MemberRow): Member => {
     last_name: lastName,
     email: row.email || undefined,
     phone: row.phone || undefined,
-    username: row.username,
     passwordHash: row.password_hash,
     status: row.status as Member["status"],
     createdAt: row.created_at,

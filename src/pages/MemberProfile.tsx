@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { apiRequest, apiDownload } from "../lib/api";
+import { isValidEmail, isValidPhone } from "../lib/contactValidation";
 import { toast } from "@/components/ui/sonner";
 import { Shield, Download, Key, Copy, Eye, EyeOff } from "lucide-react";
 
@@ -14,7 +15,6 @@ const MemberProfile = () => {
     last_name: "",
     email: "",
     phone: "",
-    username: "",
   });
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: "",
@@ -37,7 +37,7 @@ const MemberProfile = () => {
     let active = true;
     const load = async () => {
       try {
-        const member = await apiRequest<{ first_name?: string; last_name?: string; email?: string; phone?: string; username: string; groupId: string; twoFactorEnabled?: boolean }>(
+        const member = await apiRequest<{ first_name?: string; last_name?: string; email?: string; phone?: string; groupId: string; twoFactorEnabled?: boolean }>(
           "/members/me"
         );
         if (!active) return;
@@ -46,7 +46,6 @@ const MemberProfile = () => {
           last_name: member.last_name || "",
           email: member.email || "",
           phone: member.phone || "",
-          username: member.username || "",
         });
         setTwoFactorEnabled(member.twoFactorEnabled || false);
       } catch (error) {
@@ -68,8 +67,18 @@ const MemberProfile = () => {
   };
 
   const handleSave = async () => {
+    if (form.email && !isValidEmail(form.email)) {
+      toast.error("Please enter a valid email address.");
+      return;
+    }
+
+    if (form.phone && !isValidPhone(form.phone)) {
+      toast.error("Please enter a valid phone number.");
+      return;
+    }
+
     try {
-      const updated = await apiRequest<{ first_name?: string; last_name?: string; email?: string; phone?: string; username: string; groupId: string }>(
+      const updated = await apiRequest<{ first_name?: string; last_name?: string; email?: string; phone?: string; groupId: string }>(
         "/members/me",
         {
           method: "PUT",
@@ -78,7 +87,6 @@ const MemberProfile = () => {
             last_name: form.last_name,
             email: form.email,
             phone: form.phone,
-            username: form.username,
           },
         }
       );
@@ -260,15 +268,6 @@ const MemberProfile = () => {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="member-username">Username</Label>
-            <Input
-              id="member-username"
-              value={form.username}
-              onChange={(e) => updateField("username", e.target.value)}
-              placeholder="Username"
-            />
-          </div>
-          <div className="space-y-2">
             <Label htmlFor="member-email">Email</Label>
             <Input
               id="member-email"
@@ -282,6 +281,9 @@ const MemberProfile = () => {
             <Label htmlFor="member-phone">Phone</Label>
             <Input
               id="member-phone"
+              type="tel"
+              inputMode="tel"
+              autoComplete="tel"
               value={form.phone}
               onChange={(e) => updateField("phone", e.target.value)}
               placeholder="+256 700 000 000"

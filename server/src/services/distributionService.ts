@@ -102,7 +102,7 @@ export class DistributionService {
 
       return {
         memberId: member.id,
-        memberName: fullName || member.username,
+        memberName: fullName || member.email || member.phone || member.id,
         totalContributions,
         contributionShortfall,
         outstandingLoan,

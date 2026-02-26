@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import Footer from "@/components/landing/Footer";
 import { toast } from "@/components/ui/sonner";
+import { isValidEmail } from "@/lib/contactValidation";
 
 const Contact = () => {
   useEffect(() => {
@@ -30,6 +31,11 @@ const Contact = () => {
 
     if (!form.name || !form.email || !form.subject || !form.message) {
       toast.error("Please fill in all fields");
+      return;
+    }
+
+    if (!isValidEmail(form.email)) {
+      toast.error("Please enter a valid email address.");
       return;
     }
 
@@ -181,6 +187,7 @@ const Contact = () => {
                         <Input
                           id="email"
                           type="email"
+                          autoComplete="email"
                           placeholder="you@example.com"
                           value={form.email}
                           onChange={(e) => updateField("email", e.target.value)}

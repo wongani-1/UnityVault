@@ -86,7 +86,7 @@ const TermsOfService = () => {
                 <h3 className="mb-3 mt-6 text-lg font-semibold text-foreground">3.2 Admin Authentication</h3>
                 <p className="mb-2 text-muted-foreground">Group Admins must log in using:</p>
                 <ul className="list-disc space-y-1 pl-6 text-muted-foreground">
-                  <li>Username or email</li>
+                  <li>Email or phone</li>
                   <li>Password</li>
                 </ul>
                 <p className="mb-2 mt-3 text-muted-foreground">Authentication verifies:</p>
@@ -102,7 +102,7 @@ const TermsOfService = () => {
                 <h3 className="mb-3 mt-6 text-lg font-semibold text-foreground">3.3 Member Authentication</h3>
                 <p className="mb-2 text-muted-foreground">Members log in using:</p>
                 <ul className="list-disc space-y-1 pl-6 text-muted-foreground">
-                  <li>Username/email</li>
+                  <li>Email/phone</li>
                   <li>Password</li>
                 </ul>
                 <p className="mt-3 text-muted-foreground">

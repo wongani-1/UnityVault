@@ -3,7 +3,17 @@ import type { DistributionRepository } from "../repositories/interfaces/distribu
 import type { Member, Transaction } from "../models/types";
 import type { TransactionRepository } from "../repositories/interfaces";
 import { createId } from "../utils/id";
-import { hashPassword, verifyPassword } from "../utils/password";
+import {
+  hashPassword,
+  isStrongPassword,
+  STRONG_PASSWORD_ERROR_MESSAGE,
+  verifyPassword,
+} from "../utils/password";
+import {
+  isValidEmail,
+  isValidPhone,
+  normalizePhone,
+} from "../utils/contactValidation";
 import { generateOtp } from "../utils/otp";
 import { env } from "../config/env";
 import { ApiError } from "../utils/apiError";
@@ -12,7 +22,7 @@ import { NotificationService } from "./notificationService";
 import { EmailService } from "./emailService";
 
 export class MemberService {
-  private static readonly INVITE_EXPIRY_MINUTES = 5;
+  private static readonly INVITE_EXPIRY_HOURS = 24;
 
   constructor(
     private memberRepository: MemberRepository,
@@ -40,10 +50,6 @@ export class MemberService {
     return normalized ? normalized : undefined;
   }
 
-  private normalizeUsername(value: string) {
-    return value.trim().toLowerCase();
-  }
-
   private normalizeEmail(value?: string) {
     const normalized = this.normalizeOptional(value);
     return normalized ? normalized.toLowerCase() : undefined;
@@ -51,19 +57,17 @@ export class MemberService {
 
   private normalizePhone(value?: string) {
     const normalized = this.normalizeOptional(value);
-    return normalized ? normalized.replace(/\s+/g, "") : undefined;
+    return normalized ? normalizePhone(normalized) : undefined;
   }
 
   private async assertUniqueCredentialsInGroup(params: {
     groupId: string;
-    username?: string;
     email?: string;
     phone?: string;
     excludeMemberId?: string;
   }) {
     const members = await this.memberRepository.listByGroup(params.groupId);
 
-    const username = params.username ? this.normalizeUsername(params.username) : undefined;
     const email = this.normalizeEmail(params.email);
     const phone = this.normalizePhone(params.phone);
 
@@ -72,12 +76,10 @@ export class MemberService {
         return false;
       }
 
-      const memberUsername = this.normalizeUsername(member.username);
       const memberEmail = this.normalizeEmail(member.email);
       const memberPhone = this.normalizePhone(member.phone);
 
       return (
-        (username && memberUsername === username) ||
         (email && memberEmail === email) ||
         (phone && memberPhone === phone)
       );
@@ -85,15 +87,11 @@ export class MemberService {
 
     if (!duplicate) return;
 
-    const duplicateUsername = username && this.normalizeUsername(duplicate.username) === username;
     const duplicateEmail = email && this.normalizeEmail(duplicate.email) === email;
     const duplicatePhone = phone && this.normalizePhone(duplicate.phone) === phone;
 
     if (duplicateEmail) {
       throw new ApiError("A member with this email already exists in this group", 409);
-    }
-    if (duplicateUsername) {
-      throw new ApiError("A member with this username already exists in this group", 409);
     }
     if (duplicatePhone) {
       throw new ApiError("A member with this phone number already exists in this group", 409);
@@ -104,22 +102,31 @@ export class MemberService {
     groupId: string;
     first_name: string;
     last_name: string;
-    username: string;
     password: string;
     email?: string;
     phone?: string;
   }) {
-    const normalizedUsername = params.username?.trim();
     const normalizedEmail = this.normalizeOptional(params.email);
     const normalizedPhone = this.normalizeOptional(params.phone);
 
-    if (!params.groupId || !params.first_name || !params.last_name || !normalizedUsername || !params.password) {
+    if (!params.groupId || !params.first_name || !params.last_name || !params.password) {
       throw new ApiError("Missing required fields");
+    }
+
+    if (normalizedEmail && !isValidEmail(normalizedEmail)) {
+      throw new ApiError("Please provide a valid email address", 400);
+    }
+
+    if (normalizedPhone && !isValidPhone(normalizedPhone)) {
+      throw new ApiError("Please provide a valid phone number", 400);
+    }
+
+    if (!isStrongPassword(params.password)) {
+      throw new ApiError(STRONG_PASSWORD_ERROR_MESSAGE, 400);
     }
 
     await this.assertUniqueCredentialsInGroup({
       groupId: params.groupId,
-      username: normalizedUsername,
       email: normalizedEmail,
       phone: normalizedPhone,
     });
@@ -129,7 +136,6 @@ export class MemberService {
       groupId: params.groupId,
       first_name: params.first_name,
       last_name: params.last_name,
-      username: normalizedUsername,
       email: normalizedEmail,
       phone: normalizedPhone,
       passwordHash: await hashPassword(params.password),
@@ -163,18 +169,16 @@ export class MemberService {
     groupId: string;
     first_name: string;
     last_name: string;
-    username: string;
     email?: string;
     phone?: string;
   }) {
     console.log("Creating member invite request");
     await this.ensureCycleOpen(params.groupId);
 
-    const normalizedUsername = params.username?.trim();
     const normalizedEmail = this.normalizeOptional(params.email);
     const normalizedPhone = this.normalizeOptional(params.phone);
 
-    if (!params.groupId || !params.first_name || !params.last_name || !normalizedUsername) {
+    if (!params.groupId || !params.first_name || !params.last_name) {
       throw new ApiError("Missing required fields");
     }
 
@@ -182,9 +186,16 @@ export class MemberService {
       throw new ApiError("Email or phone is required for invite", 400);
     }
 
+    if (normalizedEmail && !isValidEmail(normalizedEmail)) {
+      throw new ApiError("Please provide a valid email address", 400);
+    }
+
+    if (normalizedPhone && !isValidPhone(normalizedPhone)) {
+      throw new ApiError("Please provide a valid phone number", 400);
+    }
+
     await this.assertUniqueCredentialsInGroup({
       groupId: params.groupId,
-      username: normalizedUsername,
       email: normalizedEmail,
       phone: normalizedPhone,
     });
@@ -192,7 +203,7 @@ export class MemberService {
     const otp = generateOtp(6);
     const inviteToken = createId("invite");
     const inviteExpiresAt = new Date(
-      Date.now() + MemberService.INVITE_EXPIRY_MINUTES * 60 * 1000
+      Date.now() + MemberService.INVITE_EXPIRY_HOURS * 60 * 60 * 1000
     ).toISOString();
     const inviteOtpHash = await hashPassword(otp);
 
@@ -201,7 +212,6 @@ export class MemberService {
       groupId: params.groupId,
       first_name: params.first_name,
       last_name: params.last_name,
-      username: normalizedUsername,
       email: normalizedEmail,
       phone: normalizedPhone,
       passwordHash: inviteOtpHash,
@@ -312,6 +322,10 @@ export class MemberService {
     const ok = await verifyPassword(params.otp, member.inviteOtpHash);
     if (!ok) throw new ApiError("Invalid one-time password", 400);
 
+    if (!isStrongPassword(params.newPassword)) {
+      throw new ApiError(STRONG_PASSWORD_ERROR_MESSAGE, 400);
+    }
+
     const passwordHash = await hashPassword(params.newPassword);
     const updated = await this.memberRepository.update(member.id, {
       passwordHash,
@@ -348,7 +362,6 @@ export class MemberService {
   async listDuplicateCredentials(groupId: string) {
     const members = await this.memberRepository.listByGroup(groupId);
 
-    const usernameMap = new Map<string, Member[]>();
     const emailMap = new Map<string, Member[]>();
     const phoneMap = new Map<string, Member[]>();
 
@@ -360,7 +373,6 @@ export class MemberService {
     };
 
     members.forEach((member) => {
-      addToMap(usernameMap, this.normalizeUsername(member.username), member);
       addToMap(emailMap, this.normalizeEmail(member.email), member);
       addToMap(phoneMap, this.normalizePhone(member.phone), member);
     });
@@ -375,7 +387,6 @@ export class MemberService {
             id: member.id,
             first_name: member.first_name,
             last_name: member.last_name,
-            username: member.username,
             email: member.email,
             phone: member.phone,
             status: member.status,
@@ -385,16 +396,13 @@ export class MemberService {
         .sort((a, b) => b.count - a.count || a.value.localeCompare(b.value));
     };
 
-    const usernameDuplicates = toDuplicateList(usernameMap);
     const emailDuplicates = toDuplicateList(emailMap);
     const phoneDuplicates = toDuplicateList(phoneMap);
 
     return {
       hasDuplicates:
-        usernameDuplicates.length > 0 ||
         emailDuplicates.length > 0 ||
         phoneDuplicates.length > 0,
-      usernameDuplicates,
       emailDuplicates,
       phoneDuplicates,
     };
@@ -440,20 +448,26 @@ export class MemberService {
     return { ...member, passwordHash: "" };
   }
 
-  async updateProfile(memberId: string, patch: { first_name?: string; last_name?: string; email?: string; phone?: string; username?: string }) {
+  async updateProfile(memberId: string, patch: { first_name?: string; last_name?: string; email?: string; phone?: string }) {
     const current = await this.memberRepository.getById(memberId);
     if (!current) throw new ApiError("Member not found", 404);
 
     const normalizedPatch: Partial<Member> = {
       ...patch,
-      username: patch.username !== undefined ? (patch.username.trim() || current.username) : undefined,
-      email: patch.email !== undefined ? this.normalizeOptional(patch.email) : undefined,
-      phone: patch.phone !== undefined ? this.normalizeOptional(patch.phone) : undefined,
+      email: patch.email !== undefined ? this.normalizeEmail(patch.email) : undefined,
+      phone: patch.phone !== undefined ? this.normalizePhone(patch.phone) : undefined,
     };
+
+    if (normalizedPatch.email && !isValidEmail(normalizedPatch.email)) {
+      throw new ApiError("Please provide a valid email address", 400);
+    }
+
+    if (normalizedPatch.phone && !isValidPhone(normalizedPatch.phone)) {
+      throw new ApiError("Please provide a valid phone number", 400);
+    }
 
     await this.assertUniqueCredentialsInGroup({
       groupId: current.groupId,
-      username: normalizedPatch.username ?? current.username,
       email: normalizedPatch.email ?? current.email,
       phone: normalizedPatch.phone ?? current.phone,
       excludeMemberId: current.id,
@@ -470,6 +484,10 @@ export class MemberService {
 
     const ok = await verifyPassword(currentPassword, member.passwordHash);
     if (!ok) throw new ApiError("Current password is incorrect", 400);
+
+    if (!isStrongPassword(newPassword)) {
+      throw new ApiError(STRONG_PASSWORD_ERROR_MESSAGE, 400);
+    }
 
     const passwordHash = await hashPassword(newPassword);
     const updated = await this.memberRepository.update(memberId, { passwordHash });

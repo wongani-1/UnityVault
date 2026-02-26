@@ -34,11 +34,11 @@ const FAQ = () => {
     },
     {
       question: "How do I log in as a Group Admin?",
-      answer: "Enter your Group ID, username/email, and password. The system verifies all three to ensure you're logging into the correct group."
+      answer: "Enter your email, and password. The system verifies all three to ensure you're logging into the correct group."
     },
     {
       question: "How do members log in?",
-      answer: "Members only need their username/email and password. The system automatically maps them to their assigned group."
+      answer: "Members only need their email and password. The system automatically maps them to their assigned group."
     },
     {
       question: "What happens if I forget my password?",

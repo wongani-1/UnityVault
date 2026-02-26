@@ -17,6 +17,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { AlertCircle, UserPlus } from "lucide-react";
 import { apiRequest } from "@/lib/api";
+import { isValidEmail, isValidPhone } from "@/lib/contactValidation";
 import { toast } from "@/components/ui/sonner";
 
 type Member = {
@@ -25,7 +26,6 @@ type Member = {
   last_name: string;
   email?: string;
   phone?: string;
-  username: string;
   status: "pending" | "active" | "rejected";
   createdAt: string;
   balance?: number;
@@ -105,7 +105,6 @@ const AdminMembers = () => {
     last_name: "",
     email: "",
     phone: "",
-    username: "",
   });
 
 
@@ -211,12 +210,22 @@ const AdminMembers = () => {
       return;
     }
 
-    if (!form.first_name || !form.last_name || !form.username) {
-      toast.error("First name, last name, and username are required.");
+    if (!form.first_name || !form.last_name) {
+      toast.error("First name and last name are required.");
       return;
     }
     if (!form.email && !form.phone) {
       toast.error("Email or phone is required for the invite.");
+      return;
+    }
+
+    if (form.email && !isValidEmail(form.email)) {
+      toast.error("Please enter a valid email address.");
+      return;
+    }
+
+    if (form.phone && !isValidPhone(form.phone)) {
+      toast.error("Please enter a valid phone number.");
       return;
     }
 
@@ -227,7 +236,6 @@ const AdminMembers = () => {
         body: {
           first_name: form.first_name,
           last_name: form.last_name,
-          username: form.username,
           email: form.email || undefined,
           phone: form.phone || undefined,
         },
@@ -243,7 +251,7 @@ const AdminMembers = () => {
       } else {
         toast.success("Member invited successfully and activation email sent.");
       }
-      setForm({ first_name: "", last_name: "", email: "", phone: "", username: "" });
+      setForm({ first_name: "", last_name: "", email: "", phone: "" });
       await loadMembers();
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to add member";
@@ -396,15 +404,6 @@ const AdminMembers = () => {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="member-username">Username</Label>
-              <Input
-                id="member-username"
-                value={form.username}
-                onChange={(e) => updateField("username", e.target.value)}
-                placeholder="Username"
-              />
-            </div>
-            <div className="space-y-2">
               <Label htmlFor="member-email">Email</Label>
               <Input
                 id="member-email"
@@ -418,6 +417,9 @@ const AdminMembers = () => {
               <Label htmlFor="member-phone">Phone</Label>
               <Input
                 id="member-phone"
+                type="tel"
+                inputMode="tel"
+                autoComplete="tel"
                 value={form.phone}
                 onChange={(e) => updateField("phone", e.target.value)}
                 placeholder="+265 XXX XXX XXX"
@@ -515,8 +517,8 @@ const AdminMembers = () => {
                   <p className="text-sm font-semibold text-foreground">{selectedMember.first_name} {selectedMember.last_name}</p>
                 </div>
                 <div>
-                  <p className="text-xs uppercase text-muted-foreground">Username</p>
-                  <p className="text-sm font-semibold text-foreground">{selectedMember.username}</p>
+                  <p className="text-xs uppercase text-muted-foreground">Email</p>
+                  <p className="text-sm font-semibold text-foreground">{selectedMember.email || "N/A"}</p>
                 </div>
                 <div>
                   <p className="text-xs uppercase text-muted-foreground">Email</p>

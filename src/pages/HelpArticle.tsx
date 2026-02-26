@@ -20,7 +20,7 @@ const HelpArticle = () => {
             Group Admins log in using their:
           </p>
           <ul className="list-disc space-y-1 pl-6 text-muted-foreground mb-6">
-            <li>Email (or username)</li>
+            <li>Email or phone</li>
             <li>Password</li>
           </ul>
           <p className="text-muted-foreground mb-6">
@@ -30,7 +30,7 @@ const HelpArticle = () => {
           <h3 className="text-lg font-semibold text-foreground mb-3">Steps to Log In</h3>
           <ol className="list-decimal space-y-2 pl-6 text-muted-foreground mb-6">
             <li>Go to the Login page</li>
-            <li>Enter your registered email or username</li>
+            <li>Enter your registered email or phone</li>
             <li>Enter your password</li>
             <li>Click Login</li>
           </ol>
@@ -66,7 +66,7 @@ const HelpArticle = () => {
             Members log in using:
           </p>
           <ul className="list-disc space-y-1 pl-6 text-muted-foreground mb-6">
-            <li>Username or email</li>
+            <li>Email or phone</li>
             <li>Password</li>
           </ul>
           <p className="text-muted-foreground mb-6">
@@ -76,7 +76,7 @@ const HelpArticle = () => {
           <h3 className="text-lg font-semibold text-foreground mb-3">Steps</h3>
           <ol className="list-decimal space-y-2 pl-6 text-muted-foreground mb-6">
             <li>Go to the Login page</li>
-            <li>Enter your username or email</li>
+            <li>Enter your email or phone</li>
             <li>Enter your password</li>
             <li>Click Login</li>
           </ol>
@@ -137,7 +137,7 @@ const HelpArticle = () => {
           <p className="text-muted-foreground mb-4">You will enter:</p>
           <ul className="list-disc space-y-1 pl-6 text-muted-foreground mb-6">
             <li>Your name</li>
-            <li>Username</li>
+            <li>Email or phone</li>
             <li>Password</li>
           </ul>
           <p className="text-muted-foreground mb-6">

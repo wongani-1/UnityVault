@@ -92,7 +92,7 @@ export const adminRepository: AdminRepository = {
   async findByGroupAndIdentifier(groupId, identifier) {
     const supabase = requireSupabase();
     const idValue = toFilterValue(identifier);
-    const filter = `email.eq.${idValue},username.eq.${idValue}`;
+    const filter = `email.eq.${idValue},phone.eq.${idValue}`;
     const { data, error } = await supabase
       .from("admins")
       .select("*")
@@ -122,7 +122,7 @@ export const adminRepository: AdminRepository = {
     if (rows.length === 0) return undefined;
 
     const exactMatch = rows.find(
-      (row) => row.username === identifier || row.email === identifier
+      (row) => row.email === identifier || row.phone === identifier
     );
 
     return exactMatch ? fromAdminRow(exactMatch) : fromAdminRow(rows[0]);
@@ -130,7 +130,7 @@ export const adminRepository: AdminRepository = {
   async findByIdentifier(identifier) {
     const supabase = requireSupabase();
     const idValue = toFilterValue(identifier);
-    const filter = `email.eq.${idValue},username.eq.${idValue},phone.eq.${idValue}`;
+    const filter = `email.eq.${idValue},phone.eq.${idValue}`;
     const { data, error } = await supabase
       .from("admins")
       .select("*")
@@ -158,8 +158,7 @@ export const adminRepository: AdminRepository = {
     if (rows.length === 0) return undefined;
 
     const exactMatch = rows.find(
-      (row) =>
-        row.username === identifier || row.email === identifier || row.phone === identifier
+      (row) => row.email === identifier || row.phone === identifier
     );
 
     return exactMatch ? fromAdminRow(exactMatch) : fromAdminRow(rows[0]);

@@ -22,7 +22,6 @@ export const createGroup = asyncHandler(async (req: Request, res: Response) => {
     };
     admin: {
       email: string;
-      username: string;
       password: string;
       first_name?: string;
       last_name?: string;

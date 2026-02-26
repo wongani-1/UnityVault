@@ -49,7 +49,6 @@ export type Admin = {
   last_name?: string;
   email: string;
   phone?: string;
-  username: string;
   passwordHash: string;
   role: "group_admin";
   createdAt: string;
@@ -74,7 +73,6 @@ export type Member = {
   last_name: string;
   email?: string;
   phone?: string;
-  username: string;
   passwordHash: string;
   status: MemberStatus;
   createdAt: string;

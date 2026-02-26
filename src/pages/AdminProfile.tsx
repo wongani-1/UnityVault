@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { apiRequest, apiDownload } from "../lib/api";
+import { isValidEmail, isValidPhone } from "../lib/contactValidation";
 import { toast } from "@/components/ui/sonner";
 import { Shield, Download, Key, Copy, Eye, EyeOff, Calendar, AlertCircle, CheckCircle } from "lucide-react";
 
@@ -14,7 +15,6 @@ const AdminProfile = () => {
     last_name: "",
     email: "",
     phone: "",
-    username: "",
   });
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: "",
@@ -44,7 +44,7 @@ const AdminProfile = () => {
     const load = async () => {
       try {
         const [admin, subscription] = await Promise.all([
-          apiRequest<{ first_name?: string; last_name?: string; email: string; phone?: string; username: string; twoFactorEnabled?: boolean }>(
+          apiRequest<{ first_name?: string; last_name?: string; email: string; phone?: string; twoFactorEnabled?: boolean }>(
             "/admins/me"
           ),
           apiRequest<{ 
@@ -62,7 +62,6 @@ const AdminProfile = () => {
           last_name: admin.last_name || "",
           email: admin.email || "",
           phone: admin.phone || "",
-          username: admin.username || "",
         });
         setTwoFactorEnabled(admin.twoFactorEnabled || false);
         setSubscriptionPaid(subscription.subscriptionPaid);
@@ -90,8 +89,18 @@ const AdminProfile = () => {
   };
 
   const handleSave = async () => {
+    if (!isValidEmail(form.email)) {
+      toast.error("Please enter a valid email address.");
+      return;
+    }
+
+    if (form.phone && !isValidPhone(form.phone)) {
+      toast.error("Please enter a valid phone number.");
+      return;
+    }
+
     try {
-      const updated = await apiRequest<{ first_name?: string; last_name?: string; email: string; phone?: string; username: string }>(
+      const updated = await apiRequest<{ first_name?: string; last_name?: string; email: string; phone?: string }>(
         "/admins/me",
         {
           method: "PUT",
@@ -100,7 +109,6 @@ const AdminProfile = () => {
             last_name: form.last_name,
             email: form.email,
             phone: form.phone,
-            username: form.username,
           },
         }
       );
@@ -115,7 +123,7 @@ const AdminProfile = () => {
             adminName:
               updated.first_name && updated.last_name
                 ? `${updated.first_name} ${updated.last_name}`
-                : updated.username,
+                : updated.email,
             adminEmail: updated.email,
             adminPhone: updated.phone,
           })
@@ -363,15 +371,6 @@ const AdminProfile = () => {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="admin-username">Username</Label>
-            <Input
-              id="admin-username"
-              value={form.username}
-              onChange={(e) => updateField("username", e.target.value)}
-              placeholder="Username"
-            />
-          </div>
-          <div className="space-y-2">
             <Label htmlFor="admin-email">Email</Label>
             <Input
               id="admin-email"
@@ -385,6 +384,9 @@ const AdminProfile = () => {
             <Label htmlFor="admin-phone">Phone</Label>
             <Input
               id="admin-phone"
+              type="tel"
+              inputMode="tel"
+              autoComplete="tel"
               value={form.phone}
               onChange={(e) => updateField("phone", e.target.value)}
               placeholder="+256 700 000 000"

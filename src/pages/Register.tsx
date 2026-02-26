@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, Users, User, Mail, Phone, Lock, Eye, EyeOff, Loader2 } from "lucide-react";
 import { apiRequest } from "../lib/api";
+import { isValidEmail, isValidPhone } from "../lib/contactValidation";
 import { toast } from "@/components/ui/sonner";
 
 const Register = () => {
@@ -60,18 +61,28 @@ const Register = () => {
 
     const values = Object.values(form).map((value) => value.trim());
     const hasEmpty = values.some((value) => value.length === 0);
+    const emailValid = isValidEmail(form.adminEmail);
+    const phoneValid = isValidPhone(form.adminPhone);
     const passwordStrong = isStrongPassword(form.adminPassword);
     const passwordsMatch = form.adminPassword === form.confirmPassword;
 
-    setFormError(hasEmpty ? "All fields are required." : null);
+    setFormError(
+      hasEmpty
+        ? "All fields are required."
+        : !emailValid
+          ? "Please enter a valid email address."
+          : !phoneValid
+            ? "Please enter a valid phone number."
+            : null
+    );
     setPasswordError(
       passwordStrong
         ? null
-        : "Password must include lowercase, uppercase, number, and symbol."
+        : "Password must be at least 8 characters and include lowercase, uppercase, number, and symbol."
     );
     setConfirmError(passwordsMatch ? null : "Passwords do not match.");
 
-    if (hasEmpty || !passwordStrong || !passwordsMatch) {
+    if (hasEmpty || !emailValid || !phoneValid || !passwordStrong || !passwordsMatch) {
       return;
     }
 
@@ -113,7 +124,6 @@ const Register = () => {
           settings,
           admin: {
             email: form.adminEmail,
-            username: form.adminEmail,
             password: form.adminPassword,
             first_name: form.adminFirstName,
             last_name: form.adminSurname,
@@ -256,6 +266,7 @@ const Register = () => {
                 <Input
                   id="adminEmail"
                   type="email"
+                  autoComplete="email"
                   placeholder="admin@example.com"
                   className="pl-10"
                   value={form.adminEmail}
@@ -271,6 +282,8 @@ const Register = () => {
                 <Input
                   id="adminPhone"
                   type="tel"
+                  inputMode="tel"
+                  autoComplete="tel"
                   placeholder="+265 888 000 000"
                   className="pl-10"
                   value={form.adminPhone}

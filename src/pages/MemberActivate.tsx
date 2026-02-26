@@ -82,7 +82,7 @@ const MemberActivate = () => {
         <CardHeader>
           <CardTitle className="text-lg">Activate Your Account</CardTitle>
           <p className="text-sm text-muted-foreground">
-            Your activation link and one-time password (OTP) expire in 5 minutes.
+            Your activation link and one-time password (OTP) expire in 24 hours.
           </p>
         </CardHeader>
         <CardContent className="space-y-4">

@@ -1,5 +1,9 @@
 import type { AdminRepository, MemberRepository } from "../repositories/interfaces";
-import { hashPassword } from "../utils/password";
+import {
+  hashPassword,
+  isStrongPassword,
+  STRONG_PASSWORD_ERROR_MESSAGE,
+} from "../utils/password";
 import { ApiError } from "../utils/apiError";
 import { generatePasswordResetToken, getPasswordResetExpiryTime } from "../utils/passwordReset";
 
@@ -66,6 +70,10 @@ export class PasswordResetService {
 
   async resetPassword(params: { token: string; newPassword: string; role: "member" | "group_admin" }) {
     const { token, newPassword, role } = params;
+
+    if (!isStrongPassword(newPassword)) {
+      throw new ApiError(STRONG_PASSWORD_ERROR_MESSAGE, 400);
+    }
 
     // Validate token first
     const validation = await this.validateReset({ token, role });

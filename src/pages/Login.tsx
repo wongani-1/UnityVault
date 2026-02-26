@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,13 +18,6 @@ const Login = () => {
   const [loading, setLoading] = useState<"member" | "admin" | null>(null);
   const [showMemberPassword, setShowMemberPassword] = useState(false);
   const [showAdminPassword, setShowAdminPassword] = useState(false);
-  const redirectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    return () => {
-      if (redirectTimer.current) clearTimeout(redirectTimer.current);
-    };
-  }, []);
 
   const handleMemberLogin = async () => {
     const hasEmpty = [memberLogin.identifier, memberLogin.password].some(
@@ -71,11 +64,8 @@ const Login = () => {
       );
 
       if (!feeStatus.registrationFeePaid) {
-        // Show notification and redirect after 10 seconds
-        toast.warning("Registration fee payment required. Redirecting to payment page...");
-        redirectTimer.current = setTimeout(() => {
-          navigate("/member/registration-fee");
-        }, 3000);
+        toast.warning("Registration fee payment required.");
+        navigate("/member/registration-fee");
       } else {
         navigate("/dashboard");
       }
@@ -117,7 +107,7 @@ const Login = () => {
       const group = await apiRequest<{ id: string; name: string }>(
         `/groups/${auth.user.groupId}`
       );
-      const adminProfile = await apiRequest<{ first_name?: string; last_name?: string; email: string; phone?: string; username: string }>(
+      const adminProfile = await apiRequest<{ first_name?: string; last_name?: string; email: string; phone?: string }>(
         "/admins/me"
       );
       sessionStorage.setItem(
@@ -125,7 +115,7 @@ const Login = () => {
         JSON.stringify({
           groupId: group.id,
           groupName: group.name,
-          adminName: (adminProfile.first_name && adminProfile.last_name) ? `${adminProfile.first_name} ${adminProfile.last_name}` : adminProfile.username,
+          adminName: (adminProfile.first_name && adminProfile.last_name) ? `${adminProfile.first_name} ${adminProfile.last_name}` : adminProfile.email,
           adminEmail: adminProfile.email,
           adminPhone: adminProfile.phone,
         })
@@ -256,13 +246,13 @@ const Login = () => {
                 </form>
               </TabsContent>
 
-              {/* Admin Login — sign in with email, username, or phone */}
+              {/* Admin Login — sign in with email or phone */}
               <TabsContent value="admin" className="space-y-4">
                 <form onSubmit={(e) => { e.preventDefault(); handleAdminLogin(); }} className="space-y-4">
                 <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
                   <p className="flex items-center gap-2 text-xs font-medium text-primary">
                     <Shield className="h-3.5 w-3.5" />
-                    Sign in with your email, username, or phone number
+                    Sign in with your email or phone number
                   </p>
                   <p className="mt-1 text-xs text-muted-foreground">
                     You can access your group once authenticated with valid credentials.
@@ -270,7 +260,7 @@ const Login = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="admin-identifier">Email, Username, or Phone</Label>
+                  <Label htmlFor="admin-identifier">Email or Phone</Label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input

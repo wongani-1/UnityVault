@@ -41,7 +41,7 @@ export const memberRepository: MemberRepository = {
   async findByIdentifier(identifier) {
     const supabase = requireSupabase();
     const idValue = toFilterValue(identifier);
-    const filter = `username.eq.${idValue},email.eq.${idValue},phone.eq.${idValue}`;
+    const filter = `email.eq.${idValue},phone.eq.${idValue}`;
     const { data, error } = await supabase
       .from("members")
       .select("*")
@@ -74,14 +74,13 @@ export const memberRepository: MemberRepository = {
 
     const activeExact = rows.find((row) =>
       row.status === "active" &&
-      (row.username === identifier || row.email === identifier || row.phone === identifier)
+      (row.email === identifier || row.phone === identifier)
     );
 
     if (activeExact) return fromMemberRow(activeExact);
 
     const latestExact = rows.find(
-      (row) =>
-        row.username === identifier || row.email === identifier || row.phone === identifier
+      (row) => row.email === identifier || row.phone === identifier
     );
 
     return latestExact ? fromMemberRow(latestExact) : undefined;

@@ -25,7 +25,7 @@ export class TwoFactorService {
       const user = await this.adminRepository.getById(userId);
       if (!user) throw new ApiError("User not found", 404);
 
-      userEmail = user.email || user.username || userId;
+      userEmail = user.email || userId;
 
       await this.adminRepository.update(userId, {
         ...user,

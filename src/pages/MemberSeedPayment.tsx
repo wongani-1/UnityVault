@@ -10,6 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import { ArrowLeft, CreditCard, Smartphone, ShieldCheck, AlertCircle } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
 import { apiRequest } from "@/lib/api";
+import { isValidEmail } from "@/lib/contactValidation";
 
 const MemberSeedPayment = () => {
   const navigate = useNavigate();
@@ -100,6 +101,11 @@ const MemberSeedPayment = () => {
         setFormError("All card fields are required.");
         return;
       }
+    }
+
+    if (form.email.trim() && !isValidEmail(form.email)) {
+      setFormError("Please enter a valid email address.");
+      return;
     }
     
     setFormError(null);
@@ -282,6 +288,9 @@ const MemberSeedPayment = () => {
                     <Label htmlFor="mobile-number">Mobile number</Label>
                     <Input
                       id="mobile-number"
+                      type="tel"
+                      inputMode="tel"
+                      autoComplete="tel"
                       placeholder={
                         mobileProvider === "airtel"
                           ? "09XXXXXXXX"
@@ -364,6 +373,7 @@ const MemberSeedPayment = () => {
                 <Input
                   id="payer-email"
                   type="email"
+                  autoComplete="email"
                   placeholder="you@example.com"
                   value={form.email}
                   onChange={(e) => updateField("email", e.target.value)}

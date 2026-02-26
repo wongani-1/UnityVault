@@ -74,7 +74,7 @@ const PrivacyPolicy = () => {
                   <li>Full name</li>
                   <li>Phone number</li>
                   <li>Email address</li>
-                  <li>Username</li>
+                  <li>Email address</li>
                   <li>Encrypted password</li>
                   <li>Role (Member or Group Admin)</li>
                 </ul>

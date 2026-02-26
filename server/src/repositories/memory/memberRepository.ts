@@ -18,10 +18,7 @@ export const memberRepository: MemberRepository = {
   async findByIdentifier(identifier: string) {
     const members = Array.from(store.members.values());
     return members.find(
-      (member) =>
-        member.username === identifier ||
-        member.email === identifier ||
-        member.phone === identifier
+      (member) => member.email === identifier || member.phone === identifier
     );
   },
   async findByInviteToken(token: string) {

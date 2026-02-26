@@ -218,12 +218,12 @@ const ForgotPassword = () => {
 
                   <TabsContent value="admin" className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="admin-identifier">Email, Username, or Phone</Label>
+                      <Label htmlFor="admin-identifier">Email or Phone</Label>
                       <div className="relative">
                         <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                         <Input
                           id="admin-identifier"
-                          placeholder="admin@example.com / username / phone"
+                          placeholder="admin@example.com / phone"
                           className="pl-10"
                           value={identifier}
                           onChange={(e) => setIdentifier(e.target.value)}

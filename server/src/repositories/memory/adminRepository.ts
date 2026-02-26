@@ -20,13 +20,13 @@ export const adminRepository: AdminRepository = {
     return admins.find(
       (admin) =>
         admin.groupId === groupId &&
-        (admin.email === identifier || admin.username === identifier)
+        (admin.email === identifier || admin.phone === identifier)
     );
   },
   async findByIdentifier(identifier: string) {
     const admins = Array.from(store.admins.values());
     return admins.find(
-      (admin) => admin.email === identifier || admin.username === identifier || admin.phone === identifier
+      (admin) => admin.email === identifier || admin.phone === identifier
     );
   },
   async listByGroup(groupId: string) {

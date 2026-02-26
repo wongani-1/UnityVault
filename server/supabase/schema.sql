@@ -17,7 +17,6 @@ create table if not exists public.admins (
   last_name text,
   email text not null,
   phone text,
-  username text not null,
   password_hash text not null,
   role text not null,
   created_at timestamptz not null default now(),
@@ -39,7 +38,6 @@ create table if not exists public.members (
   last_name text not null,
   email text,
   phone text,
-  username text not null,
   password_hash text not null,
   status text not null,
   created_at timestamptz not null default now(),
@@ -228,8 +226,7 @@ create table if not exists public.payment_transactions (
 
 create index if not exists idx_admins_group_id on public.admins(group_id);
 create index if not exists idx_members_group_id on public.members(group_id);
-create index if not exists idx_members_identifier on public.members(username, email, phone);
-create unique index if not exists uq_members_group_username_ci on public.members(group_id, lower(btrim(username)));
+create index if not exists idx_members_identifier on public.members(email, phone);
 create unique index if not exists uq_members_group_email_ci on public.members(group_id, lower(btrim(email))) where email is not null and btrim(email) <> '';
 create unique index if not exists uq_members_group_phone_norm on public.members(group_id, regexp_replace(btrim(phone), '\s+', '', 'g')) where phone is not null and btrim(phone) <> '';
 create index if not exists idx_contributions_group_id on public.contributions(group_id);
