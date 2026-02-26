@@ -20,7 +20,7 @@ export class EmailService {
 
   async sendEmail(options: EmailOptions): Promise<boolean> {
     if (!env.email.sendgridApiKey) {
-      console.warn("SendGrid API key not configured. Skipping email to:", options.to);
+      console.warn("SendGrid API key not configured. Skipping email send.");
       return false;
     }
     try {
@@ -32,10 +32,10 @@ export class EmailService {
         text: options.text || options.html.replace(/<[^>]*>/g, ""),
       };
       await sgMail.send(msg);
-      console.log(`Email sent successfully to ${options.to}`);
+      console.log("Email sent successfully");
       return true;
     } catch (error: any) {
-      console.error(`SendGrid email send failed for ${options.to}:`, error?.message || error);
+      console.error("SendGrid email send failed:", error?.message || error);
       return false;
     }
   }

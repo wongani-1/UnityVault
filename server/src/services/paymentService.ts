@@ -122,7 +122,11 @@ export class PaymentService {
         last_name: params.last_name,
       };
       
-      console.log("⚠️  Mock payment created:", mockTransaction);
+      console.log("⚠️  Mock payment created", {
+        chargeId,
+        status: mockTransaction.status,
+        paymentType: mockTransaction.paymentType,
+      });
       return mockTransaction;
     }
 

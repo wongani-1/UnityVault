@@ -50,7 +50,7 @@ export async function sendPushNotification(
 ) {
   const subscription = subscriptions.get(userId);
   if (!subscription) {
-    console.log(`No subscription found for user ${userId}`);
+    console.log("No push subscription found for user");
     return;
   }
 
@@ -59,5 +59,8 @@ export async function sendPushNotification(
   // import webpush from 'web-push';
   // await webpush.sendNotification(subscription, JSON.stringify(payload));
 
-  console.log(`Would send push notification to ${userId}:`, payload);
+  console.log("Would send push notification", {
+    hasTag: Boolean(payload.tag),
+    hasUrl: Boolean(payload.url),
+  });
 }

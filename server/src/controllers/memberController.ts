@@ -29,10 +29,6 @@ export const registerMember = asyncHandler(async (req: Request, res: Response) =
 
 export const inviteMember = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) throw new ApiError("Unauthorized", 401);
-  console.log("Invite member request received", {
-    adminId: req.user.userId,
-    groupId: req.user.groupId,
-  });
   const { first_name, last_name, username, email, phone } = req.body as {
     first_name: string;
     last_name: string;
@@ -40,13 +36,6 @@ export const inviteMember = asyncHandler(async (req: Request, res: Response) => 
     email?: string;
     phone?: string;
   };
-  console.log("Invite member payload", {
-    first_name,
-    last_name,
-    username,
-    hasEmail: Boolean(email),
-    hasPhone: Boolean(phone),
-  });
 
   await container.adminService.assertCanManageMembers({
     adminId: req.user.userId,

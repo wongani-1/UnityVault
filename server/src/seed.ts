@@ -229,8 +229,8 @@ export async function seedData() {
 
   console.log("✅ Test data seeded successfully");
   console.log("   Group:", testGroup.name, `(${testGroup.id})`);
-  console.log("   Admin:", testAdmin.username, "/ admin123");
-  console.log("   Members:", testMembers.length, "(username: alice, robert, grace / password: member123)");
+  console.log("   Admin:", "Seeded test admin account");
+  console.log("   Members:", testMembers.length);
   console.log("   Loans:", testLoans.length);
   console.log("   Contributions:", testContributions.length);
 }

@@ -167,12 +167,7 @@ export class MemberService {
     email?: string;
     phone?: string;
   }) {
-    console.log("Creating member invite", {
-      groupId: params.groupId,
-      username: params.username,
-      hasEmail: Boolean(params.email),
-      hasPhone: Boolean(params.phone),
-    });
+    console.log("Creating member invite request");
     await this.ensureCycleOpen(params.groupId);
 
     const normalizedUsername = params.username?.trim();
@@ -247,10 +242,7 @@ export class MemberService {
       emailAttempted = true;
       const group = await this.groupRepository.getById(params.groupId);
       const groupName = group?.name || "Your Group";
-      console.log("Sending invite email", {
-        to: normalizedEmail,
-        groupName,
-      });
+      console.log("Sending member invite email");
 
       try {
         emailSent = await this.emailService.sendMemberInvite({
@@ -271,7 +263,7 @@ export class MemberService {
         console.error("Failed to send invitation email:", error);
       }
     } else {
-      console.log("Skipping invite email because no email was provided");
+      console.log("Skipping invite email because no recipient email was provided");
     }
 
     return {
