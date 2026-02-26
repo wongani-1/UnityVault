@@ -7,49 +7,14 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, CreditCard, Smartphone, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Check, CreditCard, Smartphone, ShieldCheck } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
 import { apiRequest } from "@/lib/api";
-
-type SubscriptionPlanId = "starter" | "professional" | "enterprise";
-
-const subscriptionPlans: Array<{
-  id: SubscriptionPlanId;
-  name: string;
-  price: number | null;
-  billing: string;
-  subtitle: string;
-  popularLabel?: string;
-}> = [
-  {
-    id: "starter",
-    name: "Starter",
-    price: 15000,
-    billing: "month",
-    subtitle: "For small savings groups starting their digital journey",
-  },
-  {
-    id: "professional",
-    name: "Professional",
-    price: 45000,
-    billing: "month",
-    subtitle: "For growing savings groups",
-    popularLabel: "Most Popular for Savings Groups",
-  },
-  {
-    id: "enterprise",
-    name: "Enterprise",
-    price: null,
-    billing: "custom",
-    subtitle: "For SACCOs, organizations, and financial networks",
-  },
-];
-
-const planRank: Record<SubscriptionPlanId, number> = {
-  starter: 1,
-  professional: 2,
-  enterprise: 3,
-};
+import {
+  SUBSCRIPTION_PLANS,
+  PLAN_RANK,
+  type SubscriptionPlanId,
+} from "@/lib/subscriptionPlans";
 
 const MemberRegistrationPayment = () => {
   const navigate = useNavigate();
@@ -77,12 +42,12 @@ const MemberRegistrationPayment = () => {
   }, [location.pathname]);
 
   const selectedPlan = useMemo(
-    () => subscriptionPlans.find((plan) => plan.id === selectedPlanId) || subscriptionPlans[1],
+    () => SUBSCRIPTION_PLANS.find((plan) => plan.id === selectedPlanId) || SUBSCRIPTION_PLANS[1],
     [selectedPlanId]
   );
 
-  const selectedPlanRank = planRank[selectedPlanId];
-  const currentPlanRank = currentPlanId ? planRank[currentPlanId] : 0;
+  const selectedPlanRank = PLAN_RANK[selectedPlanId];
+  const currentPlanRank = currentPlanId ? PLAN_RANK[currentPlanId] : 0;
   const isUpgradeSelection = Boolean(currentPlanId && selectedPlanRank > currentPlanRank);
   const isDowngradeSelection = Boolean(currentPlanId && selectedPlanRank < currentPlanRank);
   const isSamePlanSelection = Boolean(currentPlanId && selectedPlanRank === currentPlanRank);
@@ -104,24 +69,17 @@ const MemberRegistrationPayment = () => {
     void (async () => {
       try {
         const status = await apiRequest<{
+          planId?: SubscriptionPlanId;
           currentPlanId?: SubscriptionPlanId;
           availableUpgradePlanIds?: SubscriptionPlanId[];
         }>("/admins/me/subscription-status");
 
-        const current = status.currentPlanId || "starter";
+        const current = status.currentPlanId || status.planId || "starter";
         setCurrentPlanId(current);
 
-        const upgrades = status.availableUpgradePlanIds || [];
-        if (upgrades.length > 0) {
-          const preferred = upgrades.includes("professional")
-            ? "professional"
-            : upgrades[0];
-          setSelectedPlanId(preferred);
-        } else {
-          setSelectedPlanId(current);
-        }
+        setSelectedPlanId(current);
       } catch {
-        setCurrentPlanId("starter");
+        setCurrentPlanId(null);
       }
     })();
   }, [isAdminSubscription]);
@@ -257,14 +215,14 @@ const MemberRegistrationPayment = () => {
                   <h3 className="text-sm font-semibold text-foreground">Select subscription plan</h3>
                   {currentPlanId && (
                     <p className="text-xs text-muted-foreground">
-                      Current plan: {subscriptionPlans.find((plan) => plan.id === currentPlanId)?.name || "Starter"}
+                      Current plan: {SUBSCRIPTION_PLANS.find((plan) => plan.id === currentPlanId)?.name || "Starter"}
                     </p>
                   )}
                   <div className="grid gap-3">
-                    {subscriptionPlans.map((plan) => {
+                    {SUBSCRIPTION_PLANS.map((plan) => {
                       const isSelected = selectedPlanId === plan.id;
                       const isDowngrade = currentPlanId
-                        ? planRank[plan.id] < planRank[currentPlanId]
+                        ? PLAN_RANK[plan.id] < PLAN_RANK[currentPlanId]
                         : false;
                       const isCurrent = currentPlanId ? plan.id === currentPlanId : false;
                       return (
@@ -284,23 +242,35 @@ const MemberRegistrationPayment = () => {
                           <div className="flex flex-wrap items-start justify-between gap-2">
                             <div>
                               <p className="font-semibold text-foreground">{plan.name}</p>
-                              <p className="text-xs text-muted-foreground">{plan.subtitle}</p>
+                              <p className="text-xs text-muted-foreground">{plan.description}</p>
+                              <ul className="mt-2 space-y-1">
+                                {plan.features.map((feature) => (
+                                  <li key={feature} className="flex items-start gap-1.5 text-xs text-muted-foreground">
+                                    <Check className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-primary" />
+                                    <span>{feature}</span>
+                                  </li>
+                                ))}
+                              </ul>
                               {plan.popularLabel && (
                                 <p className="mt-1 text-xs font-medium text-primary">{plan.popularLabel}</p>
                               )}
                               {isCurrent && (
                                 <p className="mt-1 text-xs font-medium text-info">Current Plan</p>
                               )}
+                              {isSelected && (
+                                <p className="mt-1 text-xs font-medium text-primary">Selected</p>
+                              )}
                               {isDowngrade && (
                                 <p className="mt-1 text-xs font-medium text-muted-foreground">Downgrade not allowed</p>
                               )}
+                              <p className="mt-2 text-xs font-medium text-foreground">{plan.cta}</p>
                             </div>
                             <div className="text-right">
                               <p className="font-bold text-foreground">
-                                {plan.price === null ? "Custom Pricing" : `MWK ${plan.price.toLocaleString()}`}
+                                {plan.price === null ? "Custom" : `MWK ${plan.price.toLocaleString()}`}
                               </p>
                               <p className="text-xs text-muted-foreground">
-                                {plan.price === null ? "" : `/${plan.billing}`}
+                                {plan.price === null ? "" : plan.period || "/month"}
                               </p>
                             </div>
                           </div>

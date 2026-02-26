@@ -2,9 +2,10 @@ import type { Request, Response } from "express";
 import { container } from "../container";
 import { asyncHandler } from "../utils/asyncHandler";
 import { ApiError } from "../utils/apiError";
+import { getSubscriptionPlan, type SubscriptionPlanId } from "../config/subscriptionPlans";
 
 export const createGroup = asyncHandler(async (req: Request, res: Response) => {
-  const { name, settings, admin } = req.body as {
+  const { name, settings, admin, planId } = req.body as {
     name: string;
     settings: {
       contributionAmount: number;
@@ -26,9 +27,14 @@ export const createGroup = asyncHandler(async (req: Request, res: Response) => {
       first_name?: string;
       last_name?: string;
     };
+    planId?: SubscriptionPlanId;
   };
 
-  const result = await container.groupService.createGroup({ name, settings, admin });
+  if (!planId || !getSubscriptionPlan(planId)) {
+    throw new ApiError("A valid subscription plan must be selected before creating a group", 400);
+  }
+
+  const result = await container.groupService.createGroup({ name, settings, admin, planId });
   res.status(201).json(result);
 });
 

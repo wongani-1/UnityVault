@@ -28,7 +28,8 @@ create table if not exists public.admins (
   password_reset_expires_at timestamptz,
   subscription_paid boolean not null default false,
   subscription_paid_at timestamptz,
-  subscription_expires_at timestamptz
+  subscription_expires_at timestamptz,
+  current_plan_id text not null default 'starter'
 );
 
 create table if not exists public.members (

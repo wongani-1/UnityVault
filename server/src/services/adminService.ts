@@ -156,7 +156,8 @@ export class AdminService {
     }
 
     const latestPlan = await this.getLatestSubscriptionPlan(adminId);
-    const currentPlan = latestPlan || getSubscriptionPlan("starter");
+    const persistedPlan = getSubscriptionPlan(admin.currentPlanId || "starter");
+    const currentPlan = latestPlan || persistedPlan || getSubscriptionPlan("starter");
 
     if (!currentPlan) {
       throw new ApiError("Unable to determine current subscription plan", 500);
@@ -237,6 +238,7 @@ export class AdminService {
       subscriptionPaid: true,
       subscriptionPaidAt: now.toISOString(),
       subscriptionExpiresAt: expiresAt.toISOString(),
+      currentPlanId: selectedPlan.id,
     });
     
     if (!updated) throw new ApiError("Failed to record payment", 500);
@@ -248,13 +250,18 @@ export class AdminService {
     if (!admin) return false;
 
     const latestPlan = await this.getLatestSubscriptionPlan(adminId);
+    const selectedPlan = getSubscriptionPlan(admin.currentPlanId || "starter");
+    const effectivePlan = latestPlan || selectedPlan || getSubscriptionPlan("starter");
     const now = new Date();
     const hasPaidSubscriptionWindow =
       admin.subscriptionPaid &&
       Boolean(admin.subscriptionExpiresAt) &&
       now < new Date(admin.subscriptionExpiresAt as string);
 
-    const isStarterTrialEligible = !admin.subscriptionPaid && !latestPlan;
+    const isStarterTrialEligible =
+      !admin.subscriptionPaid &&
+      !latestPlan &&
+      effectivePlan?.id === "starter";
     const trialEndsAt = isStarterTrialEligible ? this.getStarterTrialEnd(admin.createdAt) : undefined;
     const isStarterTrialActive = isStarterTrialEligible && Boolean(trialEndsAt) && now < new Date(trialEndsAt as string);
 
@@ -266,7 +273,8 @@ export class AdminService {
     if (!admin) throw new ApiError("Admin not found", 404);
 
     const latestPlan = await this.getLatestSubscriptionPlan(adminId);
-    const effectivePlan = latestPlan || getSubscriptionPlan("starter");
+    const selectedPlan = getSubscriptionPlan(admin.currentPlanId || "starter");
+    const effectivePlan = latestPlan || selectedPlan || getSubscriptionPlan("starter");
 
     const now = new Date();
     const paidSubscriptionActive =
@@ -274,7 +282,10 @@ export class AdminService {
       Boolean(admin.subscriptionExpiresAt) &&
       now < new Date(admin.subscriptionExpiresAt as string);
 
-    const isStarterTrialEligible = !admin.subscriptionPaid && !latestPlan;
+    const isStarterTrialEligible =
+      !admin.subscriptionPaid &&
+      !latestPlan &&
+      effectivePlan?.id === "starter";
     const trialEndsAt = isStarterTrialEligible ? this.getStarterTrialEnd(admin.createdAt) : undefined;
     const isTrialActive =
       Boolean(isStarterTrialEligible && trialEndsAt) && now < new Date(trialEndsAt as string);

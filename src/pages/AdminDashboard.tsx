@@ -136,6 +136,8 @@ interface DistributionStatusItem {
 interface SubscriptionStatusData {
   subscriptionPaid: boolean;
   isActive: boolean;
+  planId: "starter" | "professional" | "enterprise";
+  planName?: string;
   isTrialActive?: boolean;
   trialEndsAt?: string;
   trialDaysRemaining?: number;
@@ -225,7 +227,9 @@ const AdminDashboard = () => {
 
       if (!subscription.isActive) {
         const hasStarterTrialExpired =
-          !subscription.subscriptionPaid && Boolean(subscription.trialEndsAt);
+          !subscription.subscriptionPaid &&
+          subscription.planId === "starter" &&
+          Boolean(subscription.trialEndsAt);
         toast.error(
           hasStarterTrialExpired
             ? "Your 14-day Starter trial has ended. Please subscribe to continue."
@@ -537,7 +541,9 @@ const AdminDashboard = () => {
         </Button>
       </div>
 
-      {subscriptionStatus?.isTrialActive && subscriptionStatus.trialEndsAt && (
+      {subscriptionStatus?.isTrialActive &&
+        subscriptionStatus.planId === "starter" &&
+        subscriptionStatus.trialEndsAt && (
         <div className="mb-6 rounded-xl border border-warning/30 bg-warning/10 p-4">
           <div className="flex items-start gap-3">
             <AlertTriangle className="mt-0.5 h-5 w-5 text-warning" />

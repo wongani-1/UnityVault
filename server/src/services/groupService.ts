@@ -2,6 +2,7 @@ import type {
   GroupRepository,
   AdminRepository,
 } from "../repositories/interfaces";
+import type { SubscriptionPlanId } from "../config/subscriptionPlans";
 import type { DistributionRepository } from "../repositories/interfaces/distributionRepository";
 import type { Admin, Group, GroupSettings } from "../models/types";
 import { createGroupId, createId } from "../utils/id";
@@ -35,6 +36,7 @@ export class GroupService {
   async createGroup(params: {
     name: string;
     settings: GroupSettings;
+    planId: SubscriptionPlanId;
     admin: { email: string; username: string; password: string; first_name?: string; last_name?: string; phone?: string };
   }) {
     if (!params.name) throw new ApiError("Group name is required");
@@ -71,6 +73,7 @@ export class GroupService {
       createdAt: new Date().toISOString(),
       twoFactorEnabled: false,
       subscriptionPaid: false,
+      currentPlanId: params.planId,
     };
 
     await this.groupRepository.create(group);

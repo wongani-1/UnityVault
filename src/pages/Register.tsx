@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,6 +9,7 @@ import { apiRequest } from "../lib/api";
 import { toast } from "@/components/ui/sonner";
 
 const Register = () => {
+  type SubscriptionPlanId = "starter" | "professional" | "enterprise";
   const [form, setForm] = useState({
     groupName: "",
     adminFirstName: "",
@@ -25,6 +26,23 @@ const Register = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  const selectedPlanParam = searchParams.get("plan");
+  const isValidPlanSelection =
+    selectedPlanParam === "starter" ||
+    selectedPlanParam === "professional" ||
+    selectedPlanParam === "enterprise";
+  const selectedPlan: SubscriptionPlanId =
+    selectedPlanParam === "professional" || selectedPlanParam === "enterprise"
+      ? selectedPlanParam
+      : "starter";
+  const selectedPlanName =
+    selectedPlan === "starter"
+      ? "Starter"
+      : selectedPlan === "professional"
+        ? "Professional"
+        : "Enterprise";
 
   const updateField = (field: string, value: string) =>
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -34,6 +52,11 @@ const Register = () => {
 
   const handleCreateGroup = async () => {
     if (isCreatingGroup) return;
+
+    if (!isValidPlanSelection) {
+      setFormError("Please choose a subscription plan on the pricing section before creating a group.");
+      return;
+    }
 
     const values = Object.values(form).map((value) => value.trim());
     const hasEmpty = values.some((value) => value.length === 0);
@@ -86,6 +109,7 @@ const Register = () => {
         method: "POST",
         body: {
           name: form.groupName,
+          planId: selectedPlan,
           settings,
           admin: {
             email: form.adminEmail,
@@ -157,6 +181,9 @@ const Register = () => {
 
         <Card className="border-0 shadow-elevated">
           <CardHeader className="text-center">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Step 2 of 2
+            </p>
             <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-primary">
               <Users className="h-6 w-6 text-primary-foreground" />
             </div>
@@ -164,6 +191,9 @@ const Register = () => {
             <CardDescription>
               Set up your savings group and become its admin
             </CardDescription>
+            <p className="text-sm text-muted-foreground">
+              Selected plan: {isValidPlanSelection ? selectedPlanName : "Not selected"}
+            </p>
           </CardHeader>
 
           <CardContent>
@@ -315,12 +345,18 @@ const Register = () => {
               <p className="text-center text-sm text-destructive">{formError}</p>
             )}
 
+            {!isValidPlanSelection && (
+              <p className="text-center text-sm text-muted-foreground">
+                Plan not selected. <Link to="/register" className="font-medium text-primary hover:underline">Choose a plan first</Link>.
+              </p>
+            )}
+
             <Button
               variant="hero"
               className="w-full"
               size="lg"
               type="submit"
-              disabled={isCreatingGroup}
+              disabled={isCreatingGroup || !isValidPlanSelection}
             >
               {isCreatingGroup ? (
                 <>

@@ -2,60 +2,7 @@ import { Check } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-
-const tiers = [
-  {
-    name: "Starter",
-    price: "15,000",
-    period: "/month",
-    description: "For small savings groups",
-    features: [
-      "14-day free trial",
-      "Up to 10 members",
-      "Single-group management",
-      "Contribution tracking",
-      "Loan and penalty tracking",
-      "Email notifications",
-    ],
-    cta: "Start 14-Day Trial",
-    variant: "hero-outline" as const,
-    popular: false,
-  },
-  {
-    name: "Professional",
-    price: "45,000",
-    period: "/month",
-    description: "For growing savings groups",
-    features: [
-      "Up to 100 members",
-      "Single-group management",
-      "Advanced contribution workflows",
-      "Automated penalty and loan tracking",
-      "Email notifications",
-      "Exportable audit reports",
-      "Priority support options",
-    ],
-    cta: "Choose Professional",
-    variant: "hero" as const,
-    popular: true,
-    popularLabel: "Most Popular",
-  },
-  {
-    name: "Enterprise",
-    price: "Custom",
-    description: "For SACCOs, organizations, and financial networks",
-    features: [
-      "Unlimited members",
-      "Multi-group management",
-      "Custom pricing and onboarding",
-      "Dedicated support and implementation",
-      "Advanced controls for large deployments",
-    ],
-    cta: "Contact Sales",
-    variant: "hero-outline" as const,
-    popular: false,
-  },
-];
+import { SUBSCRIPTION_PLANS } from "@/lib/subscriptionPlans";
 
 const Pricing = () => {
   return (
@@ -71,7 +18,7 @@ const Pricing = () => {
         </div>
 
         <div className="mx-auto grid max-w-5xl gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {tiers.map((tier, i) => (
+          {SUBSCRIPTION_PLANS.map((tier, i) => (
             <Card
               key={tier.name}
               className={`relative flex flex-col border-0 shadow-card transition-all duration-300 hover:shadow-elevated hover:-translate-y-1 animate-fade-in opacity-0 ${
@@ -92,12 +39,12 @@ const Pricing = () => {
                 <CardTitle className="text-xl">{tier.name}</CardTitle>
                 <CardDescription className="mt-1">{tier.description}</CardDescription>
                 <div className="mt-4">
-                  {tier.price === "Custom" ? (
+                  {tier.price === null ? (
                     <span className="text-2xl font-bold text-foreground sm:text-3xl">Custom</span>
                   ) : (
                     <div className="flex items-baseline justify-center gap-1">
                       <span className="text-sm text-muted-foreground">MWK</span>
-                      <span className="text-4xl font-bold text-foreground">{tier.price}</span>
+                      <span className="text-4xl font-bold text-foreground">{tier.price.toLocaleString()}</span>
                       {tier.period && (
                         <span className="text-sm text-muted-foreground">{tier.period}</span>
                       )}
@@ -114,7 +61,7 @@ const Pricing = () => {
                     </li>
                   ))}
                 </ul>
-                <Link to="/register" className="block">
+                <Link to={`/register/form?plan=${tier.id}`} className="block">
                   <Button variant={tier.variant} size="lg" className="w-full">
                     {tier.cta}
                   </Button>

@@ -9,6 +9,7 @@ import RequireAuth from "./components/auth/RequireAuth";
 const Index = lazy(() => import("./pages/Index"));
 const Login = lazy(() => import("./pages/Login"));
 const Register = lazy(() => import("./pages/Register"));
+const RegisterPlan = lazy(() => import("./pages/RegisterPlan"));
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
 const AdminGroupSetup = lazy(() => import("./pages/AdminGroupSetup"));
 const MemberRegistrationPayment = lazy(() => import("./pages/MemberRegistrationPayment"));
@@ -76,7 +77,8 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/register" element={<Register />} />
+            <Route path="/register" element={<RegisterPlan />} />
+            <Route path="/register/form" element={<Register />} />
             <Route path="/privacy" element={<PrivacyPolicy />} />
             <Route path="/terms" element={<TermsOfService />} />
             <Route path="/cookies" element={<CookiePolicy />} />

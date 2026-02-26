@@ -41,6 +41,7 @@ export type AdminRow = {
   subscription_paid?: boolean;
   subscription_paid_at?: string | null;
   subscription_expires_at?: string | null;
+  current_plan_id?: "starter" | "professional" | "enterprise" | null;
 };
 
 export type MemberRow = {
@@ -220,6 +221,7 @@ export const toAdminRow = (admin: Admin): Record<string, unknown> => ({
   subscription_paid: admin.subscriptionPaid,
   subscription_paid_at: admin.subscriptionPaidAt || null,
   subscription_expires_at: admin.subscriptionExpiresAt || null,
+  current_plan_id: admin.currentPlanId || "starter",
 });
 
 export const toAdminPatch = (patch: Partial<Admin>): Record<string, unknown> => {
@@ -238,6 +240,7 @@ export const toAdminPatch = (patch: Partial<Admin>): Record<string, unknown> => 
   if (patch.subscriptionPaid !== undefined) result.subscription_paid = patch.subscriptionPaid;
   if (patch.subscriptionPaidAt !== undefined) result.subscription_paid_at = patch.subscriptionPaidAt || null;
   if (patch.subscriptionExpiresAt !== undefined) result.subscription_expires_at = patch.subscriptionExpiresAt || null;
+  if (patch.currentPlanId !== undefined) result.current_plan_id = patch.currentPlanId || null;
   
   return result;
 };
@@ -265,6 +268,7 @@ export const fromAdminRow = (row: AdminRow): Admin => {
     subscriptionPaid: row.subscription_paid || false,
     subscriptionPaidAt: row.subscription_paid_at || undefined,
     subscriptionExpiresAt: row.subscription_expires_at || undefined,
+    currentPlanId: row.current_plan_id || "starter",
   };
 };
 

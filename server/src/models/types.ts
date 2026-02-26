@@ -1,3 +1,4 @@
+import type { SubscriptionPlanId } from "../config/subscriptionPlans";
 export type Role = "platform_owner" | "group_admin" | "member";
 export type MemberStatus = "pending" | "active" | "rejected";
 export type NotificationStatus = "pending" | "sent" | "failed";
@@ -63,6 +64,7 @@ export type Admin = {
   subscriptionPaid: boolean;
   subscriptionPaidAt?: string;
   subscriptionExpiresAt?: string;
+  currentPlanId?: SubscriptionPlanId;
 };
 
 export type Member = {
