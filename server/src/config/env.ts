@@ -47,6 +47,8 @@ export const env = {
   email: {
     user: process.env.GMAIL_USER || "",
     pass: process.env.GMAIL_PASS || "",
+    sendgridApiKey: process.env.SENDGRID_API_KEY || "",
+    from: process.env.FROM_EMAIL || "",
   },
   paychangu: {
     mockMode: process.env.PAYCHANGU_MOCK_MODE !== "false",
